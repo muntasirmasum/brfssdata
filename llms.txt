@@ -13,10 +13,11 @@ back either a tibble or a ready-made [srvyr](https://gdfe.co/srvyr/)
 survey-design object with the correct weights, strata, and primary
 sampling units for each survey era.
 
-> **Status:** the package infrastructure is functional; the first data
-> releases are being prepared.
+> **Status:** all 40 available survey years (1985-2024) are published as
+> data releases; 1984 was never distributed as a SAS Transport file by
+> CDC.
 > [`brfss_years()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_years.md)
-> reports which survey years are published at any moment.
+> always reports the currently hosted years.
 
 ## Installation
 
