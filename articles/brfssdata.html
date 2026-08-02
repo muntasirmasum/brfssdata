@@ -172,11 +172,40 @@ straight off the questionnaire. brfssdata always returns CDC’s canonical
 spelling. An underscore-prefixed name is not a syntactic R name, so it
 needs backticks in dplyr code or brackets in base R
 (<code>`_LLCPWT`</code> or <code>dat[["_LLCPWT"]]</code>).</p>
+<p>Keeping CDC’s spelling is deliberate. <code>_EDUCAG</code> is the
+name printed in the codebook, in CDC’s own SAS and Stata examples, and
+in most published BRFSS code, so a column that still carries it can be
+looked up directly. Backticks are accepted everywhere a column name can
+appear, model formulas included, so a model fits straight on CDC’s
+names.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">svyglm</span><span class="op">(</span><span class="va">fairpoor</span> <span class="op">~</span> <span class="va">`_EDUCAG`</span>, design <span class="op">=</span> <span class="va">des</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">quasibinomial</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>If you would rather work in syntactic names throughout,
+<code>janitor::clean_names()</code> converts a whole tibble in one
+step.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/read_brfss.html">read_brfss</a></span><span class="op">(</span><span class="fl">2023</span>, vars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"GENHLTH"</span>, <span class="st">"_EDUCAG"</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">janitor</span><span class="fu">::</span><span class="fu">clean_names</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; columns: genhlth, educag, year</span></span></code></pre></div>
+<p>The underscore is dropped rather than escaped, so
+<code>_EDUCAG</code> becomes <code>educag</code> and no longer matches
+the name you would search for in the codebook. There is a subtler cost
+as well. CDC ships both an underscored and a plain version of eight
+variables, and three of those pairs occupy the same survey years:
+<code>MRACE</code> and <code>_MRACE</code> both run from 2001 through
+2012, <code>CHOLCHK</code> and <code>_CHOLCHK</code> overlap across many
+years between 1991 and 2015, and <code>FLUSHOT</code> and
+<code>_FLUSHOT</code> share 2002 and 2003. Cleaning the names makes each
+pair collide, and <code>clean_names()</code> settles the tie by
+suffixing whichever column happens to come second, so the two arrive as
+<code>mrace</code> and <code>mrace_2</code> with the assignment
+following column order rather than meaning. Check which is which before
+using either.</p>
 <p>Typing uppercase is tedious, so <code>vars</code> is matched
 case-insensitively. The lowercase request below finds
 <code>GENHLTH</code> and the returned column carries the canonical
 name.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="../reference/read_brfss.html">read_brfss</a></span><span class="op">(</span><span class="fl">2023</span>, vars <span class="op">=</span> <span class="st">"genhlth"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "GENHLTH" "year"</span></span></code></pre></div>
 <p>Notice the <code>year</code> column. It is added to every result,
@@ -184,7 +213,7 @@ whether or not you ask for it, so a tibble always knows which survey
 year each row came from.</p>
 <p>A name that matches nothing raises an error rather than silently
 returning fewer columns than you asked for.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/read_brfss.html">read_brfss</a></span><span class="op">(</span><span class="fl">2023</span>, vars <span class="op">=</span> <span class="st">"SMOKING"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;"> in `read_brfss()`:</span></span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> Variable <span style="color: #0000BB;">"SMOKING"</span> was not found in the requested years.</span></span>
@@ -198,7 +227,7 @@ returning fewer columns than you asked for.</p>
 data releases and reports the published survey years. The manifest is
 cached and refreshed at most once a day, and <code>refresh = TRUE</code>
 forces a fresh copy.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/brfss_years.html">brfss_years</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt;  [1] 1985 1986 1987 1988 1989 1990 1991 1992 1993 1994 1995 1996 1997 1998 1999</span></span>
 <span><span class="co">#&gt; [16] 2000 2001 2002 2003 2004 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014</span></span>
@@ -220,7 +249,7 @@ is <code>_DRNKWK1</code> in 2019 to 2021, <code>_DRNKWK2</code> in 2022
 and 2023, and <code>_DRNKWK3</code> in 2024, with a change in definition
 at each rename. Asking for the first two across 2021 to 2023 shows where
 one gives way to the other.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">drinks</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_brfss.html">read_brfss</a></span><span class="op">(</span><span class="fl">2021</span><span class="op">:</span><span class="fl">2023</span>, vars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"_DRNKWK1"</span>, <span class="st">"_DRNKWK2"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">drinks</span> <span class="op">|&gt;</span></span>
@@ -249,7 +278,7 @@ columns and stay out of the way.</p>
 <code><a href="../reference/brfss_vars.html">brfss_vars()</a></code> matches a regular expression,
 case-insensitively, against both variable names and their labels, and
 reports the years each match appears in.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/brfss_vars.html">brfss_vars</a></span><span class="op">(</span><span class="st">"smok"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 96 × 3</span></span></span>
 <span><span class="co">#&gt;    variable label                                    years    </span></span>
@@ -276,7 +305,7 @@ the same question under a new name.</p>
 catalog, which holds 2,128 distinct variables across the forty years.
 Restricting to particular years narrows the search, and the result here
 shows the rename pattern plainly.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/brfss_vars.html">brfss_vars</a></span><span class="op">(</span><span class="st">"binge"</span>, years <span class="op">=</span> <span class="fl">2021</span><span class="op">:</span><span class="fl">2023</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 3 × 3</span></span></span>
 <span><span class="co">#&gt;   variable label                              years    </span></span>
@@ -295,7 +324,7 @@ item, <code>DRNK3GE5</code>, kept its name across all three years.</p>
 <p>BRFSS answers are numeric codes, and the meaning of each code lives
 in CDC’s SAS format libraries. <code><a href="../reference/brfss_labels.html">brfss_labels()</a></code> exposes those
 as a plain table with one row per year, variable, and code.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/brfss_labels.html">brfss_labels</a></span><span class="op">(</span><span class="st">"GENHLTH"</span>, years <span class="op">=</span> <span class="fl">2023</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 7 × 5</span></span></span>
 <span><span class="co">#&gt;    year variable  code label              complete</span></span>
@@ -309,7 +338,7 @@ as a plain table with one row per year, variable, and code.</p>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">7</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      5 Poor               TRUE</span></span></code></pre></div>
 <p>Setting <code>labels = TRUE</code> on a read converts eligible
 variables to factors using those maps.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/read_brfss.html">read_brfss</a></span><span class="op">(</span><span class="fl">2023</span>, vars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"GENHLTH"</span>, <span class="st">"SEXVAR"</span><span class="op">)</span>, labels <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 433,323 × 3</span></span></span>
 <span><span class="co">#&gt;    GENHLTH   SEXVAR  year</span></span>
@@ -331,7 +360,7 @@ any other, so the <code>GENHLTH</code> above has seven levels rather
 than five. Set them to <code>NA</code> before treating a labeled
 variable as ordinal, or the two missing-data codes will sit at the
 bottom of the scale as though they were health states.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">missing_codes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Dont know/Not Sure"</span>, <span class="st">"Refused"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/read_brfss.html">read_brfss</a></span><span class="op">(</span><span class="fl">2023</span>, vars <span class="op">=</span> <span class="st">"GENHLTH"</span>, labels <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">|&gt;</span></span>
@@ -359,7 +388,7 @@ label catalog marks the formats that meet the first condition.
 <code>PHYSHLTH</code> is a good counterexample: its format documents
 only the special codes, because the substantive values are a count of
 days.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/brfss_labels.html">brfss_labels</a></span><span class="op">(</span><span class="st">"PHYSHLTH"</span>, years <span class="op">=</span> <span class="fl">2023</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 3 × 5</span></span></span>
 <span><span class="co">#&gt;    year variable  code label              complete</span></span>
@@ -384,7 +413,7 @@ codes.</p>
 <p>Every download lands in a per-user cache directory, resolved through
 <code><a href="https://rdrr.io/r/tools/userdir.html" class="external-link">tools::R_user_dir()</a></code>. You can see where it is and what is in
 it.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/brfss_cache_dir.html">brfss_cache_dir</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "/home/runner/.cache/R/brfssdata"</span></span>
 <span><span class="fu"><a href="../reference/brfss_cache_dir.html">brfss_cache_info</a></span><span class="op">(</span><span class="op">)</span></span>
@@ -402,7 +431,7 @@ is available with no network at all. Setting
 <code>download = FALSE</code> makes that explicit: cached years are read
 normally, and a request for a year you do not have fails with a clear
 message instead of reaching for the network.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="fu"><a href="../reference/read_brfss.html">read_brfss</a></span><span class="op">(</span><span class="fl">2023</span>, vars <span class="op">=</span> <span class="st">"GENHLTH"</span>, download <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 433323</span></span></code></pre></div>
 <p>This is the setting to use on a compute cluster without outbound
@@ -413,7 +442,7 @@ copy the directory across, and point
 <p><code><a href="../reference/brfss_cache_dir.html">brfss_cache_clear()</a></code> empties the cache when called with
 no arguments, and removes only the years you name when you give it
 some.</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/brfss_cache_dir.html">brfss_cache_clear</a></span><span class="op">(</span><span class="fl">2021</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/brfss_cache_dir.html">brfss_cache_clear</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -426,7 +455,7 @@ it are wrong in both the point estimate and the standard error.
 with the sampling weight, strata (<code>_STSTR</code>), and primary
 sampling units (<code>_PSU</code>) already applied, so you can move
 straight to analysis.</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://gdfe.co/srvyr/" class="external-link">srvyr</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/brfss_design.html">brfss_design</a></span><span class="op">(</span><span class="fl">2023</span>, vars <span class="op">=</span> <span class="st">"GENHLTH"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
@@ -469,7 +498,7 @@ comparisons with data collected before 2011, and to begin new trend
 lines with that year. <code><a href="../reference/brfss_design.html">brfss_design()</a></code> enforces the advice
 rather than burying it in a help page, so a request spanning the
 boundary fails.</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/brfss_design.html">brfss_design</a></span><span class="op">(</span><span class="fl">2009</span><span class="op">:</span><span class="fl">2013</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;"> in `brfss_design()`:</span></span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> Years 2009-2013 span the 2011 BRFSS redesign.</span></span>
@@ -478,7 +507,7 @@ boundary fails.</p>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Analyze the eras separately, or set `allow_break = TRUE` to pool anyway.</span></span></code></pre></div>
 <p>If you have a considered reason to pool across it, opt in explicitly
 and the call proceeds with a warning.</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/brfss_design.html">brfss_design</a></span><span class="op">(</span><span class="fl">2009</span><span class="op">:</span><span class="fl">2013</span>, allow_break <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 <p>Two articles carry this further. <a href="https://muntasirmasum.github.io/brfssdata/articles/survey-design.html">Survey
 design in BRFSS</a> works through weights, strata, single-PSU handling,
@@ -503,7 +532,7 @@ the data outside R</a> covers each route.</p>
 </h2>
 <p>The package and the survey data are cited separately, and both
 entries come back from one call.</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/citation.html" class="external-link">citation</a></span><span class="op">(</span><span class="st">"brfssdata"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; To cite brfssdata in publications, cite the package itself. Analyses of</span></span>
 <span><span class="co">#&gt; the underlying survey data should also cite CDC's BRFSS for the survey</span></span>

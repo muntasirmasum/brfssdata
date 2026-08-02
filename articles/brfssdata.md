@@ -108,6 +108,39 @@ returns CDC’s canonical spelling. An underscore-prefixed name is not a
 syntactic R name, so it needs backticks in dplyr code or brackets in
 base R (`` `_LLCPWT` `` or `dat[["_LLCPWT"]]`).
 
+Keeping CDC’s spelling is deliberate. `_EDUCAG` is the name printed in
+the codebook, in CDC’s own SAS and Stata examples, and in most published
+BRFSS code, so a column that still carries it can be looked up directly.
+Backticks are accepted everywhere a column name can appear, model
+formulas included, so a model fits straight on CDC’s names.
+
+``` r
+
+svyglm(fairpoor ~ `_EDUCAG`, design = des, family = quasibinomial())
+```
+
+If you would rather work in syntactic names throughout,
+`janitor::clean_names()` converts a whole tibble in one step.
+
+``` r
+
+read_brfss(2023, vars = c("GENHLTH", "_EDUCAG")) |>
+  janitor::clean_names()
+#> columns: genhlth, educag, year
+```
+
+The underscore is dropped rather than escaped, so `_EDUCAG` becomes
+`educag` and no longer matches the name you would search for in the
+codebook. There is a subtler cost as well. CDC ships both an underscored
+and a plain version of eight variables, and three of those pairs occupy
+the same survey years: `MRACE` and `_MRACE` both run from 2001 through
+2012, `CHOLCHK` and `_CHOLCHK` overlap across many years between 1991
+and 2015, and `FLUSHOT` and `_FLUSHOT` share 2002 and 2003. Cleaning the
+names makes each pair collide, and `clean_names()` settles the tie by
+suffixing whichever column happens to come second, so the two arrive as
+`mrace` and `mrace_2` with the assignment following column order rather
+than meaning. Check which is which before using either.
+
 Typing uppercase is tedious, so `vars` is matched case-insensitively.
 The lowercase request below finds `GENHLTH` and the returned column
 carries the canonical name.
