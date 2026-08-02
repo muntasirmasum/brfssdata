@@ -45,23 +45,13 @@ labels_catalog <- function(
   quiet = TRUE,
   call = rlang::caller_env()
 ) {
-  path <- cache_path("brfss_labels.parquet")
-  if (!file.exists(path)) {
-    if (!download) {
-      cli::cli_abort(
-        "The label catalog is not cached and {.code download = FALSE}
-         was set.",
-        class = "brfssdata_not_cached",
-        call = call
-      )
-    }
-    download_to_cache(
-      release_url("data-meta", "brfss_labels.parquet"),
-      path,
-      quiet = quiet,
-      call = call
-    )
-  }
+  path <- ensure_catalog_cached(
+    "brfss_labels.parquet",
+    what = "label catalog",
+    download = download,
+    quiet = quiet,
+    call = call
+  )
   query_parquet(path)
 }
 

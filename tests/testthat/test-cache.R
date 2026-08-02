@@ -32,23 +32,44 @@ test_that("cache info lists files with parsed years", {
 
 test_that("cache clear removes only the requested years", {
   local_brfss_cache(c(2022, 2023))
-  brfss_cache_clear(years = 2022)
+  suppressMessages(brfss_cache_clear(years = 2022))
   info <- brfss_cache_info()
   expect_false("brfss_2022.parquet" %in% info$file)
   expect_true("brfss_2023.parquet" %in% info$file)
 
-  brfss_cache_clear()
+  suppressMessages(brfss_cache_clear())
+  info <- brfss_cache_info()
+  expect_false(any(!is.na(info$year)))
+  # The metadata survives a data clear, so offline brfss_vars() and
+  # brfss_labels() keep working.
+  expect_true("manifest.json" %in% info$file)
+
+  suppressMessages(brfss_cache_clear(catalogs = TRUE))
   expect_identical(nrow(brfss_cache_info()), 0L)
 })
 
-# These are the only tests that call the real download_to_cache(), so
-# every URL here must stay on the local filesystem. A future edit that
-# changed one to http:// would reach the network from a CRAN machine,
-# which is why each is asserted to be a file:// URL before it is used.
-local_file_url <- function(path) {
-  expect_match(path, "^file://")
-  path
-}
+test_that("catalogs can be cleared without touching data years", {
+  local_brfss_cache(2023, catalog = TRUE)
+  suppressMessages(brfss_cache_clear(years = integer(0), catalogs = TRUE))
+  info <- brfss_cache_info()
+  expect_true("brfss_2023.parquet" %in% info$file)
+  expect_false("brfss_variables.parquet" %in% info$file)
+  expect_false("manifest.json" %in% info$file)
+})
+
+test_that("foreign files in the cache dir are never deleted", {
+  dir <- local_brfss_cache(2023)
+  foreign <- file.path(dir, "notes.txt")
+  writeLines("mine", foreign)
+  suppressMessages(brfss_cache_clear(catalogs = TRUE))
+  expect_true(file.exists(foreign))
+})
+
+test_that("cache clear reports what it removed, and when there is nothing", {
+  local_brfss_cache(2023)
+  expect_message(brfss_cache_clear(), class = "brfssdata_cache_note")
+  expect_message(brfss_cache_clear(), class = "brfssdata_cache_note")
+})
 
 test_that("failed downloads raise a classed error and leave no debris", {
   dir <- withr::local_tempdir()

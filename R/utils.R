@@ -123,6 +123,13 @@ query_parquet <- function(paths, vars = NULL, call = rlang::caller_env()) {
   con <- duckdb_connect()
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
 
+  run <- function(sql) {
+    tryCatch(
+      DBI::dbGetQuery(con, sql),
+      error = function(e) abort_corrupt_or_rethrow(e, paths, con, call)
+    )
+  }
+
   files_sql <- paste0(
     "[",
     paste(quote_literal(paths), collapse = ", "),
@@ -131,10 +138,7 @@ query_parquet <- function(paths, vars = NULL, call = rlang::caller_env()) {
   from_sql <- sprintf("read_parquet(%s, union_by_name = true)", files_sql)
 
   if (!is.null(vars)) {
-    schema <- DBI::dbGetQuery(
-      con,
-      sprintf("DESCRIBE SELECT * FROM %s", from_sql)
-    )
+    schema <- run(sprintf("DESCRIBE SELECT * FROM %s", from_sql))
     vars <- match_vars_ci(vars, schema$column_name)
     unknown <- setdiff(vars, schema$column_name)
     if (length(unknown) > 0) {
@@ -155,9 +159,63 @@ query_parquet <- function(paths, vars = NULL, call = rlang::caller_env()) {
     select_sql <- "*"
   }
 
-  out <- DBI::dbGetQuery(
-    con,
-    sprintf("SELECT %s FROM %s", select_sql, from_sql)
-  )
+  out <- run(sprintf("SELECT %s FROM %s", select_sql, from_sql))
   tibble::as_tibble(out)
+}
+
+# A DuckDB failure over local parquet is usually a corrupted cached
+# file. Probe each file individually to name the culprit; when none
+# reproduces the failure (a genuine query error), rethrow the original
+# untouched. Deliberately no auto-delete: an error over a multi-file
+# union cannot always be attributed safely, and deleting user cache on a
+# guess risks destroying good data.
+abort_corrupt_or_rethrow <- function(e, paths, con, call) {
+  readable <- vapply(
+    paths,
+    function(path) {
+      tryCatch(
+        {
+          # The hash aggregate forces a full scan of every column inside
+          # DuckDB (count(*) would read only the intact footer metadata
+          # and miss corrupted data pages) without materializing the
+          # file into R.
+          DBI::dbGetQuery(
+            con,
+            sprintf(
+              "SELECT sum(hash(t)) FROM read_parquet(%s) t",
+              quote_literal(path)
+            )
+          )
+          TRUE
+        },
+        error = function(...) FALSE
+      )
+    },
+    logical(1)
+  )
+  bad <- basename(paths[!readable])
+  if (length(bad) == 0) {
+    stop(e)
+  }
+  bad_years <- cached_file_year(bad)
+  bad_years <- bad_years[!is.na(bad_years)]
+  why <- conditionMessage(e)
+  remedy <- if (length(bad_years) > 0) {
+    "Run {.code brfss_cache_clear(years = c({paste(bad_years,
+     collapse = ', ')}))}; the next read re-downloads with checksum
+     verification."
+  } else {
+    "Remove {.file {bad}} from {.path {brfss_cache_dir()}} and it will
+     be re-fetched."
+  }
+  cli::cli_abort(
+    c(
+      "Cached file{?s} {.file {bad}} {?is/are} unreadable, likely a
+       corrupted or truncated download.",
+      "x" = "{why}",
+      "i" = remedy
+    ),
+    class = "brfssdata_corrupt_cache",
+    call = call
+  )
 }

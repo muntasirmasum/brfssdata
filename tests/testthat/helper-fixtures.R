@@ -111,6 +111,15 @@ guard_network <- function(env) {
   )
 }
 
+# The tests that call the real download_to_cache() must stay on the
+# local filesystem. A future edit that changed one to http:// would
+# reach the network from a CRAN machine, so every such URL is asserted
+# to be file:// before it is used.
+local_file_url <- function(path) {
+  testthat::expect_match(path, "^file://")
+  path
+}
+
 # Clear the manifest failure memo for the test and restore whatever was
 # there before when the test ends. Without the restore, a test that
 # drives last_failure would leave the memo set in the session that ran

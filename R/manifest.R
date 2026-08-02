@@ -135,6 +135,21 @@ parse_manifest <- function(path) {
   out
 }
 
+# Catalog freshness memo, kept inside manifest_state so the test
+# helpers' save/clear/restore scoping covers it automatically.
+catalog_check_due <- function(asset) {
+  checked <- manifest_state$catalog_checked[[asset]]
+  is.null(checked) ||
+    difftime(Sys.time(), checked, units = "secs") >= MANIFEST_MAX_AGE
+}
+
+catalog_checked <- function(asset) {
+  memo <- manifest_state$catalog_checked %||% list()
+  memo[[asset]] <- Sys.time()
+  manifest_state$catalog_checked <- memo
+  invisible()
+}
+
 manifest_sha256 <- function(asset, manifest = read_manifest_cached()) {
   entry <- manifest$files[[asset]]
   if (is.null(entry)) NULL else entry$sha256

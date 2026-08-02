@@ -27,21 +27,12 @@ brfss_vars <- function(
   download = TRUE,
   quiet = TRUE
 ) {
-  path <- cache_path("brfss_variables.parquet")
-  if (!file.exists(path)) {
-    if (!download) {
-      cli::cli_abort(
-        "The variable catalog is not cached and {.code download = FALSE}
-         was set.",
-        class = "brfssdata_not_cached"
-      )
-    }
-    download_to_cache(
-      release_url("data-meta", "brfss_variables.parquet"),
-      path,
-      quiet = quiet
-    )
-  }
+  path <- ensure_catalog_cached(
+    "brfss_variables.parquet",
+    what = "variable catalog",
+    download = download,
+    quiet = quiet
+  )
 
   catalog <- query_parquet(path)
 

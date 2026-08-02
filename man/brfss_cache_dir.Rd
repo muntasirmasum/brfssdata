@@ -10,15 +10,19 @@ brfss_cache_dir()
 
 brfss_cache_info()
 
-brfss_cache_clear(years = NULL)
+brfss_cache_clear(years = NULL, catalogs = FALSE)
 }
 \arguments{
 \item{years}{Optional integer vector. If supplied to
-\code{brfss_cache_clear()}, only those survey years are removed.}
+\code{brfss_cache_clear()}, only those survey years are removed;
+\code{integer(0)} removes none (useful with \code{catalogs = TRUE}).}
+
+\item{catalogs}{If \code{TRUE}, \code{brfss_cache_clear()} also removes the
+manifest and the variable and label catalogs.}
 }
 \value{
 \code{brfss_cache_dir()} returns a path (character). \code{brfss_cache_info()}
-returns a tibble with columns \code{file}, \code{year}, and \code{size}.
+returns a tibble with columns \code{file}, \code{year}, and \code{size} (bytes).
 \code{brfss_cache_clear()} returns, invisibly, the paths it removed.
 }
 \description{
@@ -29,8 +33,13 @@ location follows \code{\link[tools:R_user_dir]{tools::R_user_dir()}} and can be 
 environment variable.
 \itemize{
 \item \code{brfss_cache_dir()} returns the cache directory path.
-\item \code{brfss_cache_info()} lists cached files with their sizes.
-\item \code{brfss_cache_clear()} deletes cached files, all years by default.
+\item \code{brfss_cache_info()} lists cached files with their sizes. Rows with
+\code{year = NA} are the metadata files (the manifest and the variable
+and label catalogs), not survey years.
+\item \code{brfss_cache_clear()} deletes cached survey years, all of them by
+default, and reports what it removed. The manifest and catalogs are
+kept unless \code{catalogs = TRUE}, so offline use of \code{\link[=brfss_vars]{brfss_vars()}} and
+\code{\link[=brfss_labels]{brfss_labels()}} survives a data-cache clear.
 }
 }
 \examples{

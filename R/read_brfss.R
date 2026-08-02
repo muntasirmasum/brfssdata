@@ -71,8 +71,39 @@ ensure_years_cached <- function(
   quiet = FALSE,
   call = rlang::caller_env()
 ) {
-  paths <- cache_path(year_asset(years))
-  missing <- years[!file.exists(paths)]
+  assets <- year_asset(years)
+  paths <- cache_path(assets)
+  present <- file.exists(paths)
+
+  # The passive read keeps a fully cached request offline; the manifest
+  # on disk is already fresh whenever a download is about to happen,
+  # because validate_years() consulted brfss_years() on that path.
+  manifest <- read_manifest_cached()
+
+  # Self-heal: a cached file whose size disagrees with the manifest is a
+  # truncated download from before checksum verification existed, or a
+  # damaged cache restore. Treat it as missing so it re-downloads
+  # verified. Only sizes are compared here; hashing every cached year on
+  # every read would be slow, and full verification happens at download
+  # time. Skipped under download = FALSE, which must not delete files it
+  # cannot replace.
+  if (download && any(present)) {
+    expected <- vapply(assets, manifest_size, numeric(1), manifest = manifest)
+    damaged <- present & !is.na(expected) & file.size(paths) != expected
+    if (any(damaged)) {
+      if (!quiet) {
+        cli::cli_inform(
+          "Cached file{?s} {.file {assets[damaged]}} {?has/have} an
+           unexpected size; re-downloading.",
+          class = "brfssdata_cache_note"
+        )
+      }
+      unlink(paths[damaged])
+      present[damaged] <- FALSE
+    }
+  }
+
+  missing <- years[!present]
 
   if (length(missing) > 0 && !download) {
     cli::cli_abort(
@@ -86,16 +117,23 @@ ensure_years_cached <- function(
     )
   }
 
-  for (year in missing) {
-    if (!quiet) {
-      cli::cli_inform("Downloading BRFSS {year} (one-time, then cached).")
+  if (length(missing) > 0) {
+    shas <- lapply(year_asset(missing), manifest_sha256, manifest = manifest)
+    unverified <- vapply(shas, is.null, logical(1))
+    note_unverified(year_asset(missing)[unverified], quiet)
+    for (i in seq_along(missing)) {
+      year <- missing[[i]]
+      if (!quiet) {
+        cli::cli_inform("Downloading BRFSS {year} (one-time, then cached).")
+      }
+      download_to_cache(
+        year_url(year),
+        cache_path(year_asset(year)),
+        quiet = quiet,
+        expected_sha256 = shas[[i]],
+        call = call
+      )
     }
-    download_to_cache(
-      year_url(year),
-      cache_path(year_asset(year)),
-      quiet = quiet,
-      call = call
-    )
   }
   paths
 }
