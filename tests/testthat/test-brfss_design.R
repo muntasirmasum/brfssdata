@@ -193,9 +193,11 @@ test_that("the clustering branch follows the file", {
   local_brfss_cache(2023)
   singleton <- brfss_design(2023, quiet = TRUE)
   # survey stores an unclustered design's ids as row numbers and a
-  # clustered one's as the stratum-by-PSU interaction, so the class of
-  # the cluster column says which branch ran.
-  expect_type(singleton$cluster[[1]], "integer")
+  # clustered one's as the stratum-by-PSU interaction, so whether the
+  # cluster column is a factor says which branch ran. Test that rather
+  # than typeof(), which reports "integer" for a factor too.
+  expect_false(is.factor(singleton$cluster[[1]]))
+  expect_identical(singleton$cluster[[1]], seq_len(nrow(singleton$variables)))
 
   local_brfss_cache(2023, psu_size = 3)
   clustered <- brfss_design(2023, quiet = TRUE)

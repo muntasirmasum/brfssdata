@@ -235,7 +235,6 @@ brfss_design <- function(
       ids = NULL,
       strata = brfss_strata,
       weights = brfss_wt,
-      check_strata = FALSE
     )
   } else {
     srvyr::as_survey_design(
