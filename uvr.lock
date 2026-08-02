@@ -1134,6 +1134,39 @@ requires = [
 ]
 
 [[package]]
+name = "rematch"
+version = "2.0.0"
+source = "cran"
+raw_version = "2.0.0"
+url = "https://cran.r-project.org/src/contrib/rematch_2.0.0.tar.gz"
+checksum = "md5:64ad138fd1cec37d50683cbf2958e47b"
+
+[[package]]
+name = "rhub"
+version = "2.0.1"
+source = "cran"
+raw_version = "2.0.1"
+url = "https://cran.r-project.org/src/contrib/rhub_2.0.1.tar.gz"
+checksum = "md5:b757f3f08dd945c460c6f77312e94da1"
+requires = [
+    "callr",
+    "cli",
+    "curl",
+    "desc",
+    "gert",
+    "glue",
+    "gitcreds",
+    "jsonlite",
+    "pkgbuild",
+    "processx",
+    "rappdirs",
+    "rematch",
+    "R6",
+    "rprojroot",
+    "whoami",
+]
+
+[[package]]
 name = "rlang"
 version = "1.3.0"
 source = "cran"
@@ -1684,6 +1717,18 @@ source = "cran"
 raw_version = "0.4.1"
 url = "https://cran.r-project.org/src/contrib/whisker_0.4.1.tar.gz"
 checksum = "md5:eda4d778ea813e892c86511d355ee26c"
+
+[[package]]
+name = "whoami"
+version = "1.3.0"
+source = "cran"
+raw_version = "1.3.0"
+url = "https://cran.r-project.org/src/contrib/whoami_1.3.0.tar.gz"
+checksum = "md5:b7514ed03127ef65876cd439f66767bb"
+requires = [
+    "httr",
+    "jsonlite",
+]
 
 [[package]]
 name = "withr"
