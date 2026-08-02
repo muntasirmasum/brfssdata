@@ -1,0 +1,43 @@
+uvr: library linked (139 packages)
+UPLOAD FAILED 1985: upload of brfss_1985.parquet to data-1985 failed verification; not advertising it
+UPLOAD FAILED 1986: upload of brfss_1986.parquet to data-1986 failed verification; not advertising it
+UPLOAD FAILED 1987: upload of brfss_1987.parquet to data-1987 failed verification; not advertising it
+UPLOAD FAILED 1988: upload of brfss_1988.parquet to data-1988 failed verification; not advertising it
+UPLOAD FAILED 1989: upload of brfss_1989.parquet to data-1989 failed verification; not advertising it
+UPLOAD FAILED 1990: upload of brfss_1990.parquet to data-1990 failed verification; not advertising it
+UPLOAD FAILED 1991: upload of brfss_1991.parquet to data-1991 failed verification; not advertising it
+UPLOAD FAILED 1992: upload of brfss_1992.parquet to data-1992 failed verification; not advertising it
+UPLOAD FAILED 1993: upload of brfss_1993.parquet to data-1993 failed verification; not advertising it
+UPLOAD FAILED 1994: upload of brfss_1994.parquet to data-1994 failed verification; not advertising it
+UPLOAD FAILED 1995: upload of brfss_1995.parquet to data-1995 failed verification; not advertising it
+UPLOAD FAILED 1996: upload of brfss_1996.parquet to data-1996 failed verification; not advertising it
+UPLOAD FAILED 1997: upload of brfss_1997.parquet to data-1997 failed verification; not advertising it
+UPLOAD FAILED 1998: upload of brfss_1998.parquet to data-1998 failed verification; not advertising it
+UPLOAD FAILED 1999: upload of brfss_1999.parquet to data-1999 failed verification; not advertising it
+UPLOAD FAILED 2000: upload of brfss_2000.parquet to data-2000 failed verification; not advertising it
+UPLOAD FAILED 2001: upload of brfss_2001.parquet to data-2001 failed verification; not advertising it
+UPLOAD FAILED 2002: upload of brfss_2002.parquet to data-2002 failed verification; not advertising it
+UPLOAD FAILED 2003: upload of brfss_2003.parquet to data-2003 failed verification; not advertising it
+UPLOAD FAILED 2004: upload of brfss_2004.parquet to data-2004 failed verification; not advertising it
+UPLOAD FAILED 2005: upload of brfss_2005.parquet to data-2005 failed verification; not advertising it
+UPLOAD FAILED 2006: upload of brfss_2006.parquet to data-2006 failed verification; not advertising it
+UPLOAD FAILED 2007: upload of brfss_2007.parquet to data-2007 failed verification; not advertising it
+UPLOAD FAILED 2008: upload of brfss_2008.parquet to data-2008 failed verification; not advertising it
+UPLOAD FAILED 2009: upload of brfss_2009.parquet to data-2009 failed verification; not advertising it
+UPLOAD FAILED 2010: upload of brfss_2010.parquet to data-2010 failed verification; not advertising it
+published data-2011
+published data-2012
+published data-2013
+published data-2014
+published data-2015
+published data-2016
+published data-2017
+published data-2018
+published data-2019
+published data-2020
+published data-2021
+published data-2022
+published data-2023
+published data-2024
+Error: upload of brfss_variables.parquet to data-meta failed verification; not advertising it
+Execution halted

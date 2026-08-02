@@ -26,7 +26,11 @@ build_year <- function(year, overwrite = FALSE) {
   exdir <- file.path(tempdir(), paste0("brfss_xpt_", year))
   unlink(exdir, recursive = TRUE)
   utils::unzip(zip, exdir = exdir)
-  xpt <- list.files(exdir, pattern = "(?i)\\.xpt[[:space:]]*$", full.names = TRUE)
+  xpt <- list.files(
+    exdir,
+    pattern = "(?i)\\.xpt[[:space:]]*$",
+    full.names = TRUE
+  )
   stopifnot(length(xpt) == 1)
 
   message(year, ": reading XPT")
@@ -37,6 +41,10 @@ build_year <- function(year, overwrite = FALSE) {
   dat <- as.data.frame(
     lapply(dat, function(x) {
       attr(x, "format.sas") <- NULL
+      if (is.character(x)) {
+        # Legacy files carry Windows-1252 bytes that break UTF-8 parquet.
+        x <- iconv(x, "CP1252", "UTF-8", sub = "byte")
+      }
       x
     }),
     check.names = FALSE
@@ -51,8 +59,11 @@ build_year <- function(year, overwrite = FALSE) {
     stopifnot(nrow(dat) == target[1])
     if (ncol(dat) != target[2] + 1L) {
       message(
-        year, ": note - XPT has ", ncol(dat) - 1L,
-        " variables vs CDC page claim ", target[2]
+        year,
+        ": note - XPT has ",
+        ncol(dat) - 1L,
+        " variables vs CDC page claim ",
+        target[2]
       )
     }
   }

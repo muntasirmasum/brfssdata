@@ -6,6 +6,10 @@
 out_dir <- "data-raw/parquet"
 repo <- "muntasirmasum/brfssdata"
 
+# piggyback memoizes GitHub API reads for 10 minutes by default, which
+# makes releases created moments ago invisible to the upload step.
+Sys.setenv("piggyback_cache_duration" = "1")
+
 sha256_file <- function(path) {
   sums <- file.path(paste0(path, ".sha256"))
   writeLines(
@@ -15,29 +19,57 @@ sha256_file <- function(path) {
   sums
 }
 
-release_exists <- function(tag) {
-  # pb_list() does not error for a missing tag, so test tag membership
-  # directly; genuine API/auth failures should propagate loudly.
-  rel <- piggyback::pb_releases(repo = repo, verbose = FALSE)
-  isTRUE(tag %in% rel$tag_name)
+release_info <- function(tag) {
+  # A 404 means the release does not exist yet; anything else (auth,
+  # rate limit) should propagate loudly.
+  tryCatch(
+    gh::gh(paste0("GET /repos/", repo, "/releases/tags/", tag)),
+    http_error_404 = function(e) NULL
+  )
 }
 
-# pb_upload() only warns on HTTP failure (and only when interactive), so
-# verify every upload by listing the release assets afterwards.
-upload_verified <- function(path, tag) {
-  piggyback::pb_upload(path, repo = repo, tag = tag)
-  listed <- piggyback::pb_list(repo = repo, tag = tag)$file_name
-  if (!basename(path) %in% listed) {
-    stop(
-      "upload of ",
-      basename(path),
-      " to ",
-      tag,
-      " failed verification; not advertising it",
-      call. = FALSE
-    )
+release_exists <- function(tag) {
+  !is.null(release_info(tag))
+}
+
+release_assets <- function(tag) {
+  rel <- release_info(tag)
+  if (is.null(rel) || length(rel$assets) == 0) {
+    return(character(0))
   }
-  invisible(path)
+  vapply(rel$assets, function(a) a$name, character(1))
+}
+
+# Uploads go through the gh CLI: piggyback 0.1.5 memoizes its release
+# listings so aggressively that releases created moments earlier are
+# invisible to pb_upload. Verification reads the GitHub API directly.
+# Assets already present are not re-uploaded.
+upload_verified <- function(path, tag) {
+  if (!basename(path) %in% release_assets(tag)) {
+    status <- system2(
+      "gh",
+      c("release", "upload", tag, path, "--repo", repo, "--clobber")
+    )
+    if (status != 0) {
+      stop("gh release upload failed for ", basename(path), call. = FALSE)
+    }
+  }
+  # The releases endpoint can serve stale reads for a few seconds after
+  # an upload; verify with retries before declaring failure.
+  for (i in 1:6) {
+    if (basename(path) %in% release_assets(tag)) {
+      return(invisible(path))
+    }
+    Sys.sleep(2)
+  }
+  stop(
+    "upload of ",
+    basename(path),
+    " to ",
+    tag,
+    " failed verification; not advertising it",
+    call. = FALSE
+  )
 }
 
 publish_year <- function(year) {

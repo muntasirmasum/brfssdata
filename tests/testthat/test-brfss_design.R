@@ -74,6 +74,37 @@ test_that("missing design variables abort with a classed error", {
   )
 })
 
+test_that("single-PSU strata estimate without error (lonely-PSU handling)", {
+  dir <- local_brfss_cache(integer(0))
+  df <- data.frame(
+    year = 2023L,
+    psu = 1:5,
+    ststr = c(1L, 1L, 2L, 2L, 3L), # stratum 3 has a single PSU
+    wt = c(120, 250, 310, 150, 200),
+    GENHLTH = c(1L, 2L, 1L, 2L, 1L),
+    check.names = FALSE
+  )
+  names(df) <- c("year", "_PSU", "_STSTR", "_LLCPWT", "GENHLTH")
+  write_fixture_parquet(df, file.path(dir, "brfss_2023.parquet"))
+  writeLines('{"years": [2023]}', file.path(dir, "manifest.json"))
+
+  withr::local_options(survey.lonely.psu = NULL)
+  des <- brfss_design(2023, quiet = TRUE)
+  est <- srvyr::summarize(
+    des,
+    m = srvyr::survey_mean(GENHLTH == 1, na.rm = TRUE)
+  )
+  expect_true(is.finite(est$m_se))
+  expect_identical(getOption("survey.lonely.psu"), "adjust")
+})
+
+test_that("a user-chosen lonely-PSU option is respected", {
+  local_brfss_cache(2023)
+  withr::local_options(survey.lonely.psu = "certainty")
+  des <- brfss_design(2023, quiet = TRUE)
+  expect_identical(getOption("survey.lonely.psu"), "certainty")
+})
+
 test_that("missing weights abort rather than silently degrade", {
   dir <- local_brfss_cache(integer(0))
   df <- data.frame(

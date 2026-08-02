@@ -57,6 +57,12 @@ years (\code{pool_weights = TRUE}, the default) so that pooled estimates
 represent an average year rather than a sum of populations, and the
 variance strata become the year-by-stratum interaction, treating each
 annual survey as an independent sample.
+
+Because BRFSS public-use files make each respondent their own primary
+sampling unit, single-PSU strata are common and would make variance
+estimation fail. If \code{options(survey.lonely.psu)} is unset, this
+function sets it to \code{"adjust"} (standard BRFSS practice) and says so
+once per session; an option you set yourself is always respected.
 }
 \examples{
 \dontshow{if (interactive()) withAutoprint(\{ # examplesIf}

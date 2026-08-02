@@ -19,6 +19,12 @@
 #' variance strata become the year-by-stratum interaction, treating each
 #' annual survey as an independent sample.
 #'
+#' Because BRFSS public-use files make each respondent their own primary
+#' sampling unit, single-PSU strata are common and would make variance
+#' estimation fail. If `options(survey.lonely.psu)` is unset, this
+#' function sets it to `"adjust"` (standard BRFSS practice) and says so
+#' once per session; an option you set yourself is always respected.
+#'
 #' @inheritParams read_brfss
 #' @param vars Optional character vector of analysis variables to carry
 #'   into the design. Design variables are always included.
@@ -136,6 +142,25 @@ brfss_design <- function(
     paste(dat$year, dat[[DESIGN_STRATA]], sep = "_")
   } else {
     dat[[DESIGN_STRATA]]
+  }
+
+  # BRFSS public-use files make each respondent their own PSU, so small
+  # strata (and most subgroup analyses) contain single-PSU strata that
+  # make variance estimation fail. "adjust" is standard BRFSS practice.
+  # The survey package sets "fail" in .onLoad, so that value is treated
+  # as unset; any other user-chosen value is respected.
+  if (getOption("survey.lonely.psu", "fail") %in% "fail") {
+    options(survey.lonely.psu = "adjust")
+    cli::cli_inform(
+      c(
+        "i" = "Set {.code options(survey.lonely.psu = \"adjust\")} for
+               single-PSU strata (standard BRFSS practice).",
+        "i" = "Set that option yourself before calling
+               {.fun brfss_design} to choose different handling."
+      ),
+      .frequency = "once",
+      .frequency_id = "brfssdata_lonely_psu"
+    )
   }
 
   srvyr::as_survey_design(

@@ -14,7 +14,11 @@ catalog_year <- function(year) {
   unlink(exdir, recursive = TRUE)
   utils::unzip(zip, exdir = exdir)
   on.exit(unlink(exdir, recursive = TRUE), add = TRUE)
-  xpt <- list.files(exdir, pattern = "(?i)\\.xpt[[:space:]]*$", full.names = TRUE)
+  xpt <- list.files(
+    exdir,
+    pattern = "(?i)\\.xpt[[:space:]]*$",
+    full.names = TRUE
+  )
   stopifnot(length(xpt) == 1)
 
   dat <- haven::read_xpt(xpt[[1]], n_max = 1)
@@ -23,6 +27,8 @@ catalog_year <- function(year) {
     function(x) attr(x, "label") %||% NA_character_,
     character(1)
   )
+  # SAS labels in older files are Windows-1252; parquet requires UTF-8.
+  labels <- iconv(labels, "CP1252", "UTF-8", sub = "byte")
   data.frame(
     variable = names(dat),
     label = unname(labels),
