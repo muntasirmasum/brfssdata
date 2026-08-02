@@ -167,8 +167,6 @@ first two across 2021 to 2023 shows where one gives way to the other.
 ``` r
 
 drinks <- read_brfss(2021:2023, vars = c("_DRNKWK1", "_DRNKWK2"))
-#> Downloading BRFSS 2021 (one-time, then cached).
-#> Downloading BRFSS 2022 (one-time, then cached).
 
 drinks |>
   summarise(

@@ -222,8 +222,6 @@ at each rename. Asking for the first two across 2021 to 2023 shows where
 one gives way to the other.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">drinks</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_brfss.html">read_brfss</a></span><span class="op">(</span><span class="fl">2021</span><span class="op">:</span><span class="fl">2023</span>, vars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"_DRNKWK1"</span>, <span class="st">"_DRNKWK2"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Downloading BRFSS 2021 (one-time, then cached).</span></span>
-<span><span class="co">#&gt; Downloading BRFSS 2022 (one-time, then cached).</span></span>
 <span></span>
 <span><span class="va">drinks</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span></span>

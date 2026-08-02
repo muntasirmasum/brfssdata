@@ -42,6 +42,13 @@ returns a tibble with columns `file`, `year`, and `size`.
 brfss_cache_dir()
 #> [1] "/home/runner/.cache/R/brfssdata"
 brfss_cache_info()
-#> # A tibble: 0 × 3
-#> # ℹ 3 variables: file <chr>, year <int>, size <dbl>
+#> # A tibble: 6 × 3
+#>   file                     year     size
+#>   <chr>                   <int>    <dbl>
+#> 1 brfss_2021.parquet       2021 26033879
+#> 2 brfss_2022.parquet       2022 26280485
+#> 3 brfss_2023.parquet       2023 29077288
+#> 4 brfss_labels.parquet       NA   119739
+#> 5 brfss_variables.parquet    NA    63889
+#> 6 manifest.json              NA      285
 ```
