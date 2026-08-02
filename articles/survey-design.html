@@ -275,13 +275,20 @@ wrong in a long analysis. <code><a href="../reference/brfss_design.html">brfss_d
 <code>brfss_wt</code> next to the originals and builds the design on
 those. The CDC columns stay in the data untouched, so anything you want
 to check against the codebook is still there.</p>
-<p>Finally, <code>nest = TRUE</code> is set. Because PSU identifiers
-restart in every state, the same identifier refers to unrelated
-respondents in different strata. <code>nest = TRUE</code> tells
-<code>survey</code> to read cluster identifiers as labels within a
-stratum instead of as globally unique units, which is the correct
-reading of the file and keeps unrelated respondents from being pooled
-into one cluster.</p>
+<p>Finally, the clustering is set to match the file rather than the
+year. Where several respondents share a primary sampling unit, as in the
+files through 2000, the design is clustered on <code>brfss_psu</code>
+with <code>nest = TRUE</code>. That matters because PSU identifiers
+restart in every state, so the same identifier refers to unrelated
+respondents in different strata, and <code>nest = TRUE</code> tells
+<code>survey</code> to read them as labels within a stratum instead of
+as globally unique units. From 2001 on each stratum and PSU pair holds
+one person, the clustering carries no information, and
+<code><a href="../reference/brfss_design.html">brfss_design()</a></code> leaves it out. Estimates, standard errors,
+and degrees of freedom are unchanged, and <code>survey</code> is spared
+a cluster factor with one level per respondent, which is the difference
+between a mean that returns in about a second and one that takes over a
+minute.</p>
 </div>
 <div class="section level2">
 <h2 id="the-2011-boundary">The 2011 boundary<a class="anchor" aria-label="anchor" href="#the-2011-boundary"></a>
@@ -443,8 +450,9 @@ consistent between whole-sample and subpopulation estimates.</p>
 <div class="section level2">
 <h2 id="subpopulation-analysis">Subpopulation analysis<a class="anchor" aria-label="anchor" href="#subpopulation-analysis"></a>
 </h2>
-<p>Subgroup estimates are the place where design-based analysis is most
-often done wrong. Filter the design object, not the data.</p>
+<p>Subgroup estimates have a standard piece of advice attached to them:
+filter the design object, not the data. It is worth following, though
+for narrower reasons than it is usually given.</p>
 <p>Start from the codebook, since the codes are not obvious:</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/brfss_labels.html">brfss_labels</a></span><span class="op">(</span><span class="st">"_AGE_G"</span>, years <span class="op">=</span> <span class="fl">2023</span><span class="op">)</span></span>
