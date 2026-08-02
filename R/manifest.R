@@ -70,23 +70,79 @@ read_manifest <- function(refresh = FALSE) {
     )
   }
 
+  read_manifest_cached()
+}
+
+# Parse the manifest without ever touching the network: the cached copy
+# if present, the bundled fallback otherwise. The verification lookups on
+# the read path use this so a fully cached request stays offline.
+read_manifest_cached <- function() {
+  path <- cache_path("manifest.json")
   if (!file.exists(path)) {
     path <- bundled_manifest_path()
   }
   if (identical(path, "") || !file.exists(path)) {
-    return(list(years = integer(0)))
+    return(empty_manifest())
   }
   parse_manifest(path)
 }
 
+empty_manifest <- function() {
+  list(years = integer(0), schema_version = 1L, files = NULL)
+}
+
+# Normalizes both manifest schemas: v1 carries only `years`; v2 adds
+# `schema_version` and a `files` map of per-asset sha256/size entries.
+# Entries without a usable sha256 are dropped, so downstream code can
+# treat "no entry" and "unusable entry" identically (unverified asset).
 parse_manifest <- function(path) {
   out <- tryCatch(
     jsonlite::read_json(path, simplifyVector = TRUE),
     error = function(e) NULL
   )
   if (is.null(out) || is.null(out$years)) {
-    return(list(years = integer(0)))
+    return(empty_manifest())
   }
   out$years <- as.integer(out$years)
+
+  version <- suppressWarnings(as.integer(out$schema_version))
+  if (length(version) != 1L || is.na(version)) {
+    version <- 1L
+  }
+  out$schema_version <- version
+
+  files <- out$files
+  if (!is.list(files) || is.null(names(files))) {
+    files <- NULL
+  } else {
+    usable <- vapply(
+      files,
+      function(f) {
+        is.list(f) &&
+          is.character(f$sha256) &&
+          length(f$sha256) == 1L &&
+          !is.na(f$sha256) &&
+          nzchar(f$sha256)
+      },
+      logical(1)
+    )
+    files <- files[usable]
+    if (length(files) == 0) {
+      files <- NULL
+    }
+  }
+  out$files <- files
   out
+}
+
+manifest_sha256 <- function(asset, manifest = read_manifest_cached()) {
+  entry <- manifest$files[[asset]]
+  if (is.null(entry)) NULL else entry$sha256
+}
+
+manifest_size <- function(asset, manifest = read_manifest_cached()) {
+  entry <- manifest$files[[asset]]
+  size <- if (is.null(entry)) NULL else entry$size
+  size <- suppressWarnings(as.numeric(size))
+  if (length(size) != 1L || is.na(size)) NA_real_ else size
 }

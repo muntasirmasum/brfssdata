@@ -43,9 +43,12 @@ release_assets <- function(tag) {
 # Uploads go through the gh CLI: piggyback 0.1.5 memoizes its release
 # listings so aggressively that releases created moments earlier are
 # invisible to pb_upload. Verification reads the GitHub API directly.
-# Assets already present are not re-uploaded.
-upload_verified <- function(path, tag) {
-  if (!basename(path) %in% release_assets(tag)) {
+# Assets already present are not re-uploaded unless force = TRUE; the
+# name-based skip cannot see content changes, so anything mutable
+# (manifest, catalogs, sidecars) must force or a republish silently
+# keeps the stale copy.
+upload_verified <- function(path, tag, force = FALSE) {
+  if (force || !basename(path) %in% release_assets(tag)) {
     status <- system2(
       "gh",
       c("release", "upload", tag, path, "--repo", repo, "--clobber")
@@ -54,13 +57,14 @@ upload_verified <- function(path, tag) {
       stop("gh release upload failed for ", basename(path), call. = FALSE)
     }
   }
-  # The releases endpoint can serve stale reads for a few seconds after
-  # an upload; verify with retries before declaring failure.
-  for (i in 1:6) {
+  # The releases endpoint is eventually consistent and has been observed
+  # serving stale reads well past ten seconds after an upload; back off
+  # for up to a minute before declaring failure.
+  for (i in 1:10) {
     if (basename(path) %in% release_assets(tag)) {
       return(invisible(path))
     }
-    Sys.sleep(2)
+    Sys.sleep(i)
   }
   stop(
     "upload of ",
@@ -106,21 +110,65 @@ publish_meta <- function(years) {
     )
     Sys.sleep(2)
   }
-  catalog <- file.path(out_dir, "brfss_variables.parquet")
-  if (file.exists(catalog)) {
-    upload_verified(catalog, tag)
+  years <- sort(as.integer(years))
+  catalogs <- file.path(
+    out_dir,
+    c("brfss_variables.parquet", "brfss_labels.parquet")
+  )
+  for (catalog in catalogs[file.exists(catalogs)]) {
+    upload_verified(catalog, tag, force = TRUE)
+    upload_verified(sha256_file(catalog), tag, force = TRUE)
   }
+
+  # Manifest schema v2: a per-asset sha256/size map that the package
+  # verifies at download time. An advertised year whose parquet is not on
+  # this machine gets no entry, and the package falls back to an
+  # unverified download for it, so warn rather than fail.
+  assets <- c(file.path(out_dir, sprintf("brfss_%d.parquet", years)), catalogs)
+  missing <- assets[!file.exists(assets)]
+  if (length(missing) > 0) {
+    warning(
+      "no local copy to hash; these will be advertised unverified: ",
+      paste(basename(missing), collapse = ", "),
+      call. = FALSE
+    )
+  }
+  assets <- assets[file.exists(assets)]
+  files <- lapply(assets, function(path) {
+    list(sha256 = cli::hash_file_sha256(path), size = file.size(path))
+  })
+  names(files) <- basename(assets)
+
+  manifest_body <- list(
+    schema_version = 2L,
+    generated = format(Sys.Date()),
+    years = years,
+    files = files
+  )
   manifest <- file.path(out_dir, "manifest.json")
-  jsonlite::write_json(
+  jsonlite::write_json(manifest_body, manifest, auto_unbox = TRUE, pretty = TRUE)
+
+  # The bundled fallback ships the same content from the same code path,
+  # so it always carries hashes too (plus a note on its role).
+  bundled <- c(
+    manifest_body[c("schema_version", "generated")],
     list(
-      years = sort(as.integer(years)),
-      generated = format(Sys.Date())
+      note = paste(
+        "Bundled fallback snapshot. The live manifest is published as a",
+        "release asset (tag data-meta) and is the source of truth for",
+        "currently hosted years."
+      )
     ),
-    manifest,
+    manifest_body[c("years", "files")]
+  )
+  jsonlite::write_json(
+    bundled,
+    "inst/extdata/manifest.json",
     auto_unbox = TRUE,
     pretty = TRUE
   )
-  upload_verified(manifest, tag)
+
+  upload_verified(manifest, tag, force = TRUE)
   message("published manifest: ", paste(range(years), collapse = "-"))
 }
 

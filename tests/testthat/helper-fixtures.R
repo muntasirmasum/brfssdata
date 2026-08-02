@@ -84,6 +84,38 @@ reset_manifest_state <- function() {
   assign("last_failure", NULL, envir = manifest_state)
 }
 
+# Write a manifest covering whatever parquet files are in `dir`. Schema 2
+# (the default, matching what data-raw/04_upload.R publishes) carries a
+# per-asset sha256/size map computed from the fixture files themselves,
+# so the suite exercises the verified download path by default. Schema 1
+# reproduces the pre-checksum layout for the fail-open tests.
+write_fixture_manifest <- function(dir, years, schema = 2) {
+  years <- sort(as.integer(years))
+  if (schema == 1) {
+    writeLines(
+      sprintf('{"years": [%s]}', paste(years, collapse = ", ")),
+      file.path(dir, "manifest.json")
+    )
+    return(invisible())
+  }
+  assets <- list.files(dir, pattern = "\\.parquet$")
+  files <- lapply(file.path(dir, assets), function(path) {
+    list(sha256 = cli::hash_file_sha256(path), size = file.size(path))
+  })
+  names(files) <- assets
+  body <- list(schema_version = 2L, generated = "2026-01-01", years = years)
+  if (length(files) > 0) {
+    body$files <- files
+  }
+  jsonlite::write_json(
+    body,
+    file.path(dir, "manifest.json"),
+    auto_unbox = TRUE,
+    pretty = TRUE
+  )
+  invisible()
+}
+
 # Point the package at a temp cache stocked with fixture years and a fresh
 # manifest. Returns the cache dir. Cleans itself up with the test.
 local_brfss_cache <- function(
@@ -91,6 +123,7 @@ local_brfss_cache <- function(
   extra = list(),
   catalog = FALSE,
   psu_size = 1,
+  schema = 2,
   env = parent.frame()
 ) {
   dir <- withr::local_tempdir(.local_envir = env)
@@ -109,24 +142,18 @@ local_brfss_cache <- function(
   if (catalog) {
     write_fixture_catalog(dir)
   }
-  writeLines(
-    sprintf('{"years": [%s]}', paste(years, collapse = ", ")),
-    file.path(dir, "manifest.json")
-  )
+  write_fixture_manifest(dir, years, schema = schema)
   dir
 }
 
 # A manifest-only cache: years advertised but no parquet on disk.
-local_brfss_manifest <- function(years, env = parent.frame()) {
+local_brfss_manifest <- function(years, schema = 2, env = parent.frame()) {
   dir <- withr::local_tempdir(.local_envir = env)
   withr::local_options(brfssdata.cache_dir = dir, .local_envir = env)
   local_lonely_psu(env)
   reset_manifest_state()
   guard_network(env)
-  writeLines(
-    sprintf('{"years": [%s]}', paste(years, collapse = ", ")),
-    file.path(dir, "manifest.json")
-  )
+  write_fixture_manifest(dir, years, schema = schema)
   dir
 }
 
