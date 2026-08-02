@@ -20,6 +20,9 @@ Suggests:
     testthat,
     withr
 Config/testthat/edition: 3
+Config/Needs/website:
+    ggplot2,
+    haven
 Imports: 
     cli,
     DBI,

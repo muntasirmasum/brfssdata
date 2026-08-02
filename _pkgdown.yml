@@ -1,4 +1,51 @@
 url: https://muntasirmasum.github.io/brfssdata/
+
 template:
   bootstrap: 5
+  bslib:
+    base_font:
+      google: "IBM Plex Sans"
+    heading_font:
+      google: "Newsreader"
+    code_font:
+      google: "IBM Plex Mono"
 
+navbar:
+  structure:
+    left: [intro, reference, articles, news]
+    right: [search, github]
+  components:
+    articles:
+      text: Articles
+      menu:
+      - text: The datasets
+        href: articles/datasets.html
+      - text: Survey design in BRFSS
+        href: articles/survey-design.html
+      - text: Survey-weighted logistic regression
+        href: articles/logistic-regression.html
+      - text: Merging BRFSS with external data
+        href: articles/external-data.html
+      - text: Using the data outside R
+        href: articles/outside-r.html
+
+reference:
+- title: Read data
+  desc: Download-on-demand access to annual BRFSS microdata.
+  contents:
+  - read_brfss
+  - brfss_years
+- title: Survey-weighted analysis
+  desc: Design objects with year-appropriate weights, strata, and PSUs.
+  contents:
+  - brfss_design
+- title: Variables and value labels
+  desc: Search the variable catalog and CDC value-label maps.
+  contents:
+  - brfss_vars
+  - brfss_labels
+- title: Cache management
+  contents:
+  - brfss_cache_dir
+  - brfss_cache_info
+  - brfss_cache_clear

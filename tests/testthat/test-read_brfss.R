@@ -19,6 +19,15 @@ test_that("variables absent from a year come back as NA", {
   expect_false(anyNA(dat$NEWVAR23[dat$year == 2023]))
 })
 
+test_that("vars match case-insensitively and return canonical names", {
+  local_brfss_cache(2023)
+  dat <- read_brfss(2023, vars = "genhlth", quiet = TRUE)
+  expect_identical(sort(names(dat)), c("GENHLTH", "year"))
+  # exact and case-insensitive spellings of the same variable dedupe
+  dat2 <- read_brfss(2023, vars = c("genhlth", "GENHLTH"), quiet = TRUE)
+  expect_identical(sort(names(dat2)), c("GENHLTH", "year"))
+})
+
 test_that("unknown variables produce an informative classed error", {
   local_brfss_cache(2023)
   expect_error(

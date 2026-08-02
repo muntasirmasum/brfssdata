@@ -1,0 +1,34 @@
+citHeader(
+  "To cite brfssdata in publications, cite the package itself.",
+  "Analyses of the underlying survey data should also cite CDC's BRFSS",
+  "for the survey year(s) used."
+)
+
+bibentry(
+  bibtype = "Manual",
+  title = "{brfssdata}: Access CDC Behavioral Risk Factor Surveillance System Data",
+  author = person(
+    "Muntasir",
+    "Masum",
+    comment = c(ORCID = "0000-0002-4210-2844")
+  ),
+  year = "2026",
+  note = sprintf("R package version %s", meta$Version),
+  url = "https://muntasirmasum.github.io/brfssdata/"
+)
+
+bibentry(
+  bibtype = "Misc",
+  title = "Behavioral Risk Factor Surveillance System Survey Data",
+  author = person("{Centers for Disease Control and Prevention (CDC)}"),
+  year = "1984--2024",
+  organization = "U.S. Department of Health and Human Services, Centers for Disease Control and Prevention",
+  address = "Atlanta, Georgia",
+  url = "https://www.cdc.gov/brfss/",
+  textVersion = paste(
+    "Centers for Disease Control and Prevention (CDC).",
+    "Behavioral Risk Factor Surveillance System Survey Data.",
+    "Atlanta, Georgia: U.S. Department of Health and Human Services,",
+    "Centers for Disease Control and Prevention, [appropriate year]."
+  )
+)

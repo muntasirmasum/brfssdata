@@ -11,8 +11,10 @@ read_brfss(years, vars = NULL, download = TRUE, quiet = FALSE, labels = FALSE)
 \code{2019:2023}. See \code{\link[=brfss_years]{brfss_years()}} for what is available.}
 
 \item{vars}{Optional character vector of variable names to return.
-The default returns every variable. Use \code{\link[=brfss_vars]{brfss_vars()}} to search
-names across years.}
+The default returns every variable. Names are matched
+case-insensitively (\code{"genhlth"} finds \code{GENHLTH}), and returned
+columns always carry CDC's canonical spelling. Use \code{\link[=brfss_vars]{brfss_vars()}}
+to search names across years.}
 
 \item{download}{If \code{FALSE}, only cached years are used and missing
 years raise an error instead of being downloaded.}

@@ -98,6 +98,17 @@ duckdb_connect <- function() {
   DBI::dbConnect(duckdb::duckdb(shared_home = FALSE))
 }
 
+# Map requested variable names onto the actual columns,
+# case-insensitively. An exact match always wins; otherwise a
+# case-insensitive match substitutes the canonical CDC name (users
+# often type genhlth for GENHLTH). Names that match nothing are
+# returned as typed so the caller's error shows the original input.
+match_vars_ci <- function(vars, columns) {
+  exact <- vars %in% columns
+  ci <- match(toupper(vars), toupper(columns))
+  ifelse(!exact & !is.na(ci), columns[ci], vars)
+}
+
 # Query one or more local parquet files, optionally selecting columns.
 # union_by_name handles the fact that different survey years carry
 # different variable sets: absent columns come back as NA.
@@ -117,6 +128,7 @@ query_parquet <- function(paths, vars = NULL, call = rlang::caller_env()) {
       con,
       sprintf("DESCRIBE SELECT * FROM %s", from_sql)
     )
+    vars <- match_vars_ci(vars, schema$column_name)
     unknown <- setdiff(vars, schema$column_name)
     if (length(unknown) > 0) {
       cli::cli_abort(

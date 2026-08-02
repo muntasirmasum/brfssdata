@@ -7,7 +7,8 @@
 brfss_labels(vars = NULL, years = NULL, download = TRUE, quiet = TRUE)
 }
 \arguments{
-\item{vars}{Optional character vector restricting to those variables.}
+\item{vars}{Optional character vector restricting to those variables,
+matched case-insensitively.}
 
 \item{years}{Optional integer vector restricting to those years.}
 

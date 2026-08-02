@@ -19,7 +19,8 @@ brfss_design(
 \code{2019:2023}. See \code{\link[=brfss_years]{brfss_years()}} for what is available.}
 
 \item{vars}{Optional character vector of analysis variables to carry
-into the design. Design variables are always included.}
+into the design, matched case-insensitively like in \code{\link[=read_brfss]{read_brfss()}}.
+Design variables are always included.}
 
 \item{allow_break}{Set to \code{TRUE} to permit pooling years across the
 2011 methodology change. A warning is still issued.}

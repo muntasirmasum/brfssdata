@@ -6,6 +6,14 @@ test_that("brfss_labels filters by variable and year", {
   expect_identical(out$label[out$code == 1], "Excellent")
 })
 
+test_that("brfss_labels matches variables case-insensitively", {
+  dir <- local_brfss_cache(2023)
+  write_fixture_labels(dir)
+  out <- brfss_labels("genhlth", years = 2023)
+  expect_identical(nrow(out), 5L)
+  expect_identical(unique(out$variable), "GENHLTH")
+})
+
 test_that("labels = TRUE converts fully mapped variables to factors", {
   dir <- local_brfss_cache(2023)
   write_fixture_labels(dir)

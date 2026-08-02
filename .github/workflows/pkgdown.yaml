@@ -34,6 +34,15 @@ jobs:
           extra-packages: any::pkgdown, local::.
           needs: website
 
+      # Articles download survey years on demand; keep them between runs
+      # so the site rebuild is not dominated by transfers.
+      - name: Cache BRFSS downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/R/brfssdata
+          key: brfss-data-${{ hashFiles('vignettes/**/*.Rmd') }}
+          restore-keys: brfss-data-
+
       - name: Build site
         run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
         shell: Rscript {0}

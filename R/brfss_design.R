@@ -27,7 +27,8 @@
 #'
 #' @inheritParams read_brfss
 #' @param vars Optional character vector of analysis variables to carry
-#'   into the design. Design variables are always included.
+#'   into the design, matched case-insensitively like in [read_brfss()].
+#'   Design variables are always included.
 #' @param allow_break Set to `TRUE` to permit pooling years across the
 #'   2011 methodology change. A warning is still issued.
 #' @param pool_weights If `TRUE` and more than one year is requested,

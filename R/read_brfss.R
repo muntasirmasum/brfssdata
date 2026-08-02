@@ -14,8 +14,10 @@
 #' @param years Integer vector of survey years, e.g. `2023` or
 #'   `2019:2023`. See [brfss_years()] for what is available.
 #' @param vars Optional character vector of variable names to return.
-#'   The default returns every variable. Use [brfss_vars()] to search
-#'   names across years.
+#'   The default returns every variable. Names are matched
+#'   case-insensitively (`"genhlth"` finds `GENHLTH`), and returned
+#'   columns always carry CDC's canonical spelling. Use [brfss_vars()]
+#'   to search names across years.
 #' @param download If `FALSE`, only cached years are used and missing
 #'   years raise an error instead of being downloaded.
 #' @param quiet If `TRUE`, suppress download progress output.
