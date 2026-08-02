@@ -3,13 +3,18 @@
 # network or the user's real cache; both helpers install a guard that
 # turns any unexpected download attempt into a loud failure.
 
-write_fixture_year <- function(year, dir, n = 30, extra = NULL) {
+write_fixture_year <- function(year, dir, n = 30, extra = NULL, psu_size = 1) {
   wt_col <- if (year >= 2011) "_LLCPWT" else "_FINALWT"
   set.seed(year)
+  # psu_size > 1 gives each PSU that many respondents, the shape of the
+  # files through 2000; the default makes every respondent their own PSU.
+  # The stratum is derived from the PSU so that a PSU never straddles two
+  # strata, which is what makes the pair non-unique when psu_size > 1.
+  psu <- rep(seq_len(ceiling(n / psu_size)), each = psu_size)[seq_len(n)]
   df <- data.frame(
     year = as.integer(year),
-    psu = seq_len(n),
-    ststr = rep(1:3, length.out = n),
+    psu = psu,
+    ststr = rep(1:3, length.out = max(psu))[psu],
     wt = stats::runif(n, 100, 500),
     GENHLTH = sample(1:5, n, replace = TRUE),
     check.names = FALSE
@@ -76,6 +81,7 @@ local_brfss_cache <- function(
   years,
   extra = list(),
   catalog = FALSE,
+  psu_size = 1,
   env = parent.frame()
 ) {
   dir <- withr::local_tempdir(.local_envir = env)
@@ -83,7 +89,12 @@ local_brfss_cache <- function(
   reset_manifest_state()
   guard_network(env)
   for (y in years) {
-    write_fixture_year(y, dir, extra = extra[[as.character(y)]])
+    write_fixture_year(
+      y,
+      dir,
+      extra = extra[[as.character(y)]],
+      psu_size = psu_size
+    )
   }
   if (catalog) {
     write_fixture_catalog(dir)

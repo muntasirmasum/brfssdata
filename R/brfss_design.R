@@ -19,11 +19,18 @@
 #' variance strata become the year-by-stratum interaction, treating each
 #' annual survey as an independent sample.
 #'
-#' Because BRFSS public-use files make each respondent their own primary
-#' sampling unit, single-PSU strata are common and would make variance
-#' estimation fail. If `options(survey.lonely.psu)` is unset, this
-#' function sets it to `"adjust"` (standard BRFSS practice) and says so
-#' once per session; an option you set yourself is always respected.
+#' From 2001 on, BRFSS public-use files make each respondent their own
+#' primary sampling unit, so single-PSU strata are common and would make
+#' variance estimation fail. If `options(survey.lonely.psu)` is unset,
+#' this function sets it to `"adjust"` (standard BRFSS practice) and says
+#' so once per session; an option you set yourself is always respected.
+#'
+#' Because that clustering is nominal, the design for those years is
+#' built without a cluster term, which gives the same estimates, standard
+#' errors, and degrees of freedom far faster than carrying a cluster
+#' factor with one level per respondent. Files through 2000 carry genuine
+#' multi-respondent PSUs and keep the clustered estimator. The choice is
+#' made from the data, so it follows the file rather than the year.
 #'
 #' @inheritParams read_brfss
 #' @param vars Optional character vector of analysis variables to carry
@@ -161,11 +168,11 @@ brfss_design <- function(
     )
   }
 
-  # BRFSS public-use files make each respondent their own PSU, so small
-  # strata (and most subgroup analyses) contain single-PSU strata that
-  # make variance estimation fail. "adjust" is standard BRFSS practice.
-  # The survey package sets "fail" in .onLoad, so that value is treated
-  # as unset; any other user-chosen value is respected.
+  # From 2001 on, BRFSS public-use files make each respondent their own
+  # PSU, so small strata (and most subgroup analyses) contain single-PSU
+  # strata that make variance estimation fail. "adjust" is standard
+  # BRFSS practice. The survey package sets "fail" in .onLoad, so that
+  # value is treated as unset; any other user-chosen value is respected.
   if (getOption("survey.lonely.psu", "fail") %in% "fail") {
     options(survey.lonely.psu = "adjust")
     cli::cli_inform(
@@ -180,11 +187,37 @@ brfss_design <- function(
     )
   }
 
-  srvyr::as_survey_design(
-    dat,
-    ids = brfss_psu,
-    strata = brfss_strata,
-    weights = brfss_wt,
-    nest = TRUE
-  )
+  # Whether _PSU is a real cluster identifier changed with the 2001
+  # files. Through 2000 several respondents share one, and the clustered
+  # estimator is the correct one. From 2001 on it is the record sequence
+  # number, so each stratum-by-PSU cell holds one respondent, the
+  # clustering is nominal, and dropping it gives the same estimate,
+  # standard error, and degrees of freedom while sparing survey a
+  # cluster factor with one level per respondent (a survey_mean() over a
+  # single recent year drops from about 77 to 5 seconds). The test is on
+  # the data actually loaded, not on the year, so a file that stops
+  # behaving this way keeps its clusters.
+  singleton_psus <- anyDuplicated(dat[c("brfss_strata", "brfss_psu")]) == 0
+
+  if (singleton_psus) {
+    # check_strata = FALSE skips survey's nested-clusters test, which
+    # cross-tabulates clusters by strata. Each observation is its own
+    # cluster here, so the test can only ever pass, and on pooled years
+    # the table it would build overflows R's vector limit.
+    srvyr::as_survey_design(
+      dat,
+      ids = NULL,
+      strata = brfss_strata,
+      weights = brfss_wt,
+      check_strata = FALSE
+    )
+  } else {
+    srvyr::as_survey_design(
+      dat,
+      ids = brfss_psu,
+      strata = brfss_strata,
+      weights = brfss_wt,
+      nest = TRUE
+    )
+  }
 }

@@ -6,6 +6,8 @@
 \alias{brfssdata-package}
 \title{brfssdata: Access CDC Behavioral Risk Factor Surveillance System Data}
 \description{
+\if{html}{\figure{logo.svg}{options: style='float: right' alt='logo' width='120'}}
+
 Download, cache, and analyze annual microdata from the United States Centers for Disease Control and Prevention Behavioral Risk Factor Surveillance System (BRFSS) \url{https://www.cdc.gov/brfss/}. Survey years are stored as compact files hosted on public releases and queried lazily with 'DuckDB' (via the 'duckdb' package), so only the requested years and variables are transferred. Survey-design helpers construct 'srvyr' design objects with year-appropriate weights, strata, and primary sampling units, including explicit handling of the 2011 weighting methodology change.
 }
 \seealso{

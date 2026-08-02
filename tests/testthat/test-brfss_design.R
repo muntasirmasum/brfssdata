@@ -131,3 +131,60 @@ test_that("analysis vars ride along with design vars", {
       names(des$variables)
   ))
 })
+
+# The 2001 and later files number every respondent as their own PSU, so
+# the clustering is nominal and the design drops it: same estimates, far
+# less work for survey. Files through 2000 share PSUs between respondents
+# and must keep the clustered estimator, which gives a different standard
+# error and different degrees of freedom.
+test_that("singleton PSUs give the same answer as the clustered design", {
+  local_brfss_cache(2023)
+  des <- brfss_design(2023, quiet = TRUE)
+  dat <- des$variables
+
+  clustered <- srvyr::as_survey_design(
+    dat,
+    ids = brfss_psu,
+    strata = brfss_strata,
+    weights = brfss_wt,
+    nest = TRUE
+  )
+
+  got <- survey::svymean(~GENHLTH, des)
+  ref <- survey::svymean(~GENHLTH, clustered)
+  expect_equal(survey::SE(got), survey::SE(ref))
+  expect_equal(coef(got), coef(ref))
+  expect_equal(survey::degf(des), survey::degf(clustered))
+})
+
+test_that("shared PSUs keep the clustered variance estimator", {
+  local_brfss_cache(2023, psu_size = 3)
+  des <- brfss_design(2023, quiet = TRUE)
+  dat <- des$variables
+  expect_gt(sum(duplicated(dat[c("brfss_strata", "brfss_psu")])), 0)
+
+  clustered <- srvyr::as_survey_design(
+    dat,
+    ids = brfss_psu,
+    strata = brfss_strata,
+    weights = brfss_wt,
+    nest = TRUE
+  )
+  unclustered <- srvyr::as_survey_design(
+    dat,
+    strata = brfss_strata,
+    weights = brfss_wt
+  )
+
+  got <- survey::svymean(~GENHLTH, des)
+  expect_equal(
+    survey::SE(got),
+    survey::SE(survey::svymean(~GENHLTH, clustered))
+  )
+  expect_equal(survey::degf(des), survey::degf(clustered))
+  # and the two estimators really do disagree here, so the branch matters
+  expect_false(isTRUE(all.equal(
+    survey::degf(clustered),
+    survey::degf(unclustered)
+  )))
+})

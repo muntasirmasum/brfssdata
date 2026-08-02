@@ -14,3 +14,5 @@
 ^pkgdown$
 ^vignettes/articles$
 ^cran-comments\.md$
+^\.claude$
+^\.DS_Store$

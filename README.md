@@ -1,4 +1,4 @@
-# brfssdata <img src="man/figures/logo-animated.svg" align="right" width="150" alt="brfssdata hex logo: an ECG pulse trace sweeping across a purple hexagon" />
+# brfssdata <img src="man/figures/logo.svg" align="right" width="150" alt="brfssdata hex logo: an ECG pulse trace sweeping across a purple hexagon" />
 
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/muntasirmasum/brfssdata/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/muntasirmasum/brfssdata/actions/workflows/R-CMD-check.yaml)
@@ -18,9 +18,12 @@ either a tibble or a ready-made [srvyr](https://cran.r-project.org/package=srvyr
 survey-design object with the correct weights, strata, and primary
 sampling units for each survey era.
 
-> **Status:** all 40 available survey years (1985-2024) are published as
-> data releases; 1984 was never distributed as a SAS Transport file by
-> CDC. `brfss_years()` always reports the currently hosted years.
+> **Status:** 40 survey years, 1985 through 2024, are published as data
+> releases. BRFSS began in 1984, and CDC does distribute a 1984 file
+> (12,258 records from the first 15 states) from its
+> [web archive](https://archive.cdc.gov/www_cdc_gov/brfss/annual_data/annual_1984.htm);
+> that year is not part of this collection. `brfss_years()` always
+> reports the currently hosted years.
 
 ## Installation
 

@@ -11,104 +11,336 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  eval = FALSE
+  eval = identical(Sys.getenv("IN_PKGDOWN"), "true")
 )
 ```
 
 The Behavioral Risk Factor Surveillance System (BRFSS) is the CDC's
-annual state-based health survey, fielded continuously since 1984 with
-roughly 400,000 adult respondents per year in recent releases. brfssdata
-turns the annual public-use files into something you can query from R in
-seconds: each survey year lives as a compact parquet file on a public
-release, is downloaded once into a local cache, and is queried through
-DuckDB so you transfer only the years and variables you ask for.
+state-based telephone health survey. CDC established it in 1984, collects
+data in all 50 states, the District of Columbia, and participating US
+territories, and completes more than 400,000 adult interviews each year,
+which makes it the largest continuously conducted health survey system in
+the world. The public-use microdata are released one file per survey
+year, each carrying several hundred variables on health status, chronic
+conditions, health-care access, and risk behaviors.
 
-The code below is shown unevaluated in the installed vignette so the
-package builds without network access; run it interactively.
+Getting at those files has traditionally meant downloading a zipped SAS
+transport archive for each year, reading it with a format-specific
+importer, and reconciling variable names by hand across years. brfssdata
+removes that step. Forty survey years, 1985 through 2024, are stored as
+compact parquet files on public releases; a year is downloaded once into
+a local cache and read from there afterwards, and every query runs
+through DuckDB, so asking for two variables out of a three-hundred-column
+survey reads two columns instead of the whole table.
 
-## Which years are available?
+The installed vignette leaves most of this code unevaluated so the package
+builds offline; on the package website the same document runs live against
+real data.
 
-```{r}
+## Installation
+
+Once the package is on CRAN, install it the usual way.
+
+```{r install, eval = FALSE}
+install.packages("brfssdata")
+```
+
+The development version comes from GitHub.
+
+```{r install-dev, eval = FALSE}
+pak::pak("muntasirmasum/brfssdata")
+```
+
+## A first read
+
+`read_brfss()` is the main entry point. Give it a survey year and the
+variables you want, and it returns a tibble with one row per respondent.
+
+```{r first-read, message = FALSE}
 library(brfssdata)
+library(dplyr)
+
+dat <- read_brfss(2023, vars = c("GENHLTH", "PHYSHLTH"))
+dat
+```
+
+`GENHLTH` is self-rated general health on a five-point scale, and
+`PHYSHLTH` is the number of days in the past thirty on which physical
+health was not good. Both arrive as numeric codes, which is what most
+BRFSS analyses work from. A quick tabulation confirms the scale.
+
+```{r first-count}
+dat |>
+  count(GENHLTH) |>
+  arrange(GENHLTH)
+```
+
+Leaving `vars` at its default (`NULL`) returns every column in the year,
+which for a recent release means well over three hundred variables. That
+is occasionally what you want, but naming the handful of variables you
+actually need is much faster and keeps memory use modest.
+
+## Variable names
+
+BRFSS variable names are short, uppercase, and set by CDC. Names that
+begin with an underscore, such as `_LLCPWT`, `_STSTR`, or `_AGE_G`, are
+CDC's calculated variables: sampling weights, design identifiers,
+recoded age and race groupings, and derived risk-factor indicators.
+Everything else comes straight off the questionnaire. brfssdata always
+returns CDC's canonical spelling. An underscore-prefixed name is not a
+syntactic R name, so it needs backticks in dplyr code or brackets in base
+R (`` `_LLCPWT` `` or `dat[["_LLCPWT"]]`).
+
+Typing uppercase is tedious, so `vars` is matched case-insensitively.
+The lowercase request below finds `GENHLTH` and the returned column
+carries the canonical name.
+
+```{r case-insensitive}
+names(read_brfss(2023, vars = "genhlth"))
+```
+
+Notice the `year` column. It is added to every result, whether or not you
+ask for it, so a tibble always knows which survey year each row came from.
+
+A name that matches nothing raises an error rather than silently
+returning fewer columns than you asked for.
+
+```{r unknown-var, error = TRUE}
+read_brfss(2023, vars = "SMOKING")
+```
+
+## Which years are available
+
+`brfss_years()` reads the manifest that accompanies the data releases and
+reports the published survey years. The manifest is cached and refreshed
+at most once a day, and `refresh = TRUE` forces a fresh copy.
+
+```{r years}
 brfss_years()
 ```
 
-## Reading respondent-level data
+## Combining years
 
-`read_brfss()` returns a tibble. A `year` column always identifies the
-survey year, and when several years are combined, variables missing from
-a year are filled with `NA` (BRFSS variable sets drift over time).
+Pass a vector of years and they come back stacked, with the `year` column
+identifying each. The complication is that BRFSS variable sets drift.
+Questions rotate on and off the core questionnaire, optional modules move
+between states, and CDC renames a calculated variable whenever its
+definition changes, usually by bumping a trailing digit. When a variable
+is absent from one of the requested years, it is filled with `NA` for
+those rows rather than causing an error.
 
-```{r}
-dat <- read_brfss(2019:2023, vars = c("GENHLTH", "PHYSHLTH"))
+Computed weekly alcohol consumption is a clean example. The variable is
+`_DRNKWK1` in 2019 to 2021, `_DRNKWK2` in 2022 and 2023, and `_DRNKWK3`
+in 2024, with a change in definition at each rename. Asking for the first
+two across 2021 to 2023 shows where one gives way to the other.
+
+```{r combine}
+drinks <- read_brfss(2021:2023, vars = c("_DRNKWK1", "_DRNKWK2"))
+
+drinks |>
+  summarise(
+    n = n(),
+    drnkwk1 = sum(!is.na(`_DRNKWK1`)),
+    drnkwk2 = sum(!is.na(`_DRNKWK2`)),
+    .by = year
+  ) |>
+  arrange(year)
 ```
 
-The first request for a year downloads it into
-`brfss_cache_dir()`; after that everything, including offline work, reads
-from the cache. `brfss_cache_info()` shows what is stored and
-`brfss_cache_clear()` removes it.
-
-## Value labels
-
-BRFSS answers arrive as numeric codes. `labels = TRUE` converts
-variables whose CDC format is a pure code-to-label map into factors;
-variables that mix real values with special codes (like `PHYSHLTH`,
-days 1-30 plus 88 for none) are deliberately left numeric, and
-`brfss_labels()` shows every code so you can recode them yourself.
-Labels are available from 1998 on; CDC no longer distributes the label
-files for earlier years.
-
-```{r}
-read_brfss(2023, vars = c("GENHLTH", "SEXVAR"), labels = TRUE)
-brfss_labels("PHYSHLTH", years = 2023)
-```
+Reading both versions and coalescing them is the usual fix, but only
+after checking that the definitions are close enough to justify it. That
+check is your job, not the package's; brfssdata will hand you both
+columns and stay out of the way.
 
 ## Finding variables
 
-Variable names and availability change across years. `brfss_vars()`
-searches names and labels and reports the years each variable appears in.
+Since names move, you generally want to search before you read.
+`brfss_vars()` matches a regular expression, case-insensitively, against
+both variable names and their labels, and reports the years each match
+appears in.
 
-```{r}
+```{r search}
 brfss_vars("smok")
+```
+
+The `years` column collapses runs of consecutive years, so `2005-2024`
+means every year in that span and `2011-2013, 2020` means a variable that
+appeared for three years, disappeared, and came back once. Reading that
+column carefully is the fastest way to spot renamed variables. Two
+entries with near-identical labels and non-overlapping year ranges are
+almost always the same question under a new name.
+
+Calling `brfss_vars()` with no pattern returns the whole catalog, which
+holds 2,128 distinct variables across the forty years. Restricting to
+particular years narrows the search, and the result here shows the rename
+pattern plainly.
+
+```{r search-years}
+brfss_vars("binge", years = 2021:2023)
+```
+
+`_RFBING5` and `_RFBING6` share a label and cover 2021 and then 2022 to
+2023, which is the signature of a calculated variable whose definition
+was revised. The underlying questionnaire item, `DRNK3GE5`, kept its name
+across all three years.
+
+## Value labels
+
+BRFSS answers are numeric codes, and the meaning of each code lives in
+CDC's SAS format libraries. `brfss_labels()` exposes those as a plain
+table with one row per year, variable, and code.
+
+```{r labels-genhlth}
+brfss_labels("GENHLTH", years = 2023)
+```
+
+Setting `labels = TRUE` on a read converts eligible variables to factors
+using those maps.
+
+```{r labels-true}
+read_brfss(2023, vars = c("GENHLTH", "SEXVAR"), labels = TRUE)
+```
+
+Conversion is deliberately conservative. A variable becomes a factor only
+when its CDC format is a pure code-to-label map, carrying no numeric
+ranges such as `1-30` days, and when every value observed in the data
+falls inside that map. The `complete` column in the label catalog marks
+the formats that meet the first condition. `PHYSHLTH` is a good
+counterexample: its format documents only the special codes, because the
+substantive values are a count of days.
+
+```{r labels-physhlth}
+brfss_labels("PHYSHLTH", years = 2023)
+```
+
+Turning that into a factor would silently destroy the day counts, so
+`labels = TRUE` leaves it numeric and the catalog tells you that 88 means
+none, 77 means don't know, and 99 means refused. Recoding those to `NA`
+by hand is the right move. The same caution applies across years: when
+several years are requested, a variable converts only if its code set
+agrees across them.
+
+Labels cover 1998 onward. CDC does not distribute usable format libraries
+for earlier years, so `labels = TRUE` has nothing to work with before
+1998 and quietly leaves those variables as numeric codes.
+
+## Caching and offline work
+
+Every download lands in a per-user cache directory, resolved through
+`tools::R_user_dir()`. You can see where it is and what is in it.
+
+```{r cache}
+brfss_cache_dir()
+brfss_cache_info()
+```
+
+Because reads come from the cache, a year you have already downloaded is
+available with no network at all. Setting `download = FALSE` makes that
+explicit: cached years are read normally, and a request for a year you do
+not have fails with a clear message instead of reaching for the network.
+
+```{r offline}
+nrow(read_brfss(2023, vars = "GENHLTH", download = FALSE))
+```
+
+This is the setting to use on a compute cluster without outbound network
+access, or in a reproducible pipeline where an unexpected download would
+be a bug. Populate the cache once on a connected machine, copy the
+directory across, and point `options(brfssdata.cache_dir = ...)` at it.
+
+`brfss_cache_clear()` empties the cache when called with no arguments, and
+removes only the years you name when you give it some.
+
+```{r cache-clear, eval = FALSE}
+brfss_cache_clear(2021)
+brfss_cache_clear()
 ```
 
 ## Survey-weighted analysis
 
-BRFSS is a complex survey: analyses need the sampling weights, strata,
-and primary sampling units. `brfss_design()` returns a srvyr design
-object with all of that applied, choosing the weight that matches the
-survey era.
+BRFSS uses a complex sampling design, and unweighted estimates from it
+are wrong in both the point estimate and the standard error.
+`brfss_design()` returns a [srvyr](https://cran.r-project.org/package=srvyr)
+design object with the sampling weight, strata (`_STSTR`), and primary
+sampling units (`_PSU`) already applied, so you can move straight to
+analysis.
 
-```{r}
+```{r design, message = FALSE}
 library(srvyr)
 
 brfss_design(2023, vars = "GENHLTH") |>
+  filter(GENHLTH %in% 1:5) |>
   group_by(GENHLTH) |>
-  summarize(prop = survey_prop(vartype = "ci"))
+  summarize(pct = survey_prop(vartype = "ci"))
 ```
 
-Pooling several years divides the weights by the number of years (an
-average-year interpretation); disable with `pool_weights = FALSE`.
+The weight is chosen to match the survey era: `_FINALWT` for years before
+2011 and `_LLCPWT` from 2011 on. The design is built on three added
+columns, `brfss_wt`, `brfss_psu`, and `brfss_strata`, because CDC's names
+are not syntactic and cannot enter a model formula; the original CDC
+columns are kept alongside them, unchanged.
 
-## The 2011 boundary
+Two behaviors are worth knowing about up front. Because BRFSS public-use
+files make each respondent their own primary sampling unit, single-PSU
+strata are common and would otherwise make variance estimation fail, so
+`brfss_design()` sets `options(survey.lonely.psu = "adjust")` if you have
+not set that option yourself, and says so once per session. And when you
+request several years, weights are divided by the number of years, so
+pooled estimates describe an average year rather than a summed
+population, while the strata become the year-by-stratum interaction,
+which treats each annual survey as an independent sample. Pass
+`pool_weights = FALSE` to leave the weights undivided.
 
-In 2011 BRFSS added cell-phone-only respondents and moved from
-post-stratification to raking; the final weight changed from `_FINALWT`
-to `_LLCPWT`, and CDC warns that estimates are not directly comparable
-across that boundary. `brfss_design()` enforces the boundary: a request
-spanning it fails unless you opt in.
+### The 2011 boundary
 
-```{r}
-# Errors on purpose:
+In 2011 BRFSS combined cell phone and landline samples into a single
+public-use dataset for the first time, and adopted a new weighting
+method, iterative proportional fitting, also known as raking, in place of
+post-stratification. CDC advises data users not to make direct
+comparisons with data collected before 2011, and to begin new trend lines
+with that year. `brfss_design()` enforces the advice rather than burying
+it in a help page, so a request spanning the boundary fails.
+
+```{r break-error, error = TRUE}
 brfss_design(2009:2013)
+```
 
-# Deliberate pooling, with a warning:
+If you have a considered reason to pool across it, opt in explicitly and
+the call proceeds with a warning.
+
+```{r break-allow, eval = FALSE}
 brfss_design(2009:2013, allow_break = TRUE)
 ```
 
-## Citing the data
+Two articles carry this further. [Survey design in
+BRFSS](https://muntasirmasum.github.io/brfssdata/articles/survey-design.html)
+works through weights, strata, single-PSU handling, subpopulation
+analysis, and multi-year pooling in detail. [Survey-weighted logistic
+regression](https://muntasirmasum.github.io/brfssdata/articles/logistic-regression.html)
+fits a full model with `svyglm()`, walking from recoding and weighted
+prevalence through design-based confidence intervals on the odds ratios.
 
-> Centers for Disease Control and Prevention (CDC). Behavioral Risk
-> Factor Surveillance System Survey Data. Atlanta, Georgia: U.S.
-> Department of Health and Human Services, Centers for Disease Control
-> and Prevention, [appropriate year].
+## Using the data outside R
+
+Nothing about the cache is specific to R. The files are ordinary parquet,
+readable by anything that speaks the format, so if you or a collaborator
+work in Python, SAS, Stata, or plain SQL, you can point those tools at
+the same files brfssdata downloaded, or export a prepared subset from R.
+[Using the data outside
+R](https://muntasirmasum.github.io/brfssdata/articles/outside-r.html)
+covers each route.
+
+## Citing
+
+The package and the survey data are cited separately, and both entries
+come back from one call.
+
+```{r citation, eval = TRUE}
+citation("brfssdata")
+```
+
+The second entry is CDC's recommended form for the data itself. Replace
+`[appropriate year]` with the survey year or years you analyzed, and
+repeat the citation for each year if your journal expects that.
+Manuscripts reporting BRFSS estimates conventionally also report response
+rates from CDC's Summary Data Quality Report for the years analyzed.

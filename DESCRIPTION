@@ -11,12 +11,13 @@ Depends:
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 8.0.0
-Suggests: 
+Suggests:
     curl,
     dbplyr,
     dplyr,
     knitr,
     rmarkdown,
+    survey,
     testthat,
     withr
 Config/testthat/edition: 3
@@ -26,7 +27,7 @@ Config/Needs/website:
 Imports: 
     cli,
     DBI,
-    duckdb,
+    duckdb (>= 1.5.5),
     jsonlite,
     rlang,
     srvyr,
