@@ -188,12 +188,18 @@ is easy to get wrong in a long analysis. `brfss_design()` writes
 builds the design on those. The CDC columns stay in the data untouched,
 so anything you want to check against the codebook is still there.
 
-Finally, `nest = TRUE` is set. Because PSU identifiers restart in every
-state, the same identifier refers to unrelated respondents in different
-strata. `nest = TRUE` tells `survey` to read cluster identifiers as
-labels within a stratum instead of as globally unique units, which is
-the correct reading of the file and keeps unrelated respondents from
-being pooled into one cluster.
+Finally, the clustering is set to match the file rather than the year.
+Where several respondents share a primary sampling unit, as in the files
+through 2000, the design is clustered on `brfss_psu` with `nest = TRUE`.
+That matters because PSU identifiers restart in every state, so the same
+identifier refers to unrelated respondents in different strata, and
+`nest = TRUE` tells `survey` to read them as labels within a stratum
+instead of as globally unique units. From 2001 on each stratum and PSU
+pair holds one person, the clustering carries no information, and
+`brfss_design()` leaves it out. Estimates, standard errors, and degrees
+of freedom are unchanged, and `survey` is spared a cluster factor with
+one level per respondent, which is the difference between a mean that
+returns in about a second and one that takes over a minute.
 
 ## The 2011 boundary
 
@@ -348,8 +354,9 @@ whole-sample and subpopulation estimates.
 
 ## Subpopulation analysis
 
-Subgroup estimates are the place where design-based analysis is most
-often done wrong. Filter the design object, not the data.
+Subgroup estimates have a standard piece of advice attached to them:
+filter the design object, not the data. It is worth following, though
+for narrower reasons than it is usually given.
 
 Start from the codebook, since the codes are not obvious:
 
