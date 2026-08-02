@@ -26,7 +26,7 @@ build_year <- function(year, overwrite = FALSE) {
   exdir <- file.path(tempdir(), paste0("brfss_xpt_", year))
   unlink(exdir, recursive = TRUE)
   utils::unzip(zip, exdir = exdir)
-  xpt <- list.files(exdir, pattern = "(?i)\\.xpt$", full.names = TRUE)
+  xpt <- list.files(exdir, pattern = "(?i)\\.xpt[[:space:]]*$", full.names = TRUE)
   stopifnot(length(xpt) == 1)
 
   message(year, ": reading XPT")
@@ -45,10 +45,16 @@ build_year <- function(year, overwrite = FALSE) {
 
   target <- cdc_targets[[as.character(year)]]
   if (!is.null(target)) {
-    stopifnot(
-      nrow(dat) == target[1],
-      ncol(dat) == target[2] + 1L # +1 for the added year column
-    )
+    # Row counts are the hard validation; CDC page variable counts are
+    # unreliable (e.g. 2011 page says 450, the XPT has 454), so column
+    # counts are logged, not asserted.
+    stopifnot(nrow(dat) == target[1])
+    if (ncol(dat) != target[2] + 1L) {
+      message(
+        year, ": note - XPT has ", ncol(dat) - 1L,
+        " variables vs CDC page claim ", target[2]
+      )
+    }
   }
 
   con <- DBI::dbConnect(duckdb::duckdb(shared_home = FALSE))

@@ -14,7 +14,7 @@ catalog_year <- function(year) {
   unlink(exdir, recursive = TRUE)
   utils::unzip(zip, exdir = exdir)
   on.exit(unlink(exdir, recursive = TRUE), add = TRUE)
-  xpt <- list.files(exdir, pattern = "(?i)\\.xpt$", full.names = TRUE)
+  xpt <- list.files(exdir, pattern = "(?i)\\.xpt[[:space:]]*$", full.names = TRUE)
   stopifnot(length(xpt) == 1)
 
   dat <- haven::read_xpt(xpt[[1]], n_max = 1)
