@@ -80,6 +80,16 @@ test_that("survey's own \"fail\" default is treated as unset", {
   expect_identical(getOption("survey.lonely.psu"), "adjust")
 })
 
+test_that("tests do not inherit a lonely-PSU option from each other", {
+  # brfss_design() sets the option for the session by design. The fixture
+  # helper scopes it per test so the suite stays order-independent and
+  # does not leave "adjust" behind in the calling session.
+  local_brfss_cache(2023)
+  expect_null(getOption("survey.lonely.psu"))
+  brfss_design(2023, quiet = TRUE)
+  expect_identical(getOption("survey.lonely.psu"), "adjust")
+})
+
 test_that("a malformed lonely-PSU option does not error the design", {
   local_brfss_cache(2023)
   withr::local_options(survey.lonely.psu = c("adjust", "remove"))
