@@ -65,6 +65,13 @@ replaced post-stratification with raking. Requests that pool years from
 both sides of that boundary therefore fail unless \code{allow_break = TRUE}
 is set deliberately.
 
+That guard covers the one break CDC describes as disqualifying, and it
+is not a general promise that any two years on the same side are
+comparable. Raking margins, state participation, and collection
+conditions all move within an era. CDC publishes a comparability
+document with each annual release, and a year-over-year shift is worth
+reading there before it is read as a change in the population.
+
 When several years are combined, weights are divided by the number of
 years (\code{pool_weights = TRUE}, the default) so that pooled estimates
 represent an average year rather than a sum of populations, and the

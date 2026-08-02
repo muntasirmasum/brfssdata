@@ -296,6 +296,17 @@ pool |>
   summarize(fair_poor = survey_mean(fair_poor, vartype = "ci", na.rm = TRUE))
 ```
 
+Read that table before pooling, because it is the check the package
+cannot make for you. Fair or poor health rises about three points across
+these three years and the intervals do not overlap, so it is not sampling
+noise, but neither is it necessarily a change in how people feel. The
+2011 guard covers the break CDC calls disqualifying; it says nothing
+about two years on the same side of it. Raking margins, which states
+field the survey, and the conditions collection happens under all move
+from year to year, and the early 2020s moved more than most. CDC ships a
+comparability document with each annual release, and a shift this size
+belongs there before it belongs in a trend line.
+
 ## Lonely PSUs
 
 In the 2001 and later files, where every respondent is their own
