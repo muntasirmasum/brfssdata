@@ -1,0 +1,34 @@
+Package: brfssdata
+Title: Access CDC Behavioral Risk Factor Surveillance System Data
+Version: 0.0.0.9000
+Authors@R: 
+    person("Muntasir", "Masum", , "muntasir.1124@gmail.com", role = c("aut", "cre"))
+Description: Download, cache, and analyze annual microdata from the United States Centers for Disease Control and Prevention Behavioral Risk Factor Surveillance System (BRFSS) <https://www.cdc.gov/brfss/>. Survey years are stored as compact files hosted on public releases and queried lazily with 'DuckDB' (via the 'duckdb' package), so only the requested years and variables are transferred. Survey-design helpers construct 'srvyr' design objects with year-appropriate weights, strata, and primary sampling units, including explicit handling of the 2011 weighting methodology change.
+License: MIT + file LICENSE
+Depends: 
+    R (>= 4.2)
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 8.0.0
+Suggests: 
+    curl,
+    dbplyr,
+    dplyr,
+    knitr,
+    rmarkdown,
+    testthat,
+    withr
+Config/testthat/edition: 3
+Imports: 
+    cli,
+    DBI,
+    duckdb,
+    jsonlite,
+    rlang,
+    srvyr,
+    tibble,
+    tools,
+    utils
+URL: https://muntasirmasum.github.io/brfssdata/, https://github.com/muntasirmasum/brfssdata
+VignetteBuilder: knitr
+BugReports: https://github.com/muntasirmasum/brfssdata/issues

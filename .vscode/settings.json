@@ -1,0 +1,19 @@
+{
+    "positron.r.customBinaries": [
+        "/Users/mm992584/.uvr/r-versions/4.6.1/bin/R"
+    ],
+    "positron.r.customRootFolders": [
+        "/Users/mm992584/.uvr/r-versions"
+    ],
+    "positron.r.interpreters.default": "/Users/mm992584/.uvr/r-versions/4.6.1/bin/R",
+    "r.rpath.mac": "/Users/mm992584/.uvr/r-versions/4.6.1/bin/R",
+    "r.rterm.mac": "/Users/mm992584/.uvr/r-versions/4.6.1/bin/R",
+    "[r]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "Posit.air-vscode"
+    },
+    "[quarto]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "quarto.quarto"
+    }
+}

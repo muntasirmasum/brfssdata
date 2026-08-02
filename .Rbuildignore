@@ -1,0 +1,14 @@
+^LICENSE\.md$
+^[.]?air[.]toml$
+^\.vscode$
+^uvr\.toml$
+^uvr\.lock$
+^\.Rprofile$
+^\.r-version$
+^\.uvr$
+^air\.toml$
+^data-raw$
+^\.github$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
