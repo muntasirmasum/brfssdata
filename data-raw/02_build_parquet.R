@@ -34,10 +34,13 @@ build_year <- function(year, overwrite = FALSE) {
   # Strip haven attributes to plain vectors; labels are captured separately
   # by 03_catalog.R. Keep CDC variable names verbatim.
   dat <- as.data.frame(lapply(dat, haven::zap_label), check.names = FALSE)
-  dat <- as.data.frame(lapply(dat, function(x) {
-    attr(x, "format.sas") <- NULL
-    x
-  }), check.names = FALSE)
+  dat <- as.data.frame(
+    lapply(dat, function(x) {
+      attr(x, "format.sas") <- NULL
+      x
+    }),
+    check.names = FALSE
+  )
   dat$year <- as.integer(year)
 
   target <- cdc_targets[[as.character(year)]]
@@ -51,15 +54,20 @@ build_year <- function(year, overwrite = FALSE) {
   con <- DBI::dbConnect(duckdb::duckdb(shared_home = FALSE))
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
   duckdb::duckdb_register(con, "dat", dat)
-  DBI::dbExecute(con, sprintf(
-    "COPY dat TO '%s' (FORMAT parquet, COMPRESSION zstd)",
-    gsub("'", "''", out)
-  ))
+  DBI::dbExecute(
+    con,
+    sprintf(
+      "COPY dat TO '%s' (FORMAT parquet, COMPRESSION zstd)",
+      gsub("'", "''", out)
+    )
+  )
 
   unlink(exdir, recursive = TRUE)
   message(sprintf(
     "%d: %s rows, %s cols, %.1f MB parquet",
-    year, format(nrow(dat), big.mark = ","), ncol(dat),
+    year,
+    format(nrow(dat), big.mark = ","),
+    ncol(dat),
     file.size(out) / 1e6
   ))
   invisible(out)

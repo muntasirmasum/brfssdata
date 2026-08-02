@@ -36,13 +36,19 @@ write_fixture_parquet <- function(df, path) {
 write_fixture_catalog <- function(dir) {
   catalog <- data.frame(
     variable = c(
-      "GENHLTH", "GENHLTH", "GENHLTH",
-      "SMOKE100", "SMOKE100",
+      "GENHLTH",
+      "GENHLTH",
+      "GENHLTH",
+      "SMOKE100",
+      "SMOKE100",
       "MYSTVAR"
     ),
     label = c(
-      "General health", "General health", "General Health Status",
-      "Smoked 100 cigarettes", "Smoked at least 100 cigarettes",
+      "General health",
+      "General health",
+      "General Health Status",
+      "Smoked 100 cigarettes",
+      "Smoked at least 100 cigarettes",
       NA
     ),
     year = c(2019L, 2020L, 2022L, 2019L, 2020L, 2020L),
@@ -66,8 +72,12 @@ reset_manifest_state <- function() {
 
 # Point the package at a temp cache stocked with fixture years and a fresh
 # manifest. Returns the cache dir. Cleans itself up with the test.
-local_brfss_cache <- function(years, extra = list(), catalog = FALSE,
-                             env = parent.frame()) {
+local_brfss_cache <- function(
+  years,
+  extra = list(),
+  catalog = FALSE,
+  env = parent.frame()
+) {
   dir <- withr::local_tempdir(.local_envir = env)
   withr::local_options(brfssdata.cache_dir = dir, .local_envir = env)
   reset_manifest_state()

@@ -40,8 +40,12 @@ read_brfss <- function(years, vars = NULL, download = TRUE, quiet = FALSE) {
   query_parquet(paths, vars = vars)
 }
 
-ensure_years_cached <- function(years, download = TRUE, quiet = FALSE,
-                                call = rlang::caller_env()) {
+ensure_years_cached <- function(
+  years,
+  download = TRUE,
+  quiet = FALSE,
+  call = rlang::caller_env()
+) {
   paths <- cache_path(year_asset(years))
   missing <- years[!file.exists(paths)]
 
@@ -62,8 +66,10 @@ ensure_years_cached <- function(years, download = TRUE, quiet = FALSE,
       cli::cli_inform("Downloading BRFSS {year} (one-time, then cached).")
     }
     download_to_cache(
-      year_url(year), cache_path(year_asset(year)),
-      quiet = quiet, call = call
+      year_url(year),
+      cache_path(year_asset(year)),
+      quiet = quiet,
+      call = call
     )
   }
   paths

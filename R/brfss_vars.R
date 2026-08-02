@@ -21,8 +21,12 @@
 #' @examplesIf interactive()
 #' brfss_vars("smok")
 #' @export
-brfss_vars <- function(pattern = NULL, years = NULL, download = TRUE,
-                       quiet = TRUE) {
+brfss_vars <- function(
+  pattern = NULL,
+  years = NULL,
+  download = TRUE,
+  quiet = TRUE
+) {
   path <- cache_path("brfss_variables.parquet")
   if (!file.exists(path)) {
     if (!download) {

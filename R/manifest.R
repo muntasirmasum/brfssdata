@@ -62,8 +62,10 @@ read_manifest <- function(refresh = FALSE) {
   if (download_failed) {
     fallback <- if (file.exists(path)) "a previously cached" else "the bundled"
     cli::cli_inform(
-      c("!" = "Could not refresh the BRFSS data manifest;
-               using {fallback} copy."),
+      c(
+        "!" = "Could not refresh the BRFSS data manifest;
+               using {fallback} copy."
+      ),
       class = "brfssdata_manifest_note"
     )
   }

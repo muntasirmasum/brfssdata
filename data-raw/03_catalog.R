@@ -39,13 +39,17 @@ build_catalog <- function(years) {
   con <- DBI::dbConnect(duckdb::duckdb(shared_home = FALSE))
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
   duckdb::duckdb_register(con, "catalog", catalog)
-  DBI::dbExecute(con, sprintf(
-    "COPY catalog TO '%s' (FORMAT parquet, COMPRESSION zstd)",
-    gsub("'", "''", out)
-  ))
+  DBI::dbExecute(
+    con,
+    sprintf(
+      "COPY catalog TO '%s' (FORMAT parquet, COMPRESSION zstd)",
+      gsub("'", "''", out)
+    )
+  )
   message(sprintf(
     "catalog: %s variable-year rows across %d years",
-    format(nrow(catalog), big.mark = ","), length(years)
+    format(nrow(catalog), big.mark = ","),
+    length(years)
   ))
   invisible(out)
 }

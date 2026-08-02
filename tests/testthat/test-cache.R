@@ -7,8 +7,10 @@ test_that("cache dir honors the option override", {
 test_that("cache info lists files with parsed years", {
   local_brfss_cache(c(2022, 2023))
   info <- brfss_cache_info()
-  expect_true(all(c("brfss_2022.parquet", "brfss_2023.parquet") %in%
-    info$file))
+  expect_true(all(
+    c("brfss_2022.parquet", "brfss_2023.parquet") %in%
+      info$file
+  ))
   expect_true(all(c(2022L, 2023L) %in% info$year))
   expect_true(all(info$size[info$year %in% 2022:2023] > 0))
 })

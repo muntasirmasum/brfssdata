@@ -84,8 +84,12 @@ ensure_cache_dir <- function() {
 
 # Download a release asset into the cache, failing with an informative,
 # classed error (never a warning) if the resource is unavailable.
-download_to_cache <- function(url, dest, quiet = FALSE,
-                              call = rlang::caller_env()) {
+download_to_cache <- function(
+  url,
+  dest,
+  quiet = FALSE,
+  call = rlang::caller_env()
+) {
   ensure_cache_dir()
   # Unique tmp in the cache dir itself: concurrent sessions cannot
   # interleave writes, and the final rename stays same-filesystem.
@@ -124,8 +128,10 @@ download_to_cache <- function(url, dest, quiet = FALSE,
       call = call
     )
   }
-  if (!isTRUE(file.rename(tmp, dest)) &&
-      !isTRUE(file.copy(tmp, dest, overwrite = TRUE))) {
+  if (
+    !isTRUE(file.rename(tmp, dest)) &&
+      !isTRUE(file.copy(tmp, dest, overwrite = TRUE))
+  ) {
     cli::cli_abort(
       c(
         "Downloaded {.url {url}} but could not move it into the cache

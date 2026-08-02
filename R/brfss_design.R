@@ -41,9 +41,14 @@
 #'   group_by(GENHLTH) |>
 #'   summarize(prop = survey_prop())
 #' @export
-brfss_design <- function(years, vars = NULL, allow_break = FALSE,
-                         pool_weights = TRUE, download = TRUE,
-                         quiet = FALSE) {
+brfss_design <- function(
+  years,
+  vars = NULL,
+  allow_break = FALSE,
+  pool_weights = TRUE,
+  download = TRUE,
+  quiet = FALSE
+) {
   years <- validate_years(years, download = download)
 
   pre <- years[years < BREAK_YEAR]
@@ -94,7 +99,9 @@ brfss_design <- function(years, vars = NULL, allow_break = FALSE,
       "Pooling across the 2011 redesign: interpret trends with caution."
     )
     wt <- ifelse(
-      dat$year >= BREAK_YEAR, dat[[WEIGHT_POST]], dat[[WEIGHT_PRE]]
+      dat$year >= BREAK_YEAR,
+      dat[[WEIGHT_POST]],
+      dat[[WEIGHT_PRE]]
     )
   } else {
     wt <- dat[[weight_vars]]

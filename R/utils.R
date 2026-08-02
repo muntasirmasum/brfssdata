@@ -15,17 +15,27 @@ brfss_repo <- function() {
 }
 
 release_url <- function(tag, asset) {
-  sprintf("https://github.com/%s/releases/download/%s/%s", brfss_repo(), tag, asset)
+  sprintf(
+    "https://github.com/%s/releases/download/%s/%s",
+    brfss_repo(),
+    tag,
+    asset
+  )
 }
 
 year_asset <- function(year) sprintf("brfss_%d.parquet", year)
 
-year_url <- function(year) release_url(sprintf("data-%d", year), year_asset(year))
+year_url <- function(year) {
+  release_url(sprintf("data-%d", year), year_asset(year))
+}
 
-validate_years <- function(years, download = TRUE,
-                           call = rlang::caller_env()) {
-  if (!is.numeric(years) || length(years) == 0 || anyNA(years) ||
-      any(years != trunc(years))) {
+validate_years <- function(years, download = TRUE, call = rlang::caller_env()) {
+  if (
+    !is.numeric(years) ||
+      length(years) == 0 ||
+      anyNA(years) ||
+      any(years != trunc(years))
+  ) {
     cli::cli_abort(
       "{.arg years} must be one or more whole survey years, e.g. {.code 2019:2023}.",
       call = call
@@ -96,13 +106,16 @@ query_parquet <- function(paths, vars = NULL, call = rlang::caller_env()) {
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
 
   files_sql <- paste0(
-    "[", paste(quote_literal(paths), collapse = ", "), "]"
+    "[",
+    paste(quote_literal(paths), collapse = ", "),
+    "]"
   )
   from_sql <- sprintf("read_parquet(%s, union_by_name = true)", files_sql)
 
   if (!is.null(vars)) {
     schema <- DBI::dbGetQuery(
-      con, sprintf("DESCRIBE SELECT * FROM %s", from_sql)
+      con,
+      sprintf("DESCRIBE SELECT * FROM %s", from_sql)
     )
     unknown <- setdiff(vars, schema$column_name)
     if (length(unknown) > 0) {

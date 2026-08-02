@@ -29,7 +29,10 @@ upload_verified <- function(path, tag) {
   listed <- piggyback::pb_list(repo = repo, tag = tag)$file_name
   if (!basename(path) %in% listed) {
     stop(
-      "upload of ", basename(path), " to ", tag,
+      "upload of ",
+      basename(path),
+      " to ",
+      tag,
       " failed verification; not advertising it",
       call. = FALSE
     )
@@ -43,7 +46,8 @@ publish_year <- function(year) {
   tag <- sprintf("data-%d", year)
   if (!release_exists(tag)) {
     piggyback::pb_release_create(
-      repo = repo, tag = tag,
+      repo = repo,
+      tag = tag,
       name = sprintf("BRFSS %d data", year),
       body = sprintf(
         paste0(
@@ -64,7 +68,9 @@ publish_meta <- function(years) {
   tag <- "data-meta"
   if (!release_exists(tag)) {
     piggyback::pb_release_create(
-      repo = repo, tag = tag, name = "Data manifest and variable catalog"
+      repo = repo,
+      tag = tag,
+      name = "Data manifest and variable catalog"
     )
     Sys.sleep(2)
   }
@@ -79,7 +85,8 @@ publish_meta <- function(years) {
       generated = format(Sys.Date())
     ),
     manifest,
-    auto_unbox = TRUE, pretty = TRUE
+    auto_unbox = TRUE,
+    pretty = TRUE
   )
   upload_verified(manifest, tag)
   message("published manifest: ", paste(range(years), collapse = "-"))

@@ -26,7 +26,9 @@ test_that("allow_break pools with a warning and era-correct weights", {
   expect_warning(
     des <- brfss_design(
       c(2009, 2023),
-      allow_break = TRUE, pool_weights = FALSE, quiet = TRUE
+      allow_break = TRUE,
+      pool_weights = FALSE,
+      quiet = TRUE
     ),
     "2011"
   )
