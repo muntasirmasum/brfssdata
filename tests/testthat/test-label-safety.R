@@ -34,8 +34,11 @@ test_that("a code carrying two different labels keeps its numeric codes", {
     data.frame(
       year = 2023L,
       variable = "RISKVAR",
-      code = c(1L, 1L, 2L, 2L),
-      label = c("YES", "NO", "NO", "YES"),
+      # Every label distinct, so only the repeated *code* can block the
+      # conversion; a fixture with repeated labels too would pass even
+      # if the duplicate-code check were removed.
+      code = c(1L, 1L, 1L, 2L),
+      label = c("NOT AT RISK", "NO", "YES", "AT RISK"),
       complete = TRUE,
       stringsAsFactors = FALSE
     )
@@ -46,7 +49,10 @@ test_that("a code carrying two different labels keeps its numeric codes", {
   expect_identical(sort(unique(dat$RISKVAR)), c(1L, 2L))
 })
 
-test_that("an empty or missing label keeps its numeric codes", {
+# The blank-label and missing-label cases are kept in separate fixtures
+# on purpose: a single fixture carrying both would still be blocked if
+# either check were removed, and so could not tell them apart.
+test_that("a missing label keeps its numeric codes", {
   dir <- local_brfss_cache(integer(0))
   one_year_fixture(dir, "GAPVAR", c(1L, 2L, 3L))
   write_labels_catalog(
@@ -55,7 +61,7 @@ test_that("an empty or missing label keeps its numeric codes", {
       year = 2023L,
       variable = "GAPVAR",
       code = 1:3,
-      label = c("Yes", "", NA_character_),
+      label = c("Yes", "No", NA_character_),
       complete = TRUE,
       stringsAsFactors = FALSE
     )
@@ -63,6 +69,26 @@ test_that("an empty or missing label keeps its numeric codes", {
 
   dat <- read_brfss(2023, quiet = TRUE, labels = TRUE)
   expect_false(is.factor(dat$GAPVAR))
+})
+
+test_that("a blank label keeps its numeric codes", {
+  dir <- local_brfss_cache(integer(0))
+  one_year_fixture(dir, "BLANKVAR", c(1L, 2L, 3L))
+  # Shaped like _IMPNPH in 2003, where most codes carry an empty string.
+  write_labels_catalog(
+    dir,
+    data.frame(
+      year = 2023L,
+      variable = "BLANKVAR",
+      code = 1:3,
+      label = c("Yes", "No", "  "),
+      complete = TRUE,
+      stringsAsFactors = FALSE
+    )
+  )
+
+  dat <- read_brfss(2023, quiet = TRUE, labels = TRUE)
+  expect_false(is.factor(dat$BLANKVAR))
 })
 
 test_that("a clean one-to-one map still converts", {

@@ -59,8 +59,14 @@ test_that("brfss_design returns only the requested vars plus design cols", {
   expect_setequal(
     names(des$variables),
     c(
-      "year", "GENHLTH", "_PSU", "_STSTR", "_LLCPWT",
-      "brfss_wt", "brfss_psu", "brfss_strata"
+      "year",
+      "GENHLTH",
+      "_PSU",
+      "_STSTR",
+      "_LLCPWT",
+      "brfss_wt",
+      "brfss_psu",
+      "brfss_strata"
     )
   )
 })

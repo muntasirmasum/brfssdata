@@ -224,3 +224,23 @@ test_that("pool_weights divides by the year count, not by two", {
   unpooled <- brfss_design(2021:2023, pool_weights = FALSE, quiet = TRUE)
   expect_equal(pooled$variables$brfss_wt, unpooled$variables$brfss_wt / 3)
 })
+
+test_that("an unclustered design skips survey's nested-clusters check", {
+  # survey cross-tabulates clusters by strata unless check_strata is
+  # off. Every observation is its own cluster on this path, so the check
+  # can only pass, and on pooled years the table it builds exceeds R's
+  # vector limit and the call dies. A fixture is far too small to
+  # reproduce that, so assert the argument reaches srvyr instead.
+  local_brfss_cache(2023)
+  seen <- NULL
+  real <- srvyr::as_survey_design
+  local_mocked_bindings(
+    as_survey_design = function(...) {
+      seen <<- ...names()
+      real(...)
+    },
+    .package = "srvyr"
+  )
+  brfss_design(2023, quiet = TRUE)
+  expect_true("check_strata" %in% seen)
+})
