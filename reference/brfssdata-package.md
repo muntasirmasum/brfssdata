@@ -23,7 +23,9 @@ Useful links:
 ## Author
 
 **Maintainer**: Muntasir Masum <muntasir.1124@gmail.com>
+([ORCID](https://orcid.org/0000-0002-4210-2844)) \[copyright holder\]
 
 Authors:
 
 - Muntasir Masum <muntasir.1124@gmail.com>
+  ([ORCID](https://orcid.org/0000-0002-4210-2844)) \[copyright holder\]
