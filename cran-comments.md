@@ -1,15 +1,14 @@
 ## R CMD check results
 
-0 errors | 0 warnings | 0 notes on all local and CI platforms.
+0 errors | 0 warnings | 1 note
 
-win-builder (R-devel) reported 1 NOTE (CRAN incoming feasibility):
+The note is "New submission" (CRAN incoming feasibility). No other
+check produced a note, warning, or error.
 
-* New submission (this is a new release).
-* Possibly misspelled words in DESCRIPTION: "BRFSS" is the acronym of
-  the Behavioral Risk Factor Surveillance System, the survey this
-  package distributes; "microdata" is a standard statistical term.
-* A (possibly) invalid relative file URI in README.md has been fixed
-  in this submission (now an absolute URL).
+win-builder additionally flags two words in DESCRIPTION as possibly
+misspelled: "BRFSS" is the acronym of the Behavioral Risk Factor
+Surveillance System, the survey this package distributes, and
+"microdata" is a standard statistical term for respondent-level records.
 
 ## Test environments
 
@@ -26,4 +25,10 @@ win-builder (R-devel) reported 1 NOTE (CRAN incoming feasibility):
   @examplesIf interactive(), and tests mock all downloads, so checks
   run fully offline.
 * Downloads cache under tools::R_user_dir(); tests never touch the
-  real cache, and brfss_cache_clear() manages it.
+  real cache, and brfss_cache_clear() manages it. Connections are
+  opened with duckdb's shared_home = FALSE so nothing is written
+  outside the cache and session temp directory, which is why
+  DESCRIPTION requires duckdb (>= 1.5.5).
+* The vignette's code is not evaluated during the package build, so no
+  network access is needed; the same document runs live on the package
+  website, where the data are available.
