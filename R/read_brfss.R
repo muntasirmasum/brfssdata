@@ -19,6 +19,12 @@
 #' @param download If `FALSE`, only cached years are used and missing
 #'   years raise an error instead of being downloaded.
 #' @param quiet If `TRUE`, suppress download progress output.
+#' @param labels If `TRUE`, convert variables with safe value-label maps
+#'   to factors using CDC's format libraries (available from 1998 on).
+#'   A variable converts only when its format is a pure code-to-label
+#'   map, its code set agrees across the requested years, and every
+#'   observed value is covered; everything else keeps its numeric codes.
+#'   See [brfss_labels()] for the raw catalog.
 #'
 #' @return A tibble with one row per respondent and a `year` column.
 #'
@@ -28,7 +34,13 @@
 #' @seealso [brfss_design()] to get a survey-design object instead of a
 #'   plain tibble.
 #' @export
-read_brfss <- function(years, vars = NULL, download = TRUE, quiet = FALSE) {
+read_brfss <- function(
+  years,
+  vars = NULL,
+  download = TRUE,
+  quiet = FALSE,
+  labels = FALSE
+) {
   years <- validate_years(years, download = download)
   if (!is.null(vars) && (!is.character(vars) || anyNA(vars))) {
     cli::cli_abort(
@@ -37,7 +49,11 @@ read_brfss <- function(years, vars = NULL, download = TRUE, quiet = FALSE) {
     )
   }
   paths <- ensure_years_cached(years, download = download, quiet = quiet)
-  query_parquet(paths, vars = vars)
+  dat <- query_parquet(paths, vars = vars)
+  if (isTRUE(labels)) {
+    dat <- apply_labels(dat, years, quiet = quiet)
+  }
+  dat
 }
 
 ensure_years_cached <- function(

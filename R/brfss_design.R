@@ -53,7 +53,8 @@ brfss_design <- function(
   allow_break = FALSE,
   pool_weights = TRUE,
   download = TRUE,
-  quiet = FALSE
+  quiet = FALSE,
+  labels = FALSE
 ) {
   years <- validate_years(years, download = download)
 
@@ -142,6 +143,21 @@ brfss_design <- function(
     paste(dat$year, dat[[DESIGN_STRATA]], sep = "_")
   } else {
     dat[[DESIGN_STRATA]]
+  }
+
+  if (isTRUE(labels)) {
+    dat <- apply_labels(
+      dat,
+      years,
+      quiet = quiet,
+      exclude = c(
+        design_vars,
+        "brfss_wt",
+        "brfss_psu",
+        "brfss_strata",
+        "year"
+      )
+    )
   }
 
   # BRFSS public-use files make each respondent their own PSU, so small

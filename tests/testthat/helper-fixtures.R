@@ -107,3 +107,60 @@ local_brfss_manifest <- function(years, env = parent.frame()) {
   )
   dir
 }
+
+# A labels catalog fixture: GENHLTH fully mapped (complete), PHYSHLTH
+# mixed (incomplete), DRIFTVAR with a code set that changes across years.
+write_fixture_labels <- function(dir) {
+  labels <- data.frame(
+    year = c(
+      rep(2022L, 5),
+      rep(2023L, 5),
+      2023L,
+      2023L,
+      2022L,
+      2022L,
+      2023L,
+      2023L,
+      2023L
+    ),
+    variable = c(
+      rep("GENHLTH", 10),
+      "PHYSHLTH",
+      "PHYSHLTH",
+      rep("DRIFTVAR", 5)
+    ),
+    code = c(
+      1:5,
+      1:5,
+      88L,
+      99L,
+      0L,
+      1L,
+      0L,
+      1L,
+      2L
+    ),
+    label = c(
+      "Excellent",
+      "Very good",
+      "Good",
+      "Fair",
+      "Poor",
+      "Excellent",
+      "Very good",
+      "Good",
+      "Fair",
+      "Poor",
+      "None",
+      "Refused",
+      "Yes",
+      "No",
+      "Yes",
+      "No",
+      "Maybe"
+    ),
+    complete = c(rep(TRUE, 10), FALSE, FALSE, rep(TRUE, 5)),
+    stringsAsFactors = FALSE
+  )
+  write_fixture_parquet(labels, file.path(dir, "brfss_labels.parquet"))
+}

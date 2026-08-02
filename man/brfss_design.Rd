@@ -10,7 +10,8 @@ brfss_design(
   allow_break = FALSE,
   pool_weights = TRUE,
   download = TRUE,
-  quiet = FALSE
+  quiet = FALSE,
+  labels = FALSE
 )
 }
 \arguments{
@@ -30,6 +31,13 @@ divide each weight by the number of years.}
 years raise an error instead of being downloaded.}
 
 \item{quiet}{If \code{TRUE}, suppress download progress output.}
+
+\item{labels}{If \code{TRUE}, convert variables with safe value-label maps
+to factors using CDC's format libraries (available from 1998 on).
+A variable converts only when its format is a pure code-to-label
+map, its code set agrees across the requested years, and every
+observed value is covered; everything else keeps its numeric codes.
+See \code{\link[=brfss_labels]{brfss_labels()}} for the raw catalog.}
 }
 \value{
 A \code{tbl_svy} survey-design object. The underlying data carry

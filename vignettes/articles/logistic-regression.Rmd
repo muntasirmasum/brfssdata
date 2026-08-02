@@ -1,0 +1,116 @@
+---
+title: "Survey-weighted logistic regression with BRFSS"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+A standard epidemiologic question: how does the probability of reporting
+fair or poor general health vary by sex, age group, and education?
+Answering it properly with BRFSS requires the complex sampling design,
+the final weights, strata, and primary sampling units, or every standard
+error will be wrong. This article walks the full path with brfssdata:
+one call for a design object, familiar srvyr and survey verbs for the
+analysis.
+
+## Data
+
+`brfss_design()` returns a srvyr design with the era-correct weight
+applied. Recodes below work from the numeric codes, the way most
+epidemiologic BRFSS analyses do; `brfss_labels()` is the codebook that
+documents what each code means.
+
+```{r design}
+library(brfssdata)
+library(srvyr)
+library(survey)
+
+des <- brfss_design(
+  2023,
+  vars = c("GENHLTH", "SEXVAR", "_AGE_G", "EDUCA"),
+  quiet = TRUE
+)
+
+brfss_labels("EDUCA", years = 2023)
+```
+
+## Recoding
+
+The outcome is fair or poor self-rated health (codes 4 and 5);
+don't-know (7) and refused (9) become missing. Education collapses to
+three levels. Everything here is ordinary dplyr on the design object;
+srvyr keeps the design attached.
+
+```{r recode}
+des <- des |>
+  mutate(
+    fairpoor = case_when(
+      GENHLTH %in% 4:5 ~ 1,
+      GENHLTH %in% 1:3 ~ 0,
+      .default = NA
+    ),
+    sex = factor(SEXVAR, 1:2, c("Male", "Female")),
+    edu3 = case_when(
+      EDUCA %in% 1:3 ~ "Less than high school",
+      EDUCA %in% 4:5 ~ "High school or some college",
+      EDUCA == 6 ~ "College graduate",
+      .default = NA
+    ) |> factor(levels = c(
+      "College graduate",
+      "High school or some college",
+      "Less than high school"
+    )),
+    age_g = factor(`_AGE_G`, 1:6, c(
+      "18-24", "25-34", "35-44", "45-54", "55-64", "65+"
+    ))
+  )
+```
+
+## Weighted prevalence
+
+```{r prevalence}
+des |>
+  filter(!is.na(fairpoor)) |>
+  group_by(edu3) |>
+  summarize(prev = survey_mean(fairpoor, vartype = "ci")) |>
+  na.omit()
+```
+
+## Model
+
+`svyglm()` accepts the design object directly. The quasibinomial family
+is the standard choice with survey weights.
+
+```{r model}
+fit <- svyglm(
+  fairpoor ~ sex + age_g + edu3,
+  design = des,
+  family = quasibinomial()
+)
+
+# Odds ratios with design-based confidence intervals
+or <- exp(cbind(OR = coef(fit), confint(fit)))
+round(or[-1, ], 2)
+```
+
+The education gradient is the headline: relative to college graduates,
+the odds of fair or poor health are substantially higher at lower
+education levels, net of sex and age, a pattern consistent across BRFSS
+years and one reason self-rated health is a workhorse outcome in health
+disparities research.
+
+## Notes for real analyses
+
+- Multi-year designs pool with `brfss_design(2019:2023)`; weights are
+  averaged across years and strata become year-by-stratum interactions.
+- Requests spanning 2011 fail on purpose; see the getting-started
+  vignette for the redesign details.
+- `brfss_labels("EDUCA")` documents every code, including the special
+  values (9 is Refused here) that should usually become `NA`.
+- Cite the data as CDC recommends; see the package README.

@@ -40,6 +40,12 @@ brfss_years()
 # Respondent-level data, only the variables you need
 dat <- read_brfss(2019:2023, vars = c("GENHLTH", "PHYSHLTH", "_LLCPWT"))
 
+# The same, with safe categoricals converted to labeled factors
+dat <- read_brfss(2023, vars = c("GENHLTH", "SEXVAR"), labels = TRUE)
+
+# The value-label codebook itself (1998 onward)
+brfss_labels("GENHLTH", years = 2023)
+
 # A survey-design object with era-correct weights, ready for srvyr
 library(srvyr)
 brfss_design(2023, vars = "GENHLTH") |>
@@ -62,6 +68,27 @@ post-stratification to raking in 2011; CDC states that estimates from
 selects the era-correct weight automatically (`_FINALWT` before 2011,
 `_LLCPWT` after) and refuses to pool years across the boundary unless you
 opt in with `allow_break = TRUE`.
+
+## Access from Python (or anything else)
+
+The hosted data files are plain parquet, so no R is required to use them.
+Every release asset has a stable URL:
+
+``` python
+import pandas as pd
+
+url = ("https://github.com/muntasirmasum/brfssdata/releases/download/"
+       "data-2023/brfss_2023.parquet")
+df = pd.read_parquet(url)
+```
+
+The same URLs work in polars, DuckDB (any language), Julia, or Stata's
+Python bridge. For survey-weighted analysis outside R, use the design
+columns shipped in every year: the final weight (`_LLCPWT` from 2011,
+`_FINALWT` before), strata (`_STSTR`), and PSU (`_PSU`). The list of
+available years lives at
+`releases/download/data-meta/manifest.json`, and each file has a
+`.sha256` companion for verification.
 
 ## Data source and citation
 

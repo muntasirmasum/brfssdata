@@ -4,7 +4,7 @@
 \alias{read_brfss}
 \title{Read BRFSS survey microdata}
 \usage{
-read_brfss(years, vars = NULL, download = TRUE, quiet = FALSE)
+read_brfss(years, vars = NULL, download = TRUE, quiet = FALSE, labels = FALSE)
 }
 \arguments{
 \item{years}{Integer vector of survey years, e.g. \code{2023} or
@@ -18,6 +18,13 @@ names across years.}
 years raise an error instead of being downloaded.}
 
 \item{quiet}{If \code{TRUE}, suppress download progress output.}
+
+\item{labels}{If \code{TRUE}, convert variables with safe value-label maps
+to factors using CDC's format libraries (available from 1998 on).
+A variable converts only when its format is a pure code-to-label
+map, its code set agrees across the requested years, and every
+observed value is covered; everything else keeps its numeric codes.
+See \code{\link[=brfss_labels]{brfss_labels()}} for the raw catalog.}
 }
 \value{
 A tibble with one row per respondent and a \code{year} column.
