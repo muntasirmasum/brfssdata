@@ -111,6 +111,31 @@ test_that("a clean one-to-one map still converts", {
   expect_identical(levels(dat$CLEANVAR), c("Low", "Middle", "High"))
 })
 
+test_that("factor labels come from the most recent requested year", {
+  # CDC rewords labels between years while the code set stays put, so
+  # the newest wording should win. A fixture whose wording is identical
+  # across years cannot tell max() from min().
+  dir <- local_brfss_cache(
+    c(2022, 2023),
+    extra = list("2022" = "DRIFTLAB", "2023" = "DRIFTLAB")
+  )
+  write_labels_catalog(
+    dir,
+    data.frame(
+      year = c(2022L, 2022L, 2023L, 2023L),
+      variable = "DRIFTLAB",
+      code = c(0L, 1L, 0L, 1L),
+      label = c("NO", "YES", "No", "Yes"),
+      complete = TRUE,
+      stringsAsFactors = FALSE
+    )
+  )
+
+  dat <- read_brfss(2022:2023, quiet = TRUE, labels = TRUE)
+  expect_s3_class(dat$DRIFTLAB, "factor")
+  expect_identical(levels(dat$DRIFTLAB), c("No", "Yes"))
+})
+
 test_that("labels never convert the columns the design is built on", {
   dir <- local_brfss_cache(2023)
   # A format for the stratum variable itself. Turning `_STSTR` or its

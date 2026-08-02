@@ -66,6 +66,13 @@ cached_file_year <- function(file) {
   )
 }
 
+# curl is a Suggests, so the downloader is chosen at call time. Kept as
+# its own function so tests can exercise the base R branch on a machine
+# that has curl installed.
+has_curl <- function() {
+  requireNamespace("curl", quietly = TRUE)
+}
+
 cache_path <- function(asset) {
   file.path(brfss_cache_dir(), asset)
 }
@@ -111,7 +118,7 @@ download_to_cache <- function(
   why <- NULL
   ok <- tryCatch(
     {
-      if (requireNamespace("curl", quietly = TRUE)) {
+      if (has_curl()) {
         curl::curl_download(url, tmp, mode = "wb", quiet = quiet)
       } else {
         utils::download.file(url, tmp, mode = "wb", quiet = quiet)

@@ -132,6 +132,21 @@ test_that("a missing year is fetched from its release URL", {
   expect_identical(seen, year_url(2023))
 })
 
+test_that("quiet controls whether a download announces itself", {
+  fetch <- function(quiet) {
+    local_brfss_manifest(2023)
+    local_mocked_bindings(
+      download_to_cache = function(url, dest, ...) {
+        write_fixture_year(2023, dirname(dest))
+        dest
+      }
+    )
+    read_brfss(2023, quiet = quiet)
+  }
+  expect_message(fetch(quiet = FALSE), "Downloading BRFSS 2023")
+  expect_no_message(fetch(quiet = TRUE))
+})
+
 test_that("the bundled offline manifest ships and parses", {
   # The last-resort fallback when the manifest cannot be refreshed, and
   # the path a machine with no network takes.

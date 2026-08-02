@@ -65,6 +65,38 @@ test_that("a successful download lands the file and cleans up its temp copy", {
   expect_length(list.files(dir, pattern = "\\.tmp$"), 0)
 })
 
+test_that("has_curl reflects whether curl is really installed", {
+  # The branch test below mocks has_curl(), so this is what pins the real
+  # implementation. Only the false-negative direction is detectable on a
+  # machine that has curl; a has_curl() stuck at TRUE would need a
+  # curl-free machine to catch, and degrades to a classed download error
+  # rather than a wrong answer.
+  expect_identical(has_curl(), requireNamespace("curl", quietly = TRUE))
+})
+
+test_that("both downloaders land the file, whichever one is available", {
+  # curl is a Suggests. The base R branch would otherwise never run on a
+  # machine that has curl installed, which is every machine that tests
+  # this package.
+  for (curl_available in c(TRUE, FALSE)) {
+    dir <- withr::local_tempdir()
+    withr::local_options(brfssdata.cache_dir = dir)
+    local_mocked_bindings(has_curl = function() curl_available)
+    src <- withr::local_tempfile()
+    writeLines("payload", src)
+    dest <- file.path(dir, "brfss_2023.parquet")
+
+    download_to_cache(
+      local_file_url(paste0("file://", src)),
+      dest,
+      quiet = TRUE
+    )
+
+    expect_true(file.exists(dest))
+    expect_identical(readLines(dest), "payload")
+  }
+})
+
 test_that("an empty download is treated as a failure", {
   dir <- withr::local_tempdir()
   withr::local_options(brfssdata.cache_dir = dir)
