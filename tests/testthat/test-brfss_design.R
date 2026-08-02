@@ -188,3 +188,37 @@ test_that("shared PSUs keep the clustered variance estimator", {
     survey::degf(unclustered)
   )))
 })
+
+test_that("the clustering branch follows the file", {
+  local_brfss_cache(2023)
+  singleton <- brfss_design(2023, quiet = TRUE)
+  # survey stores an unclustered design's ids as row numbers and a
+  # clustered one's as the stratum-by-PSU interaction, so the class of
+  # the cluster column says which branch ran.
+  expect_type(singleton$cluster[[1]], "integer")
+
+  local_brfss_cache(2023, psu_size = 3)
+  clustered <- brfss_design(2023, quiet = TRUE)
+  expect_s3_class(clustered$cluster[[1]], "factor")
+})
+
+test_that("a missing stratum stops the design instead of pooling into one", {
+  dir <- local_brfss_cache(integer(0))
+  write_fixture_year_na_strata(2023, dir)
+  writeLines('{"years": [2023]}', file.path(dir, "manifest.json"))
+  expect_error(
+    brfss_design(2023, quiet = TRUE),
+    class = "brfssdata_bad_design_var"
+  )
+})
+
+test_that("the 2011 break is the redesign year, not an arbitrary cutoff", {
+  expect_identical(BREAK_YEAR, 2011L)
+})
+
+test_that("pool_weights divides by the year count, not by two", {
+  local_brfss_cache(c(2021, 2022, 2023))
+  pooled <- brfss_design(2021:2023, quiet = TRUE)
+  unpooled <- brfss_design(2021:2023, pool_weights = FALSE, quiet = TRUE)
+  expect_equal(pooled$variables$brfss_wt, unpooled$variables$brfss_wt / 3)
+})

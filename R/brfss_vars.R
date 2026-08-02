@@ -46,12 +46,29 @@ brfss_vars <- function(
   catalog <- query_parquet(path)
 
   if (!is.null(years)) {
+    if (!is.numeric(years) || anyNA(years)) {
+      cli::cli_abort(
+        "{.arg years} must be a numeric vector of survey years.",
+        class = "brfssdata_bad_years_arg"
+      )
+    }
     catalog <- catalog[catalog$year %in% as.integer(years), , drop = FALSE]
   }
   if (!is.null(pattern)) {
     label_text <- ifelse(is.na(catalog$label), "", catalog$label)
-    hit <- grepl(pattern, catalog$variable, ignore.case = TRUE) |
-      grepl(pattern, label_text, ignore.case = TRUE)
+    hit <- tryCatch(
+      grepl(pattern, catalog$variable, ignore.case = TRUE) |
+        grepl(pattern, label_text, ignore.case = TRUE),
+      error = function(e) {
+        cli::cli_abort(
+          c(
+            "{.arg pattern} is not a valid regular expression.",
+            "x" = "{conditionMessage(e)}"
+          ),
+          class = "brfssdata_bad_pattern"
+        )
+      }
+    )
     catalog <- catalog[hit, , drop = FALSE]
   }
 
@@ -84,7 +101,9 @@ brfss_vars <- function(
       character(1)
     ))
   )
-  out[order(out$variable), ]
+  # radix ordering is locale-independent, so the catalog comes back in
+  # the same order on every machine.
+  out[order(out$variable, method = "radix"), ]
 }
 
 # Collapse c(2011, 2012, 2013, 2020) to "2011-2013, 2020".
@@ -92,6 +111,8 @@ summarize_years <- function(years) {
   if (length(years) == 0) {
     return("")
   }
+  # The run-length logic below assumes ascending, deduplicated input.
+  years <- sort(unique(years))
   breaks <- c(0, which(diff(years) != 1), length(years))
   runs <- mapply(
     function(from, to) {

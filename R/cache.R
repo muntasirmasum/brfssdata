@@ -55,11 +55,15 @@ brfss_cache_clear <- function(years = NULL) {
 }
 
 cached_file_year <- function(file) {
-  m <- regmatches(file, regexpr("[0-9]{4}", file))
-  out <- rep(NA_integer_, length(file))
-  out[lengths(regmatches(file, gregexpr("[0-9]{4}", file))) > 0] <-
-    as.integer(vapply(m, identity, character(1)))
-  out
+  # Anchored to the asset name this package writes, so an unrelated file
+  # that merely contains four digits is never mistaken for a data year
+  # (and so never deleted by brfss_cache_clear(years = ...)).
+  m <- regmatches(file, regexec("^brfss_([0-9]{4})\\.parquet$", file))
+  vapply(
+    m,
+    function(x) if (length(x) == 2L) as.integer(x[[2]]) else NA_integer_,
+    integer(1)
+  )
 }
 
 cache_path <- function(asset) {
@@ -104,6 +108,7 @@ download_to_cache <- function(
   old <- options(timeout = max(3600, getOption("timeout")))
   on.exit(options(old), add = TRUE)
 
+  why <- NULL
   ok <- tryCatch(
     {
       if (requireNamespace("curl", quietly = TRUE)) {
@@ -113,13 +118,25 @@ download_to_cache <- function(
       }
       TRUE
     },
-    error = function(e) FALSE,
-    warning = function(w) FALSE
+    error = function(e) {
+      why <<- conditionMessage(e)
+      FALSE
+    },
+    warning = function(w) {
+      why <<- conditionMessage(w)
+      FALSE
+    }
   )
   if (!ok || !file.exists(tmp) || file.size(tmp) == 0) {
+    if (is.null(why) && file.exists(tmp) && file.size(tmp) == 0) {
+      why <- "the server returned an empty file"
+    }
     cli::cli_abort(
       c(
         "Could not download {.url {url}}.",
+        # The underlying condition distinguishes a proxy, TLS, disk-full
+        # or 404 failure from simply being offline.
+        if (!is.null(why)) c("x" = "{why}"),
         "i" = "The resource may be temporarily unavailable, or you may
                be offline.",
         "i" = "Cached years remain usable; see {.fun brfss_cache_info}."

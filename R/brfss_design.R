@@ -19,18 +19,21 @@
 #' variance strata become the year-by-stratum interaction, treating each
 #' annual survey as an independent sample.
 #'
-#' From 2001 on, BRFSS public-use files make each respondent their own
-#' primary sampling unit, so single-PSU strata are common and would make
-#' variance estimation fail. If `options(survey.lonely.psu)` is unset,
-#' this function sets it to `"adjust"` (standard BRFSS practice) and says
-#' so once per session; an option you set yourself is always respected.
+#' From 2001 on, `_PSU` is a record sequence number that restarts in
+#' each state, so it repeats across the file but is unique within a
+#' stratum: every stratum-by-PSU cell holds exactly one respondent.
+#' Single-PSU strata are therefore common and would make variance
+#' estimation fail. If `options(survey.lonely.psu)` is unset, this
+#' function sets it to `"adjust"` (standard BRFSS practice) and says so
+#' once per session; an option you set yourself is always respected.
 #'
 #' Because that clustering is nominal, the design for those years is
 #' built without a cluster term, which gives the same estimates, standard
 #' errors, and degrees of freedom far faster than carrying a cluster
 #' factor with one level per respondent. Files through 2000 carry genuine
-#' multi-respondent PSUs and keep the clustered estimator. The choice is
-#' made from the data, so it follows the file rather than the year.
+#' multi-respondent PSUs and keep the clustered estimator, nested within
+#' stratum because the identifiers are reused. The choice is made from
+#' the data, so it follows the file rather than the year.
 #'
 #' @inheritParams read_brfss
 #' @param vars Optional character vector of analysis variables to carry
@@ -145,6 +148,26 @@ brfss_design <- function(
   # independent annual samples, so multi-year strata are the year-by-
   # stratum interaction (with nest = TRUE this also isolates any PSU id
   # reuse across years).
+  # Checked before the pooled stratum is built: paste() would turn a
+  # missing stratum into the literal string "YYYY_NA" and quietly pool
+  # every such respondent into one fabricated stratum, which the single
+  # year path would have rejected outright.
+  for (design_col in c(DESIGN_STRATA, DESIGN_PSU)) {
+    bad <- is.na(dat[[design_col]])
+    if (any(bad)) {
+      bad_years <- sort(unique(dat$year[bad]))
+      cli::cli_abort(
+        c(
+          "{sum(bad)} respondent{?s} in year{?s} {bad_years} {?has/have}
+           a missing {.val {design_col}}.",
+          "i" = "A survey design cannot be built over missing strata or
+                 primary sampling units."
+        ),
+        class = "brfssdata_bad_design_var"
+      )
+    }
+  }
+
   dat$brfss_wt <- wt
   dat$brfss_psu <- dat[[DESIGN_PSU]]
   dat$brfss_strata <- if (length(years) > 1) {
@@ -158,6 +181,7 @@ brfss_design <- function(
       dat,
       years,
       quiet = quiet,
+      download = download,
       exclude = c(
         design_vars,
         "brfss_wt",
@@ -173,7 +197,9 @@ brfss_design <- function(
   # strata that make variance estimation fail. "adjust" is standard
   # BRFSS practice. The survey package sets "fail" in .onLoad, so that
   # value is treated as unset; any other user-chosen value is respected.
-  if (getOption("survey.lonely.psu", "fail") %in% "fail") {
+  # identical() rather than %in%: a malformed option of length != 1
+  # would make `if` error with "the condition has length > 1".
+  if (identical(getOption("survey.lonely.psu", "fail"), "fail")) {
     options(survey.lonely.psu = "adjust")
     cli::cli_inform(
       c(

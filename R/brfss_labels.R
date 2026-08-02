@@ -70,8 +70,14 @@ labels_catalog <- function(
 # is identical across those years, and every observed value is covered.
 # Labels come from the most recent requested year (wording drifts).
 # Anything else is left untouched.
-apply_labels <- function(dat, years, quiet = TRUE, exclude = character(0)) {
-  catalog <- labels_catalog(download = TRUE, quiet = quiet)
+apply_labels <- function(
+  dat,
+  years,
+  quiet = TRUE,
+  exclude = character(0),
+  download = TRUE
+) {
+  catalog <- labels_catalog(download = download, quiet = quiet)
   catalog <- catalog[
     catalog$year %in% years & catalog$complete,
     ,
@@ -103,6 +109,23 @@ apply_labels <- function(dat, years, quiet = TRUE, exclude = character(0)) {
 
     latest <- sub[sub$year == max(sub$year), , drop = FALSE]
     latest <- latest[order(latest$code), , drop = FALSE]
+
+    # Only an unambiguous one-to-one code-to-label map is safe to hand
+    # to factor(). CDC's format libraries sometimes give one code two
+    # labels in a year, which factor() resolves silently by row order,
+    # and sometimes reuse one label across several codes (NUMPHON2 in
+    # 2003 labels eight codes with four strings, and _IMPNPH labels six
+    # with a blank), which factor() silently merges into one level.
+    # Either way the result looks plausible and is wrong, so anything
+    # short of a clean bijection keeps its numeric codes.
+    if (
+      anyDuplicated(latest$code) > 0L ||
+        anyDuplicated(latest$label) > 0L ||
+        anyNA(latest$label) ||
+        !all(nzchar(trimws(latest$label)))
+    ) {
+      next
+    }
 
     vals <- dat[[v]]
     observed <- unique(vals[!is.na(vals)])

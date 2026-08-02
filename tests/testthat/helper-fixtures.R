@@ -120,7 +120,8 @@ local_brfss_manifest <- function(years, env = parent.frame()) {
 }
 
 # A labels catalog fixture: GENHLTH fully mapped (complete), PHYSHLTH
-# mixed (incomplete), DRIFTVAR with a code set that changes across years.
+# mixed (incomplete), DRIFTVAR with a code set that changes across years,
+# DUPLABEL a complete map that gives two codes the same label.
 write_fixture_labels <- function(dir) {
   labels <- data.frame(
     year = c(
@@ -173,5 +174,34 @@ write_fixture_labels <- function(dir) {
     complete = c(rep(TRUE, 10), FALSE, FALSE, rep(TRUE, 5)),
     stringsAsFactors = FALSE
   )
+  # A complete map that labels two codes identically, the shape that
+  # makes factor() merge them (CDC ships several of these).
+  labels <- rbind(
+    labels,
+    data.frame(
+      year = c(2023L, 2023L),
+      variable = c("DUPLABEL", "DUPLABEL"),
+      code = c(0L, 1L),
+      label = c("Same", "Same"),
+      complete = c(TRUE, TRUE),
+      stringsAsFactors = FALSE
+    )
+  )
   write_fixture_parquet(labels, file.path(dir, "brfss_labels.parquet"))
+}
+
+# A year whose stratum column carries a missing value.
+write_fixture_year_na_strata <- function(year, dir, n = 30) {
+  wt_col <- if (year >= 2011) "_LLCPWT" else "_FINALWT"
+  set.seed(year)
+  df <- data.frame(
+    year = as.integer(year),
+    psu = seq_len(n),
+    ststr = c(NA_integer_, rep(1:3, length.out = n - 1)),
+    wt = stats::runif(n, 100, 500),
+    GENHLTH = sample(1:5, n, replace = TRUE),
+    check.names = FALSE
+  )
+  names(df) <- c("year", "_PSU", "_STSTR", wt_col, "GENHLTH")
+  write_fixture_parquet(df, file.path(dir, sprintf("brfss_%d.parquet", year)))
 }

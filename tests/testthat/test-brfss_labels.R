@@ -83,3 +83,22 @@ test_that("uncached labels with download = FALSE error cleanly", {
     class = "brfssdata_not_cached"
   )
 })
+
+test_that("a map that labels two codes the same keeps its numeric codes", {
+  dir <- local_brfss_cache(2023, extra = list("2023" = "DUPLABEL"))
+  write_fixture_labels(dir)
+  dat <- read_brfss(2023, quiet = TRUE, labels = TRUE)
+  # factor() would merge codes 0 and 1 into one "Same" level
+  expect_false(is.factor(dat$DUPLABEL))
+  expect_length(unique(dat$DUPLABEL[!is.na(dat$DUPLABEL)]), 2)
+  # the clean map in the same call still converts
+  expect_s3_class(dat$GENHLTH, "factor")
+})
+
+test_that("labels = TRUE respects download = FALSE", {
+  local_brfss_cache(2023)
+  expect_error(
+    read_brfss(2023, quiet = TRUE, labels = TRUE, download = FALSE),
+    class = "brfssdata_not_cached"
+  )
+})

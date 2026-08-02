@@ -34,10 +34,12 @@ validate_years <- function(years, download = TRUE, call = rlang::caller_env()) {
     !is.numeric(years) ||
       length(years) == 0 ||
       anyNA(years) ||
-      any(years != trunc(years))
+      any(years != trunc(years)) ||
+      any(abs(years) > .Machine$integer.max)
   ) {
     cli::cli_abort(
       "{.arg years} must be one or more whole survey years, e.g. {.code 2019:2023}.",
+      class = "brfssdata_bad_years_arg",
       call = call
     )
   }
@@ -104,6 +106,11 @@ duckdb_connect <- function() {
 # often type genhlth for GENHLTH). Names that match nothing are
 # returned as typed so the caller's error shows the original input.
 match_vars_ci <- function(vars, columns) {
+  # ifelse() on a zero-length test returns logical(0), which would turn
+  # an empty request into "every column matched"; keep the type instead.
+  if (length(vars) == 0) {
+    return(character(0))
+  }
   exact <- vars %in% columns
   ci <- match(toupper(vars), toupper(columns))
   ifelse(!exact & !is.na(ci), columns[ci], vars)

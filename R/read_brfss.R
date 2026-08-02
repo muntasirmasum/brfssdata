@@ -44,7 +44,10 @@ read_brfss <- function(
   labels = FALSE
 ) {
   years <- validate_years(years, download = download)
-  if (!is.null(vars) && (!is.character(vars) || anyNA(vars))) {
+  if (
+    !is.null(vars) &&
+      (!is.character(vars) || anyNA(vars) || length(vars) == 0)
+  ) {
     cli::cli_abort(
       "{.arg vars} must be a character vector of variable names.",
       class = "brfssdata_bad_vars_arg"
@@ -53,7 +56,7 @@ read_brfss <- function(
   paths <- ensure_years_cached(years, download = download, quiet = quiet)
   dat <- query_parquet(paths, vars = vars)
   if (isTRUE(labels)) {
-    dat <- apply_labels(dat, years, quiet = quiet)
+    dat <- apply_labels(dat, years, quiet = quiet, download = download)
   }
   dat
 }

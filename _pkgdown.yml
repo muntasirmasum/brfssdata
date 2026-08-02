@@ -1,5 +1,9 @@
 url: https://muntasirmasum.github.io/brfssdata/
 
+authors:
+  Muntasir Masum:
+    href: https://muntasirmasum.com
+
 template:
   bootstrap: 5
   bslib:

@@ -67,18 +67,21 @@ represent an average year rather than a sum of populations, and the
 variance strata become the year-by-stratum interaction, treating each
 annual survey as an independent sample.
 
-From 2001 on, BRFSS public-use files make each respondent their own
-primary sampling unit, so single-PSU strata are common and would make
-variance estimation fail. If \code{options(survey.lonely.psu)} is unset,
-this function sets it to \code{"adjust"} (standard BRFSS practice) and says
-so once per session; an option you set yourself is always respected.
+From 2001 on, \verb{_PSU} is a record sequence number that restarts in
+each state, so it repeats across the file but is unique within a
+stratum: every stratum-by-PSU cell holds exactly one respondent.
+Single-PSU strata are therefore common and would make variance
+estimation fail. If \code{options(survey.lonely.psu)} is unset, this
+function sets it to \code{"adjust"} (standard BRFSS practice) and says so
+once per session; an option you set yourself is always respected.
 
 Because that clustering is nominal, the design for those years is
 built without a cluster term, which gives the same estimates, standard
 errors, and degrees of freedom far faster than carrying a cluster
 factor with one level per respondent. Files through 2000 carry genuine
-multi-respondent PSUs and keep the clustered estimator. The choice is
-made from the data, so it follows the file rather than the year.
+multi-respondent PSUs and keep the clustered estimator, nested within
+stratum because the identifiers are reused. The choice is made from
+the data, so it follows the file rather than the year.
 }
 \examples{
 \dontshow{if (interactive()) withAutoprint(\{ # examplesIf}
