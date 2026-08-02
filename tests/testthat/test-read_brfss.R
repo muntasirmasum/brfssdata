@@ -61,6 +61,9 @@ test_that("no download is attempted when all years are cached", {
   local_mocked_bindings(
     download_to_cache = function(...) stop("network touched")
   )
-  expect_silent(dat <- read_brfss(2023, quiet = TRUE))
+  # The mock is what proves no download happened; this only checks that
+  # quiet = TRUE stays quiet. expect_silent() would also fail on output
+  # or a warning from any dependency, which is not what is being tested.
+  expect_no_message(dat <- read_brfss(2023, quiet = TRUE))
   expect_gt(nrow(dat), 0)
 })

@@ -23,7 +23,13 @@ test_that("offline fallback actually reaches the bundled manifest", {
 
 test_that("a stale manifest triggers one refresh attempt, then falls back", {
   dir <- local_brfss_manifest(c(2020, 2021))
-  Sys.setFileTime(file.path(dir, "manifest.json"), Sys.time() - 2 * 86400)
+  # Not every filesystem honors this; without a stale mtime the test
+  # would fail for a reason that has nothing to do with the manifest.
+  aged <- Sys.setFileTime(
+    file.path(dir, "manifest.json"),
+    Sys.time() - 2 * 86400
+  )
+  skip_if_not(isTRUE(aged), "cannot set file mtime on this filesystem")
   calls <- 0L
   local_mocked_bindings(
     download_to_cache = function(...) {

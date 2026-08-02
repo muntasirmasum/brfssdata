@@ -26,12 +26,58 @@ test_that("cache clear removes only the requested years", {
   expect_identical(nrow(brfss_cache_info()), 0L)
 })
 
+# These are the only tests that call the real download_to_cache(), so
+# every URL here must stay on the local filesystem. A future edit that
+# changed one to http:// would reach the network from a CRAN machine,
+# which is why each is asserted to be a file:// URL before it is used.
+local_file_url <- function(path) {
+  expect_match(path, "^file://")
+  path
+}
+
 test_that("failed downloads raise a classed error and leave no debris", {
   dir <- withr::local_tempdir()
   withr::local_options(brfssdata.cache_dir = dir)
   dest <- file.path(dir, "brfss_2023.parquet")
   expect_error(
-    download_to_cache("file://does/not/exist.parquet", dest, quiet = TRUE),
+    download_to_cache(
+      local_file_url("file://does/not/exist.parquet"),
+      dest,
+      quiet = TRUE
+    ),
+    class = "brfssdata_download_error"
+  )
+  expect_false(file.exists(dest))
+  expect_length(list.files(dir, pattern = "\\.tmp$"), 0)
+})
+
+test_that("a successful download lands the file and cleans up its temp copy", {
+  dir <- withr::local_tempdir()
+  withr::local_options(brfssdata.cache_dir = dir)
+  src <- withr::local_tempfile()
+  writeLines("payload", src)
+  dest <- file.path(dir, "brfss_2023.parquet")
+
+  download_to_cache(local_file_url(paste0("file://", src)), dest, quiet = TRUE)
+
+  expect_true(file.exists(dest))
+  expect_identical(readLines(dest), "payload")
+  expect_length(list.files(dir, pattern = "\\.tmp$"), 0)
+})
+
+test_that("an empty download is treated as a failure", {
+  dir <- withr::local_tempdir()
+  withr::local_options(brfssdata.cache_dir = dir)
+  src <- withr::local_tempfile()
+  file.create(src)
+  dest <- file.path(dir, "brfss_2023.parquet")
+
+  expect_error(
+    download_to_cache(
+      local_file_url(paste0("file://", src)),
+      dest,
+      quiet = TRUE
+    ),
     class = "brfssdata_download_error"
   )
   expect_false(file.exists(dest))

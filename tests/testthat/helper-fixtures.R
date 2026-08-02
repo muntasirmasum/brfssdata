@@ -62,6 +62,15 @@ write_fixture_catalog <- function(dir) {
   write_fixture_parquet(catalog, file.path(dir, "brfss_variables.parquet"))
 }
 
+# brfss_design() deliberately sets survey.lonely.psu for the session, so
+# without this every test that builds a design leaks the option into the
+# ones that follow and into the calling session. Scoping it per test also
+# keeps the suite order-independent. A test that wants a specific value
+# sets it after the fixture helper runs, and so still wins.
+local_lonely_psu <- function(env) {
+  withr::local_options(survey.lonely.psu = NULL, .local_envir = env)
+}
+
 guard_network <- function(env) {
   testthat::local_mocked_bindings(
     download_to_cache = function(url, ...) {
@@ -86,6 +95,7 @@ local_brfss_cache <- function(
 ) {
   dir <- withr::local_tempdir(.local_envir = env)
   withr::local_options(brfssdata.cache_dir = dir, .local_envir = env)
+  local_lonely_psu(env)
   reset_manifest_state()
   guard_network(env)
   for (y in years) {
@@ -110,6 +120,7 @@ local_brfss_cache <- function(
 local_brfss_manifest <- function(years, env = parent.frame()) {
   dir <- withr::local_tempdir(.local_envir = env)
   withr::local_options(brfssdata.cache_dir = dir, .local_envir = env)
+  local_lonely_psu(env)
   reset_manifest_state()
   guard_network(env)
   writeLines(
