@@ -39,6 +39,23 @@ shows what is stored and
 [`brfss_cache_clear()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_cache_dir.md)
 removes it.
 
+## Value labels
+
+BRFSS answers arrive as numeric codes. `labels = TRUE` converts
+variables whose CDC format is a pure code-to-label map into factors;
+variables that mix real values with special codes (like `PHYSHLTH`, days
+1-30 plus 88 for none) are deliberately left numeric, and
+[`brfss_labels()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_labels.md)
+shows every code so you can recode them yourself. Labels are available
+from 1998 on; CDC no longer distributes the label files for earlier
+years.
+
+``` r
+
+read_brfss(2023, vars = c("GENHLTH", "SEXVAR"), labels = TRUE)
+brfss_labels("PHYSHLTH", years = 2023)
+```
+
 ## Finding variables
 
 Variable names and availability change across years.

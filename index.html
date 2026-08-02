@@ -33,6 +33,12 @@
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="articles/brfssdata.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
+<li><a class="dropdown-item" href="articles/logistic-regression.html">Survey-weighted logistic regression with BRFSS</a></li>
+  </ul>
+</li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
@@ -76,6 +82,12 @@
 <span><span class="co"># Respondent-level data, only the variables you need</span></span>
 <span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_brfss.html">read_brfss</a></span><span class="op">(</span><span class="fl">2019</span><span class="op">:</span><span class="fl">2023</span>, vars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"GENHLTH"</span>, <span class="st">"PHYSHLTH"</span>, <span class="st">"_LLCPWT"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># The same, with safe categoricals converted to labeled factors</span></span>
+<span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_brfss.html">read_brfss</a></span><span class="op">(</span><span class="fl">2023</span>, vars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"GENHLTH"</span>, <span class="st">"SEXVAR"</span><span class="op">)</span>, labels <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># The value-label codebook itself (1998 onward)</span></span>
+<span><span class="fu"><a href="reference/brfss_labels.html">brfss_labels</a></span><span class="op">(</span><span class="st">"GENHLTH"</span>, years <span class="op">=</span> <span class="fl">2023</span><span class="op">)</span></span>
+<span></span>
 <span><span class="co"># A survey-design object with era-correct weights, ready for srvyr</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://gdfe.co/srvyr/" class="external-link">srvyr</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="reference/brfss_design.html">brfss_design</a></span><span class="op">(</span><span class="fl">2023</span>, vars <span class="op">=</span> <span class="st">"GENHLTH"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
@@ -90,6 +102,17 @@
 <h2 id="the-2011-design-break">The 2011 design break<a class="anchor" aria-label="anchor" href="#the-2011-design-break"></a>
 </h2>
 <p>BRFSS added cell-phone-only respondents and switched from post-stratification to raking in 2011; CDC states that estimates from 2011 onward are not directly comparable to earlier years. <code><a href="reference/brfss_design.html">brfss_design()</a></code> selects the era-correct weight automatically (<code>_FINALWT</code> before 2011, <code>_LLCPWT</code> after) and refuses to pool years across the boundary unless you opt in with <code>allow_break = TRUE</code>.</p>
+</div>
+<div class="section level2">
+<h2 id="access-from-python-or-anything-else">Access from Python (or anything else)<a class="anchor" aria-label="anchor" href="#access-from-python-or-anything-else"></a>
+</h2>
+<p>The hosted data files are plain parquet, so no R is required to use them. Every release asset has a stable URL:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>url <span class="op">=</span> (<span class="st">"https://github.com/muntasirmasum/brfssdata/releases/download/"</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>       <span class="st">"data-2023/brfss_2023.parquet"</span>)</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>df <span class="op">=</span> pd.read_parquet(url)</span></code></pre></div>
+<p>The same URLs work in polars, DuckDB (any language), Julia, or Stata’s Python bridge. For survey-weighted analysis outside R, use the design columns shipped in every year: the final weight (<code>_LLCPWT</code> from 2011, <code>_FINALWT</code> before), strata (<code>_STSTR</code>), and PSU (<code>_PSU</code>). The list of available years lives at <code>releases/download/data-meta/manifest.json</code>, and each file has a <code>.sha256</code> companion for verification.</p>
 </div>
 <div class="section level2">
 <h2 id="data-source-and-citation">Data source and citation<a class="anchor" aria-label="anchor" href="#data-source-and-citation"></a>

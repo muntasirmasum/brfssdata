@@ -34,7 +34,8 @@ brfss_design(
   allow_break = FALSE,
   pool_weights = TRUE,
   download = TRUE,
-  quiet = FALSE
+  quiet = FALSE,
+  labels = FALSE
 )
 ```
 
@@ -69,6 +70,16 @@ brfss_design(
 - quiet:
 
   If `TRUE`, suppress download progress output.
+
+- labels:
+
+  If `TRUE`, convert variables with safe value-label maps to factors
+  using CDC's format libraries (available from 1998 on). A variable
+  converts only when its format is a pure code-to-label map, its code
+  set agrees across the requested years, and every observed value is
+  covered; everything else keeps its numeric codes. See
+  [`brfss_labels()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_labels.md)
+  for the raw catalog.
 
 ## Value
 

@@ -8,6 +8,8 @@
   : Manage the local BRFSS data cache
 - [`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
   : Build a survey-design object for BRFSS analysis
+- [`brfss_labels()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_labels.md)
+  : Value labels for BRFSS variables
 - [`brfss_vars()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_vars.md)
   : Search BRFSS variables across survey years
 - [`brfss_years()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_years.md)
