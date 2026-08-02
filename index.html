@@ -6,13 +6,22 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Access CDC Behavioral Risk Factor Surveillance System Data • brfssdata</title>
+<!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png">
+<link rel="icon" type="”image/svg+xml”" href="favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" sizes="any" href="favicon.ico">
+<link rel="manifest" href="site.webmanifest">
 <script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
-<script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/IBM_Plex_Sans-0.4.10/font.css" rel="stylesheet">
+<link href="deps/IBM_Plex_Mono-0.4.10/font.css" rel="stylesheet">
+<link href="deps/Newsreader-0.4.10/font.css" rel="stylesheet">
+<link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Access CDC Behavioral Risk Factor Surveillance System Data">
 <meta name="description" content="Download, cache, and analyze annual microdata from the United States Centers for Disease Control and Prevention Behavioral Risk Factor Surveillance System (BRFSS) &lt;https://www.cdc.gov/brfss/&gt;. Survey years are stored as compact files hosted on public releases and queried lazily with DuckDB (via the duckdb package), so only the requested years and variables are transferred. Survey-design helpers construct srvyr design objects with year-appropriate weights, strata, and primary sampling units, including explicit handling of the 2011 weighting methodology change.">
 <meta property="og:description" content="Download, cache, and analyze annual microdata from the United States Centers for Disease Control and Prevention Behavioral Risk Factor Surveillance System (BRFSS) &lt;https://www.cdc.gov/brfss/&gt;. Survey years are stored as compact files hosted on public releases and queried lazily with DuckDB (via the duckdb package), so only the requested years and variables are transferred. Survey-design helpers construct srvyr design objects with year-appropriate weights, strata, and primary sampling units, including explicit handling of the 2011 weighting methodology change.">
+<meta property="og:image" content="https://muntasirmasum.github.io/brfssdata/logo.svg">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -36,7 +45,11 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="articles/logistic-regression.html">Survey-weighted logistic regression with BRFSS</a></li>
+<li><a class="dropdown-item" href="articles/datasets.html">The datasets</a></li>
+    <li><a class="dropdown-item" href="articles/survey-design.html">Survey design in BRFSS</a></li>
+    <li><a class="dropdown-item" href="articles/logistic-regression.html">Survey-weighted logistic regression</a></li>
+    <li><a class="dropdown-item" href="articles/external-data.html">Merging BRFSS with external data</a></li>
+    <li><a class="dropdown-item" href="articles/outside-r.html">Using the data outside R</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
@@ -54,14 +67,16 @@
 </nav><div class="container template-home">
 <div class="row">
   <main id="main" class="col-md-9"><div class="section level1">
-<div class="page-header"><h1 id="brfssdata">brfssdata<a class="anchor" aria-label="anchor" href="#brfssdata"></a>
-</h1></div>
+<div class="page-header">
+<img src="logo.svg" class="logo" alt=""><h1 id="brfssdata-">brfssdata <a class="anchor" aria-label="anchor" href="#brfssdata-"></a>
+</h1>
+</div>
 <!-- badges: start -->
 
 <p>brfssdata gives R users direct, reproducible access to annual microdata from the CDC <a href="https://www.cdc.gov/brfss/" class="external-link">Behavioral Risk Factor Surveillance System</a> (BRFSS), the largest continuously conducted health telephone survey in the world.</p>
 <p>Survey years are processed once into compact parquet files and hosted as GitHub release assets. The package downloads each requested year a single time into a local cache, queries it through DuckDB (so pulling a handful of variables from a 300-plus column survey is fast), and hands back either a tibble or a ready-made <a href="https://cran.r-project.org/package=srvyr" class="external-link">srvyr</a> survey-design object with the correct weights, strata, and primary sampling units for each survey era.</p>
 <blockquote>
-<p><strong>Status:</strong> all 40 available survey years (1985-2024) are published as data releases; 1984 was never distributed as a SAS Transport file by CDC. <code><a href="reference/brfss_years.html">brfss_years()</a></code> always reports the currently hosted years.</p>
+<p><strong>Status:</strong> 40 survey years, 1985 through 2024, are published as data releases. BRFSS began in 1984, and CDC does distribute a 1984 file (12,258 records from the first 15 states) from its <a href="https://archive.cdc.gov/www_cdc_gov/brfss/annual_data/annual_1984.htm" class="external-link">web archive</a>; that year is not part of this collection. <code><a href="reference/brfss_years.html">brfss_years()</a></code> always reports the currently hosted years.</p>
 </blockquote>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
@@ -104,7 +119,7 @@
 <p>BRFSS added cell-phone-only respondents and switched from post-stratification to raking in 2011; CDC states that estimates from 2011 onward are not directly comparable to earlier years. <code><a href="reference/brfss_design.html">brfss_design()</a></code> selects the era-correct weight automatically (<code>_FINALWT</code> before 2011, <code>_LLCPWT</code> after) and refuses to pool years across the boundary unless you opt in with <code>allow_break = TRUE</code>.</p>
 </div>
 <div class="section level2">
-<h2 id="access-from-python-or-anything-else">Access from Python (or anything else)<a class="anchor" aria-label="anchor" href="#access-from-python-or-anything-else"></a>
+<h2 id="access-from-python-sas-stata-or-anything-else">Access from Python, SAS, Stata, or anything else<a class="anchor" aria-label="anchor" href="#access-from-python-sas-stata-or-anything-else"></a>
 </h2>
 <p>The hosted data files are plain parquet, so no R is required to use them. Every release asset has a stable URL:</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
@@ -112,10 +127,20 @@
 <span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>url <span class="op">=</span> (<span class="st">"https://github.com/muntasirmasum/brfssdata/releases/download/"</span></span>
 <span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>       <span class="st">"data-2023/brfss_2023.parquet"</span>)</span>
 <span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>df <span class="op">=</span> pd.read_parquet(url)</span></code></pre></div>
-<p>The same URLs work in polars, DuckDB (any language), Julia, or Stata’s Python bridge. For survey-weighted analysis outside R, use the design columns shipped in every year: the final weight (<code>_LLCPWT</code> from 2011, <code>_FINALWT</code> before), strata (<code>_STSTR</code>), and PSU (<code>_PSU</code>). The list of available years lives at <code>releases/download/data-meta/manifest.json</code>, and each file has a <code>.sha256</code> companion for verification.</p>
+<p>The same URLs work in polars, DuckDB (any language), Julia, or Stata’s Python bridge. SAS and Stata users who want native files can export any extract from R with <code><a href="https://haven.tidyverse.org/reference/read_xpt.html" class="external-link">haven::write_xpt()</a></code> (SAS Transport) or <code><a href="https://haven.tidyverse.org/reference/read_dta.html" class="external-link">haven::write_dta()</a></code>; the <a href="https://muntasirmasum.github.io/brfssdata/articles/outside-r.html">Using the data outside R</a> article walks through both, including the variable-name limits each format imposes on CDC’s calculated names.</p>
+<p>For survey-weighted analysis outside R, use the design columns shipped in every year: the final weight (<code>_LLCPWT</code> from 2011, <code>_FINALWT</code> before), strata (<code>_STSTR</code>), and PSU (<code>_PSU</code>). The list of available years lives at <code>releases/download/data-meta/manifest.json</code>, and each file has a <code>.sha256</code> companion for verification.</p>
 </div>
 <div class="section level2">
-<h2 id="data-source-and-citation">Data source and citation<a class="anchor" aria-label="anchor" href="#data-source-and-citation"></a>
+<h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
+</h2>
+<p>To cite the package, use <code>citation("brfssdata")</code>:</p>
+<blockquote>
+<p>Masum M (2026). <em>brfssdata: Access CDC Behavioral Risk Factor Surveillance System Data</em>. R package version 0.1.0, <a href="https://muntasirmasum.github.io/brfssdata/" class="uri">https://muntasirmasum.github.io/brfssdata/</a>.</p>
+</blockquote>
+<p>Analyses should also cite the underlying survey data (below).</p>
+</div>
+<div class="section level2">
+<h2 id="data-source">Data source<a class="anchor" aria-label="anchor" href="#data-source"></a>
 </h2>
 <p>All data originate from the CDC BRFSS annual survey files, which are in the public domain. Suggested citation for the data:</p>
 <blockquote>

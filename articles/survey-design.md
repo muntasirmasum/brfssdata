@@ -1,0 +1,559 @@
+# Survey design in BRFSS
+
+BRFSS is not a simple random sample of American adults. States draw
+telephone numbers at rates that differ across the geographic strata they
+define, people answer at very different rates depending on who they are,
+and the frame reaches only adults who can be contacted on a landline or
+a cell phone. The final weight is built to correct those distortions;
+the strata and primary sampling units tell a variance estimator how the
+sample was actually drawn. Skipping either does not give you a slightly
+noisier answer. It gives you a different answer, with a standard error
+that means nothing.
+
+## Why the design changes the answer
+
+Take two ordinary 2023 quantities: the share of adults who report fair
+or poor general health, and the share with no personal health care
+provider. Computed as plain column means, ignoring the design entirely:
+
+``` r
+
+library(brfssdata)
+library(dplyr)
+library(srvyr)
+
+recode_brfss <- function(x) {
+  x |>
+    mutate(
+      fair_poor = case_when(
+        GENHLTH %in% 4:5 ~ 1,
+        GENHLTH %in% 1:3 ~ 0,
+        .default = NA
+      ),
+      no_provider = case_when(
+        PERSDOC3 == 3 ~ 1,
+        PERSDOC3 %in% 1:2 ~ 0,
+        .default = NA
+      )
+    )
+}
+
+dat <- read_brfss(
+  2023,
+  vars = c("GENHLTH", "PERSDOC3", "_AGE_G"),
+  quiet = TRUE
+) |>
+  recode_brfss()
+
+dat |>
+  summarize(
+    fair_poor = mean(fair_poor, na.rm = TRUE),
+    no_provider = mean(no_provider, na.rm = TRUE)
+  )
+#> # A tibble: 1 × 2
+#>   fair_poor no_provider
+#>       <dbl>       <dbl>
+#> 1     0.191       0.123
+```
+
+The same two quantities through the survey design, on exactly the same
+rows:
+
+``` r
+
+des <- brfss_design(
+  2023,
+  vars = c("GENHLTH", "PERSDOC3", "_AGE_G"),
+  quiet = TRUE
+) |>
+  recode_brfss()
+
+des |>
+  summarize(
+    fair_poor = survey_mean(fair_poor, vartype = "ci", na.rm = TRUE),
+    no_provider = survey_mean(no_provider, vartype = "ci", na.rm = TRUE)
+  )
+#> # A tibble: 1 × 6
+#>   fair_poor fair_poor_low fair_poor_upp no_provider no_provider_low
+#>       <dbl>         <dbl>         <dbl>       <dbl>           <dbl>
+#> 1     0.194         0.191         0.196       0.171           0.168
+#> # ℹ 1 more variable: no_provider_upp <dbl>
+```
+
+Fair or poor health barely moves, from about 19.1 to 19.4 percent. The
+provider question moves from 12.3 to 17.1 percent, a gap of nearly five
+percentage points and far outside the design-based confidence interval.
+Whether weighting matters depends on how strongly the quantity is
+related to the characteristics the weights correct for, and access to a
+regular provider is strongly related to age.
+
+``` r
+
+des |>
+  group_by(`_AGE_G`) |>
+  summarize(
+    respondents = unweighted(n()),
+    population = survey_prop(vartype = NULL)
+  ) |>
+  mutate(sample = respondents / sum(respondents))
+#> # A tibble: 6 × 4
+#>   `_AGE_G` respondents population sample
+#>      <dbl>       <int>      <dbl>  <dbl>
+#> 1        1       26281      0.124 0.0606
+#> 2        2       46077      0.165 0.106 
+#> 3        3       56224      0.164 0.130 
+#> 4        4       61848      0.152 0.143 
+#> 5        5       77938      0.159 0.180 
+#> 6        6      164955      0.235 0.381
+```
+
+Adults aged 18 to 24 (`_AGE_G` code 1) are about 6 percent of the
+respondents and about 12 percent of the weighted adult population.
+Sampling rates differ across strata, so selection probabilities were
+unequal before anyone picked up a phone. Response propensity is unequal
+on top of that, since older adults answer surveys far more readily than
+younger ones, and frame coverage is imperfect, since adults who cannot
+be reached at a sampled telephone number never enter the sample at all.
+The weight puts the underrepresented groups back in proportion; the
+strata and clusters tell the variance estimator that this was a
+stratified, clustered sample and not a simple random one.
+
+## The design variables
+
+Four columns carry the design, and BRFSS spells all of them with a
+leading underscore.
+
+``` r
+
+read_brfss(2023, vars = c("_PSU", "_STSTR", "_LLCPWT"), quiet = TRUE) |>
+  head(4)
+#> # A tibble: 4 × 4
+#>       `_PSU` `_STSTR` `_LLCPWT`  year
+#>        <dbl>    <dbl>     <dbl> <int>
+#> 1 2023000001    11011      605.  2023
+#> 2 2023000002    11012     1122.  2023
+#> 3 2023000003    11011      601.  2023
+#> 4 2023000004    11011      605.  2023
+```
+
+`_STSTR` is the sampling stratum, encoding both the state and the
+sampling stratum within it, so stratum values do not collide across
+states. `_PSU` is the primary sampling unit. What it holds changed part
+way through the series. From 2001 on it is the respondent’s record
+sequence number, so each stratum and PSU pair identifies one person and
+every respondent is their own cluster. Through 2000 it is a genuine
+cluster identifier that several respondents share: the 1985 file has
+25,221 respondents in 8,834 clusters, and clusters of more than one
+persist, thinning out, until 2001. Everything below about lonely strata
+describes the later files.
+
+The numbering restarts in each state, so the same identifier can appear
+once in each participating state and territory:
+
+``` r
+
+read_brfss(2023, vars = c("_PSU", "_STATE"), quiet = TRUE) |>
+  filter(`_PSU` == 2023000001) |>
+  summarize(states = n_distinct(`_STATE`))
+#> # A tibble: 1 × 1
+#>   states
+#>    <int>
+#> 1     52
+```
+
+The remaining two are the final weights. `_FINALWT` is the weight for
+survey years before 2011; `_LLCPWT` is the weight from 2011 on, when the
+combined landline and cell-phone (LLCP) design took over.
+
+Both weights are built the same way at the start and differ at the end.
+Design weighting inverts the probability of selection, using the share
+of the stratum’s telephone numbers that were drawn and, for the landline
+frame, the number of adults and residential phone lines in the
+household. The result is then calibrated so that weighted sample totals
+match known population control totals. Through 2010 that calibration was
+post-stratification, which matched the weighted sample to population
+counts cell by cell, over age and sex or over age, race and ethnicity,
+and sex, within a region or the whole state. Cells have to stay coarse
+enough that respondents land in all of them, which caps how many
+characteristics the calibration can carry. From 2011 it is raking,
+iterative proportional fitting, which matches one margin at a time and
+cycles until the weighted margins converge. Because only the margins
+have to be populated, raking carries more control variables than
+post-stratification could (telephone source, education, marital status,
+and home ownership joined the earlier demographics), and it is what made
+weighting a combined landline and cell-phone sample practical. CDC’s
+weighting documentation describes both procedures and lists the raking
+margins used in each year.
+
+## What brfss_design() does
+
+[`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
+reads the years you ask for, chooses the weight that belongs to that
+era, and hands `survey` a design it can parse.
+
+``` r
+
+des$variables |>
+  select(
+    year, `_PSU`, `_STSTR`, `_LLCPWT`,
+    brfss_psu, brfss_strata, brfss_wt
+  ) |>
+  head(3)
+#> # A tibble: 3 × 7
+#>    year     `_PSU` `_STSTR` `_LLCPWT`  brfss_psu brfss_strata brfss_wt
+#>   <int>      <dbl>    <dbl>     <dbl>      <dbl>        <dbl>    <dbl>
+#> 1  2023 2023000001    11011      605. 2023000001        11011     605.
+#> 2  2023 2023000002    11012     1122. 2023000002        11012    1122.
+#> 3  2023 2023000003    11011      601. 2023000003        11011     601.
+```
+
+The weight is selected by year, `_FINALWT` before 2011 and `_LLCPWT`
+from 2011 on, so you never name a weight column and a request cannot
+quietly pick up the wrong one.
+
+The design is then built on syntactic copies of the design variables.
+`_PSU` and `_STSTR` are not legal R names, so `~_PSU` does not parse and
+every formula interface in `survey` needs backticks around them, which
+is easy to get wrong in a long analysis.
+[`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
+writes `brfss_psu`, `brfss_strata`, and `brfss_wt` next to the originals
+and builds the design on those. The CDC columns stay in the data
+untouched, so anything you want to check against the codebook is still
+there.
+
+Finally, `nest = TRUE` is set. Because PSU identifiers restart in every
+state, the same identifier refers to unrelated respondents in different
+strata. `nest = TRUE` tells `survey` to read cluster identifiers as
+labels within a stratum instead of as globally unique units, which is
+the correct reading of the file and keeps unrelated respondents from
+being pooled into one cluster.
+
+## The 2011 boundary
+
+A request that spans 2011 fails, before any survey data is downloaded:
+
+``` r
+
+brfss_design(2009:2012)
+#> Error in `brfss_design()`:
+#> ! Years 2009-2012 span the 2011 BRFSS redesign.
+#> ✖ CDC states post-2011 estimates are not directly comparable to earlier years
+#>   (cell-phone frame and raking weights).
+#> ℹ Analyze the eras separately, or set `allow_break = TRUE` to pool anyway.
+```
+
+The 2011 redesign was not a rename. It added cell-phone-only
+respondents, who had never been in the frame, and replaced
+post-stratification with raking on a different set of margins. A level
+shift between 2010 and 2011 can therefore be an artifact of the redesign
+rather than a change in behavior, and CDC advises against treating the
+series as continuous across that line. Because a pooled design silently
+produces a number either way,
+[`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
+refuses the request instead of returning one.
+
+Setting `allow_break = TRUE` overrides the refusal, and the call warns
+instead:
+
+``` r
+
+brfss_design(2009:2012, allow_break = TRUE)
+```
+
+Pooling across the line is easiest to defend when the estimate is a
+contrast computed within years rather than a level or a trend through
+the boundary. A gap between two groups, estimated separately in each era
+and then compared, is less exposed to the redesign than a single
+prevalence series running from 2009 to 2012, though nothing guarantees
+that the frame and weighting changes shifted both groups equally. If you
+pool, carry a period indicator, and report the era-specific estimates
+alongside the pooled one so a reader can see what the pooling did.
+
+## Pooling years
+
+Within an era, pooling is straightforward. Ask for several years and
+[`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
+builds one design over all of them.
+
+``` r
+
+pool <- brfss_design(
+  2021:2023,
+  vars = c("GENHLTH", "PERSDOC3"),
+  quiet = TRUE
+) |>
+  recode_brfss()
+
+pool |>
+  summarize(
+    fair_poor = survey_mean(fair_poor, vartype = "ci", na.rm = TRUE),
+    adults = survey_total(na.rm = TRUE)
+  )
+#> # A tibble: 1 × 5
+#>   fair_poor fair_poor_low fair_poor_upp     adults adults_se
+#>       <dbl>         <dbl>         <dbl>      <dbl>     <dbl>
+#> 1     0.179         0.178         0.180 254990354.   314448.
+```
+
+Pooling changes both the weights and the strata. With
+`pool_weights = TRUE` (the default) each weight is divided by the number
+of years, so the weighted total estimates the adult population of an
+average year in the period rather than the sum of three annual
+populations.
+
+``` r
+
+pool$variables |>
+  summarize(
+    respondents = n(),
+    mean_weight = mean(brfss_wt),
+    .by = year
+  )
+#> # A tibble: 3 × 3
+#>    year respondents mean_weight
+#>   <int>       <int>       <dbl>
+#> 1  2021      438693        187.
+#> 2  2022      445132        198.
+#> 3  2023      433323        195.
+```
+
+Proportions and means are unaffected by that rescaling, since it divides
+numerator and denominator alike; only totals change scale. Set
+`pool_weights = FALSE` when you want each year at full scale, for
+instance when reproducing a published single-year count.
+
+The variance strata also change. Each annual BRFSS is drawn
+independently, so the same geographic stratum in 2021 and in 2023 is two
+different strata, and
+[`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
+makes the pooled stratum the year-by-stratum interaction:
+
+``` r
+
+pool$variables |>
+  select(year, `_STSTR`, brfss_strata) |>
+  head(3)
+#> # A tibble: 3 × 3
+#>    year `_STSTR` brfss_strata
+#>   <int>    <dbl> <chr>       
+#> 1  2021    11011 2021_11011  
+#> 2  2021    11011 2021_11011  
+#> 3  2021    11011 2021_11011
+```
+
+Pooling does not throw the years away. `year` is still an ordinary
+column, so annual estimates are a
+[`group_by()`](https://dplyr.tidyverse.org/reference/group_by.html)
+away, computed inside the same design:
+
+``` r
+
+pool |>
+  group_by(year) |>
+  summarize(fair_poor = survey_mean(fair_poor, vartype = "ci", na.rm = TRUE))
+#> # A tibble: 3 × 4
+#>    year fair_poor fair_poor_low fair_poor_upp
+#>   <int>     <dbl>         <dbl>         <dbl>
+#> 1  2021     0.162         0.160         0.165
+#> 2  2022     0.180         0.178         0.183
+#> 3  2023     0.194         0.191         0.196
+```
+
+## Lonely PSUs
+
+In the 2001 and later files, where every respondent is their own primary
+sampling unit, a stratum that contains one respondent contains one
+cluster. Such a stratum offers nothing to estimate within-stratum
+variability from, and the usual variance formula divides by zero. Such
+strata are not rare:
+
+``` r
+
+psu_per_stratum <- table(des$variables$brfss_strata)
+
+c(
+  strata = length(psu_per_stratum),
+  single_psu = sum(psu_per_stratum == 1)
+)
+#>     strata single_psu 
+#>       2146        101
+```
+
+In 2023, 101 of 2146 strata hold a single respondent, and restricting to
+a subpopulation creates new ones, because a domain can leave a single
+respondent standing in a stratum that was comfortably filled before. The
+narrower the subgroup, the more strata thin out that way.
+
+The `survey` package refuses by default, with
+`options(survey.lonely.psu = "fail")`. Since that is the value `survey`
+sets when it loads,
+[`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
+treats it as unset and substitutes `"adjust"`, the standard practice for
+BRFSS, mentioning it once per session:
+
+``` r
+
+getOption("survey.lonely.psu")
+#> [1] "adjust"
+```
+
+`"adjust"` centers a single-PSU stratum at the population mean rather
+than at its own stratum mean, so the stratum contributes a positive
+variance term instead of an undefined one. It is the conservative
+choice. `survey` also offers `"remove"`, which drops the stratum’s
+contribution and understates the variance, and `"average"`, which
+substitutes the average variance contribution of the strata that do have
+more than one cluster. Any value you set yourself is respected, so make
+the choice before you build the design:
+
+``` r
+
+options(
+  survey.lonely.psu = "adjust",
+  survey.adjust.domain.lonely = TRUE
+)
+
+des <- brfss_design(2023, vars = "GENHLTH")
+```
+
+`survey.adjust.domain.lonely` extends the same adjustment to strata that
+become lonely only inside a subpopulation, which is the common case in
+BRFSS work. It is off by default; turning it on together with `"adjust"`
+keeps the treatment of lonely strata consistent between whole-sample and
+subpopulation estimates.
+
+## Subpopulation analysis
+
+Subgroup estimates are the place where design-based analysis is most
+often done wrong. Filter the design object, not the data.
+
+Start from the codebook, since the codes are not obvious:
+
+``` r
+
+brfss_labels("_AGE_G", years = 2023)
+#> # A tibble: 6 × 5
+#>    year variable  code label           complete
+#>   <int> <chr>    <int> <chr>           <lgl>   
+#> 1  2023 _AGE_G       2 Age 25 to 34    TRUE    
+#> 2  2023 _AGE_G       6 Age 65 or older TRUE    
+#> 3  2023 _AGE_G       4 Age 45 to 54    TRUE    
+#> 4  2023 _AGE_G       1 Age 18 to 24    TRUE    
+#> 5  2023 _AGE_G       3 Age 35 to 44    TRUE    
+#> 6  2023 _AGE_G       5 Age 55 to 64    TRUE
+```
+
+Then filter the design and summarize as usual. srvyr’s
+[`filter()`](https://dplyr.tidyverse.org/reference/filter.html) on a
+`tbl_svy` marks a domain rather than deleting rows; the design object
+keeps its structure and the excluded respondents carry zero weight.
+
+``` r
+
+des |>
+  filter(`_AGE_G` == 6) |>
+  summarize(
+    fair_poor = survey_mean(fair_poor, vartype = "ci", na.rm = TRUE),
+    respondents = unweighted(n())
+  )
+#> # A tibble: 1 × 4
+#>   fair_poor fair_poor_low fair_poor_upp respondents
+#>       <dbl>         <dbl>         <dbl>       <int>
+#> 1     0.254         0.249         0.260      164955
+```
+
+The tempting alternative is to subset the tibble first and build a
+design on the survivors. The design columns have to be renamed on the
+way, since `survey` cannot take a non-syntactic name in a formula:
+
+``` r
+
+wrong <- read_brfss(
+  2023,
+  vars = c(
+    "GENHLTH", "PERSDOC3", "_AGE_G",
+    "_LLCPWT", "_PSU", "_STSTR"
+  ),
+  quiet = TRUE
+) |>
+  recode_brfss() |>
+  filter(`_AGE_G` == 6) |>
+  rename(psu = `_PSU`, stratum = `_STSTR`, wt = `_LLCPWT`) |>
+  as_survey_design(
+    ids = psu,
+    strata = stratum,
+    weights = wt,
+    nest = TRUE
+  )
+
+wrong |>
+  summarize(
+    fair_poor = survey_mean(fair_poor, vartype = "ci", na.rm = TRUE),
+    respondents = unweighted(n())
+  )
+#> # A tibble: 1 × 4
+#>   fair_poor fair_poor_low fair_poor_upp respondents
+#>       <dbl>         <dbl>         <dbl>       <int>
+#> 1     0.254         0.249         0.260      164955
+```
+
+The two agree to the precision shown, and on a recent BRFSS file they
+usually will. That is a property of this file and not a general result.
+Because every respondent in it is already their own primary sampling
+unit, deleting the rows outside the domain mostly removes strata that
+would have contributed nothing anyway, so the variance formula sees
+nearly the same thing either way; the gap here sits in the fifth decimal
+place.
+
+The habit is still worth keeping, and this survey supplies its own
+counterexample. Where one primary sampling unit holds many respondents,
+deleting rows changes what a cluster contains and the two calculations
+come apart. That is the shape of every BRFSS file through 2000, so the
+same analysis written against 1995 would not be forgiving.
+[`filter()`](https://dplyr.tidyverse.org/reference/filter.html) on the
+design also says what the analysis is doing, and that intent survives
+into code someone else has to read. Filter the design.
+
+## A workflow that holds up
+
+Start from
+[`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
+rather than
+[`read_brfss()`](https://muntasirmasum.github.io/brfssdata/reference/read_brfss.md)
+whenever the number will be reported, and ask for only the variables the
+analysis needs, since the design carries the weight, strata, and
+clusters along for free.
+[`brfss_labels()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_labels.md)
+is worth a look before any recode, because the special codes for don’t
+know and refused differ by variable and silently inflate a mean if they
+are treated as data. Recodes belong in a
+[`mutate()`](https://dplyr.tidyverse.org/reference/mutate.html) on the
+design object, so there is only ever one copy of the definition and it
+lives with the design. Subgroups come from
+[`filter()`](https://dplyr.tidyverse.org/reference/filter.html) on the
+design, never from the tibble underneath it. Keep years on one side of
+2011 unless you have decided otherwise, deliberately, and say so in the
+write-up. Report intervals from `vartype = "ci"`; an unweighted
+respondent count says nothing about precision.
+[`read_brfss()`](https://muntasirmasum.github.io/brfssdata/reference/read_brfss.md)
+is for looking at the data;
+[`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
+is for estimating from it.
+
+## References
+
+- Centers for Disease Control and Prevention. *Behavioral Risk Factor
+  Surveillance System: Survey Data and Documentation*.
+  <https://www.cdc.gov/brfss/data_documentation/index.htm>
+- Centers for Disease Control and Prevention. *Weighting BRFSS Data*.
+  <https://www.cdc.gov/brfss/annual_data/2016/pdf/weighting_the-data_webpage_content.pdf>
+- Centers for Disease Control and Prevention. *Complex Sampling Weights
+  and Preparing Module Data for Analysis*, published with each annual
+  data release. <https://www.cdc.gov/brfss/annual_data/annual_data.htm>
+- Lumley T. *Complex Surveys: A Guide to Analysis Using R*. Hoboken, NJ:
+  Wiley; 2010.
+- Lumley T. *survey: Analysis of Complex Survey Samples*. R package.
+  <https://CRAN.R-project.org/package=survey>
+- Freedman Ellis G, Schneider B. *srvyr: ‘dplyr’-Like Syntax for Summary
+  Statistics of Survey Data*. R package.
+  <https://CRAN.R-project.org/package=srvyr>

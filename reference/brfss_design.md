@@ -19,11 +19,18 @@ represent an average year rather than a sum of populations, and the
 variance strata become the year-by-stratum interaction, treating each
 annual survey as an independent sample.
 
-Because BRFSS public-use files make each respondent their own primary
-sampling unit, single-PSU strata are common and would make variance
-estimation fail. If `options(survey.lonely.psu)` is unset, this function
-sets it to `"adjust"` (standard BRFSS practice) and says so once per
-session; an option you set yourself is always respected.
+From 2001 on, BRFSS public-use files make each respondent their own
+primary sampling unit, so single-PSU strata are common and would make
+variance estimation fail. If `options(survey.lonely.psu)` is unset, this
+function sets it to `"adjust"` (standard BRFSS practice) and says so
+once per session; an option you set yourself is always respected.
+
+Because that clustering is nominal, the design for those years is built
+without a cluster term, which gives the same estimates, standard errors,
+and degrees of freedom far faster than carrying a cluster factor with
+one level per respondent. Files through 2000 carry genuine
+multi-respondent PSUs and keep the clustered estimator. The choice is
+made from the data, so it follows the file rather than the year.
 
 ## Usage
 
@@ -50,7 +57,9 @@ brfss_design(
 - vars:
 
   Optional character vector of analysis variables to carry into the
-  design. Design variables are always included.
+  design, matched case-insensitively like in
+  [`read_brfss()`](https://muntasirmasum.github.io/brfssdata/reference/read_brfss.md).
+  Design variables are always included.
 
 - allow_break:
 

@@ -28,7 +28,9 @@ read_brfss(years, vars = NULL, download = TRUE, quiet = FALSE, labels = FALSE)
 - vars:
 
   Optional character vector of variable names to return. The default
-  returns every variable. Use
+  returns every variable. Names are matched case-insensitively
+  (`"genhlth"` finds `GENHLTH`), and returned columns always carry CDC's
+  canonical spelling. Use
   [`brfss_vars()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_vars.md)
   to search names across years.
 

@@ -2,8 +2,8 @@
 
 Returns the value-label catalog that accompanies the data releases: one
 row per year, variable, and numeric code, with the label text from CDC's
-SAS format libraries. Labels cover 1990 onward; CDC no longer
-distributes label files for 1985-1989.
+SAS format libraries. Labels cover 1998 onward; CDC does not distribute
+usable format libraries for earlier years.
 
 The `complete` column marks variables whose format for that year is a
 pure code-to-label map (no numeric ranges such as `1-30` days). Only
@@ -21,7 +21,8 @@ brfss_labels(vars = NULL, years = NULL, download = TRUE, quiet = TRUE)
 
 - vars:
 
-  Optional character vector restricting to those variables.
+  Optional character vector restricting to those variables, matched
+  case-insensitively.
 
 - years:
 

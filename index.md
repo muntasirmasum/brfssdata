@@ -14,9 +14,11 @@ back either a tibble or a ready-made
 with the correct weights, strata, and primary sampling units for each
 survey era.
 
-> **Status:** all 40 available survey years (1985-2024) are published as
-> data releases; 1984 was never distributed as a SAS Transport file by
-> CDC.
+> **Status:** 40 survey years, 1985 through 2024, are published as data
+> releases. BRFSS began in 1984, and CDC does distribute a 1984 file
+> (12,258 records from the first 15 states) from its [web
+> archive](https://archive.cdc.gov/www_cdc_gov/brfss/annual_data/annual_1984.htm);
+> that year is not part of this collection.
 > [`brfss_years()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_years.md)
 > always reports the currently hosted years.
 
@@ -75,7 +77,7 @@ selects the era-correct weight automatically (`_FINALWT` before 2011,
 `_LLCPWT` after) and refuses to pool years across the boundary unless
 you opt in with `allow_break = TRUE`.
 
-## Access from Python (or anything else)
+## Access from Python, SAS, Stata, or anything else
 
 The hosted data files are plain parquet, so no R is required to use
 them. Every release asset has a stable URL:
@@ -89,13 +91,33 @@ df = pd.read_parquet(url)
 ```
 
 The same URLs work in polars, DuckDB (any language), Julia, or Stata’s
-Python bridge. For survey-weighted analysis outside R, use the design
-columns shipped in every year: the final weight (`_LLCPWT` from 2011,
-`_FINALWT` before), strata (`_STSTR`), and PSU (`_PSU`). The list of
-available years lives at `releases/download/data-meta/manifest.json`,
-and each file has a `.sha256` companion for verification.
+Python bridge. SAS and Stata users who want native files can export any
+extract from R with
+[`haven::write_xpt()`](https://haven.tidyverse.org/reference/read_xpt.html)
+(SAS Transport) or
+[`haven::write_dta()`](https://haven.tidyverse.org/reference/read_dta.html);
+the [Using the data outside
+R](https://muntasirmasum.github.io/brfssdata/articles/outside-r.html)
+article walks through both, including the variable-name limits each
+format imposes on CDC’s calculated names.
 
-## Data source and citation
+For survey-weighted analysis outside R, use the design columns shipped
+in every year: the final weight (`_LLCPWT` from 2011, `_FINALWT`
+before), strata (`_STSTR`), and PSU (`_PSU`). The list of available
+years lives at `releases/download/data-meta/manifest.json`, and each
+file has a `.sha256` companion for verification.
+
+## Citation
+
+To cite the package, use `citation("brfssdata")`:
+
+> Masum M (2026). *brfssdata: Access CDC Behavioral Risk Factor
+> Surveillance System Data*. R package version 0.1.0,
+> <https://muntasirmasum.github.io/brfssdata/>.
+
+Analyses should also cite the underlying survey data (below).
+
+## Data source
 
 All data originate from the CDC BRFSS annual survey files, which are in
 the public domain. Suggested citation for the data:
