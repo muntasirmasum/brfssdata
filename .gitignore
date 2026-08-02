@@ -1,0 +1,19 @@
+# R
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+
+# uvr project library (uvr.toml/uvr.lock ARE committed)
+.uvr/library/
+
+# data pipeline staging: raw CDC downloads and built parquet, never in git
+data-raw/raw/
+data-raw/parquet/
+
+# pkgdown local build
+docs/
+
+# macOS
+.DS_Store
