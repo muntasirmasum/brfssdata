@@ -28,6 +28,7 @@ documents what each code means.
 
 ```{r design}
 library(brfssdata)
+library(dplyr)
 library(srvyr)
 library(survey)
 
