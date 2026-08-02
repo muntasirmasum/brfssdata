@@ -107,8 +107,8 @@ the public domain. Suggested citation for the data:
 
 The hosted parquet files are byte-for-byte derived from CDC’s published
 SAS Transport files; the processing pipeline lives in
-[`data-raw/`](https://muntasirmasum.github.io/brfssdata/data-raw/) and
-every artifact is checksummed.
+[`data-raw/`](https://github.com/muntasirmasum/brfssdata/tree/main/data-raw)
+and every artifact is checksummed.
 
 ## License
 
