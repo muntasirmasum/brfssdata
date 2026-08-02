@@ -1,8 +1,15 @@
 ## R CMD check results
 
-0 errors | 0 warnings | 0 notes
+0 errors | 0 warnings | 0 notes on all local and CI platforms.
 
-* This is a new release.
+win-builder (R-devel) reported 1 NOTE (CRAN incoming feasibility):
+
+* New submission (this is a new release).
+* Possibly misspelled words in DESCRIPTION: "BRFSS" is the acronym of
+  the Behavioral Risk Factor Surveillance System, the survey this
+  package distributes; "microdata" is a standard statistical term.
+* A (possibly) invalid relative file URI in README.md has been fixed
+  in this submission (now an absolute URL).
 
 ## Test environments
 
@@ -10,6 +17,7 @@
 * GitHub Actions: ubuntu-latest (release, devel, oldrel-1),
   windows-latest (release), macos-latest (release)
 * win-builder (devel)
+* R-hub v2: linux, windows, macos
 
 ## Notes for reviewers
 
