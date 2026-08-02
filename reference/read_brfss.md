@@ -49,7 +49,11 @@ read_brfss(years, vars = NULL, download = TRUE, quiet = FALSE, labels = FALSE)
   using CDC's format libraries (available from 1998 on). A variable
   converts only when its format is a pure code-to-label map, its code
   set agrees across the requested years, and every observed value is
-  covered; everything else keeps its numeric codes. See
+  covered; everything else keeps its numeric codes. Labeling does not
+  decide what counts as missing: CDC's codes for don't know and refused
+  become ordinary factor levels, so `GENHLTH` arrives with seven levels
+  rather than five. Set those to `NA` yourself before treating a labeled
+  variable as ordinal. See
   [`brfss_labels()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_labels.md)
   for the raw catalog.
 

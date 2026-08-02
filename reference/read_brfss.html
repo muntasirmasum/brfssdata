@@ -103,7 +103,11 @@ to factors using CDC's format libraries (available from 1998 on).
 A variable converts only when its format is a pure code-to-label
 map, its code set agrees across the requested years, and every
 observed value is covered; everything else keeps its numeric codes.
-See <code><a href="brfss_labels.html">brfss_labels()</a></code> for the raw catalog.</p></dd>
+Labeling does not decide what counts as missing: CDC's codes for
+don't know and refused become ordinary factor levels, so <code>GENHLTH</code>
+arrives with seven levels rather than five. Set those to <code>NA</code>
+yourself before treating a labeled variable as ordinal. See
+<code><a href="brfss_labels.html">brfss_labels()</a></code> for the raw catalog.</p></dd>
 
 </dl></div>
     <div class="section level2">

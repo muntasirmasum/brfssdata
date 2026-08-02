@@ -290,11 +290,41 @@ read_brfss(2023, vars = c("GENHLTH", "SEXVAR"), labels = TRUE)
 #> # ℹ 433,313 more rows
 ```
 
+Labeling renames codes; it does not decide which of them mean missing.
+CDC’s don’t-know and refused codes become factor levels like any other,
+so the `GENHLTH` above has seven levels rather than five. Set them to
+`NA` before treating a labeled variable as ordinal, or the two
+missing-data codes will sit at the bottom of the scale as though they
+were health states.
+
+``` r
+
+missing_codes <- c("Dont know/Not Sure", "Refused")
+
+read_brfss(2023, vars = "GENHLTH", labels = TRUE) |>
+  mutate(
+    GENHLTH = droplevels(replace(GENHLTH, GENHLTH %in% missing_codes, NA))
+  ) |>
+  count(GENHLTH)
+#> # A tibble: 6 × 2
+#>   GENHLTH        n
+#>   <fct>      <int>
+#> 1 Excellent  63410
+#> 2 Very good 142115
+#> 3 Good      144209
+#> 4 Fair       61955
+#> 5 Poor       20372
+#> 6 NA          1262
+```
+
 Conversion is deliberately conservative. A variable becomes a factor
 only when its CDC format is a pure code-to-label map, carrying no
-numeric ranges such as `1-30` days, and when every value observed in the
-data falls inside that map. The `complete` column in the label catalog
-marks the formats that meet the first condition. `PHYSHLTH` is a good
+numeric ranges such as `1-30` days, when the map is an unambiguous
+one-to-one correspondence (some CDC formats give one code several
+labels, or reuse one label across codes, and converting those would
+quietly rewrite the data), and when every value observed in the data
+falls inside that map. The `complete` column in the label catalog marks
+the formats that meet the first condition. `PHYSHLTH` is a good
 counterexample: its format documents only the special codes, because the
 substantive values are a count of days.
 
