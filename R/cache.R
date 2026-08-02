@@ -93,6 +93,11 @@ ensure_cache_dir <- function() {
   dir
 }
 
+# A NULL binding so tests can mock base file.rename (the rename-to-copy
+# fallback below). R's call lookup skips non-function bindings, so
+# base::file.rename still runs everywhere outside that mock.
+file.rename <- NULL
+
 # Download a release asset into the cache, failing with an informative,
 # classed error (never a warning) if the resource is unavailable.
 download_to_cache <- function(

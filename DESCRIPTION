@@ -17,6 +17,7 @@ Suggests:
     dplyr,
     knitr,
     rmarkdown,
+    spelling,
     survey,
     testthat,
     withr

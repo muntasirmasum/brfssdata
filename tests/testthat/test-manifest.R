@@ -6,7 +6,7 @@ test_that("brfss_years reads a fresh cached manifest without downloading", {
 test_that("offline fallback actually reaches the bundled manifest", {
   dir <- withr::local_tempdir()
   withr::local_options(brfssdata.cache_dir = dir)
-  reset_manifest_state()
+  local_manifest_state()
   sentinel <- withr::local_tempfile(lines = '{"years": [1999]}')
   local_mocked_bindings(
     download_to_cache = function(...) {
@@ -119,4 +119,31 @@ test_that("fixture manifests carry real hashes of the fixture files", {
     manifest_sha256("brfss_2023.parquet", m),
     cli::hash_file_sha256(file.path(dir, "brfss_2023.parquet"))
   )
+})
+
+test_that("a successful refresh clears the failure memo", {
+  local_brfss_manifest(2020)
+  manifest_state$last_failure <- Sys.time() - 10
+  local_mocked_bindings(
+    download_to_cache = function(url, dest, ...) {
+      writeLines('{"years": [2020]}', dest)
+      dest
+    }
+  )
+  brfss_years(refresh = TRUE)
+  expect_null(manifest_state$last_failure)
+})
+
+# These two run as a pair, in file order: the first deliberately drives
+# the failure memo inside a fixture scope, the second proves the scope
+# restored it. This is the contract that keeps devtools::test() from
+# leaving a session that skips real manifest refreshes for a day.
+test_that("a test can drive the manifest failure memo", {
+  local_brfss_manifest(2020)
+  manifest_state$last_failure <- Sys.time()
+  expect_false(is.null(manifest_state$last_failure))
+})
+
+test_that("the manifest failure memo was restored by the fixture scope", {
+  expect_null(manifest_state$last_failure)
 })

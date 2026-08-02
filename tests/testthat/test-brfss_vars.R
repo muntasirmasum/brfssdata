@@ -42,3 +42,20 @@ test_that("uncached catalog with download = FALSE errors cleanly", {
     class = "brfssdata_not_cached"
   )
 })
+
+test_that("an invalid regular expression is rejected with its cause", {
+  local_brfss_cache(2020, catalog = TRUE)
+  expect_error(brfss_vars("("), class = "brfssdata_bad_pattern")
+})
+
+test_that("a malformed years argument is rejected", {
+  local_brfss_cache(2020, catalog = TRUE)
+  expect_error(
+    brfss_vars(years = "recent"),
+    class = "brfssdata_bad_years_arg"
+  )
+  expect_error(
+    brfss_vars(years = NA_real_),
+    class = "brfssdata_bad_years_arg"
+  )
+})

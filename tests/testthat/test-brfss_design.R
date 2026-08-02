@@ -138,6 +138,7 @@ test_that("analysis vars ride along with design vars", {
 # and must keep the clustered estimator, which gives a different standard
 # error and different degrees of freedom.
 test_that("singleton PSUs give the same answer as the clustered design", {
+  skip_if_not_installed("survey")
   local_brfss_cache(2023)
   des <- brfss_design(2023, quiet = TRUE)
   dat <- des$variables
@@ -158,6 +159,7 @@ test_that("singleton PSUs give the same answer as the clustered design", {
 })
 
 test_that("shared PSUs keep the clustered variance estimator", {
+  skip_if_not_installed("survey")
   local_brfss_cache(2023, psu_size = 3)
   des <- brfss_design(2023, quiet = TRUE)
   dat <- des$variables
@@ -214,15 +216,23 @@ test_that("a missing stratum stops the design instead of pooling into one", {
   )
 })
 
-test_that("the 2011 break is the redesign year, not an arbitrary cutoff", {
-  expect_identical(BREAK_YEAR, 2011L)
-})
-
 test_that("pool_weights divides by the year count, not by two", {
   local_brfss_cache(c(2021, 2022, 2023))
   pooled <- brfss_design(2021:2023, quiet = TRUE)
   unpooled <- brfss_design(2021:2023, pool_weights = FALSE, quiet = TRUE)
   expect_equal(pooled$variables$brfss_wt, unpooled$variables$brfss_wt / 3)
+})
+
+test_that("allow_break with pooled weights divides era weights by year count", {
+  local_brfss_cache(c(2009, 2023))
+  expect_warning(
+    des <- brfss_design(c(2009, 2023), allow_break = TRUE, quiet = TRUE),
+    "2011"
+  )
+  dat <- des$variables
+  pre <- dat$year < 2011
+  expect_equal(dat$brfss_wt[pre], dat$`_FINALWT`[pre] / 2)
+  expect_equal(dat$brfss_wt[!pre], dat$`_LLCPWT`[!pre] / 2)
 })
 
 test_that("an unclustered design skips survey's nested-clusters check", {

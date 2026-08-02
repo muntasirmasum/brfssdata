@@ -37,3 +37,39 @@ test_that("summarize_years collapses runs", {
     "2011-2013, 2020"
   )
 })
+
+test_that("duckdb connections keep DuckDB's storage out of ~/.duckdb", {
+  # shared_home = FALSE in duckdb_connect() is the load-bearing CRAN
+  # write-location argument, and an argument here has been dropped in a
+  # merge before (check_strata, restored in 57442b4). With it, DuckDB's
+  # storage directories resolve into the session tempdir; without it,
+  # into ~/.duckdb.
+  con <- duckdb_connect()
+  on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
+  dirs <- vapply(
+    c("extension_directory", "secret_directory"),
+    function(s) {
+      DBI::dbGetQuery(
+        con,
+        sprintf("SELECT current_setting('%s') AS v", s)
+      )$v
+    },
+    character(1)
+  )
+  duck_home <- normalizePath("~/.duckdb", mustWork = FALSE)
+  for (dir in dirs) {
+    expect_false(startsWith(normalizePath(dir, mustWork = FALSE), duck_home))
+  }
+})
+
+test_that("query_parquet does not create ~/.duckdb", {
+  duck_home <- path.expand("~/.duckdb")
+  existed <- dir.exists(duck_home)
+  dir <- withr::local_tempdir()
+  path <- write_fixture_parquet(
+    data.frame(year = 2023L, x = 1),
+    file.path(dir, "probe.parquet")
+  )
+  query_parquet(path)
+  expect_identical(dir.exists(duck_home), existed)
+})

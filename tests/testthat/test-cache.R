@@ -4,6 +4,21 @@ test_that("cache dir honors the option override", {
   expect_identical(brfss_cache_dir(), dir)
 })
 
+test_that("the default cache dir is R_user_dir, not the working directory", {
+  withr::local_options(brfssdata.cache_dir = NULL)
+  expect_identical(
+    brfss_cache_dir(),
+    tools::R_user_dir("brfssdata", "cache")
+  )
+})
+
+test_that("creating the cache announces its location, once", {
+  dir <- file.path(withr::local_tempdir(), "brfss-cache")
+  withr::local_options(brfssdata.cache_dir = dir)
+  expect_message(ensure_cache_dir(), class = "brfssdata_cache_note")
+  expect_no_message(ensure_cache_dir())
+})
+
 test_that("cache info lists files with parsed years", {
   local_brfss_cache(c(2022, 2023))
   info <- brfss_cache_info()
@@ -95,6 +110,22 @@ test_that("both downloaders land the file, whichever one is available", {
     expect_true(file.exists(dest))
     expect_identical(readLines(dest), "payload")
   }
+})
+
+test_that("a failed rename falls back to copying into place", {
+  dir <- withr::local_tempdir()
+  withr::local_options(brfssdata.cache_dir = dir)
+  src <- withr::local_tempfile()
+  writeLines("payload", src)
+  dest <- file.path(dir, "brfss_2023.parquet")
+  # Cross-filesystem moves make file.rename() return FALSE; the copy
+  # fallback is what keeps the download usable there. Mocked in this
+  # package's namespace only: curl_download() renames internally too, and
+  # a base-wide mock would break the download itself.
+  local_mocked_bindings(file.rename = function(...) FALSE)
+  download_to_cache(local_file_url(paste0("file://", src)), dest, quiet = TRUE)
+  expect_true(file.exists(dest))
+  expect_identical(readLines(dest), "payload")
 })
 
 test_that("an empty download is treated as a failure", {

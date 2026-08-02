@@ -3,25 +3,56 @@
 # network or the user's real cache; both helpers install a guard that
 # turns any unexpected download attempt into a loud failure.
 
-write_fixture_year <- function(year, dir, n = 30, extra = NULL, psu_size = 1) {
-  wt_col <- if (year >= 2011) "_LLCPWT" else "_FINALWT"
+write_fixture_year <- function(
+  year,
+  dir,
+  n = 30,
+  extra = NULL,
+  psu_size = 1,
+  llcpwt2 = FALSE,
+  states = 1
+) {
+  # The column name for the era weight comes from the package constants;
+  # tests/testthat/test-constants.R anchors those against a hand-written
+  # codebook table, so a swapped constant cannot agree with the fixtures.
+  wt_col <- if (year >= BREAK_YEAR) WEIGHT_POST else WEIGHT_PRE
   set.seed(year)
   # psu_size > 1 gives each PSU that many respondents, the shape of the
   # files through 2000; the default makes every respondent their own PSU.
   # The stratum is derived from the PSU so that a PSU never straddles two
   # strata, which is what makes the pair non-unique when psu_size > 1.
   psu <- rep(seq_len(ceiling(n / psu_size)), each = psu_size)[seq_len(n)]
+  # Every data column is stored as double because that is what the real
+  # files carry: haven::read_xpt() reads numeric SAS variables as double
+  # (data-raw/02_build_parquet.R), and only `year` is re-typed integer.
+  # GENHLTH includes CDC's don't-know (7) and refused (9) codes, and
+  # PHYSHLTH the 77/88/99 family, so tests can see what real analysis
+  # variables contain.
   df <- data.frame(
     year = as.integer(year),
-    psu = psu,
-    ststr = rep(1:3, length.out = max(psu))[psu],
+    psu = as.numeric(psu),
+    ststr = as.numeric(rep(1:3, length.out = max(psu))[psu]),
     wt = stats::runif(n, 100, 500),
-    GENHLTH = sample(1:5, n, replace = TRUE),
+    GENHLTH = as.numeric(sample(c(1:5, 7, 9), n, replace = TRUE)),
+    PHYSHLTH = as.numeric(sample(c(1:30, 77, 88, 99), n, replace = TRUE)),
+    state = as.numeric(rep(states, length.out = n)),
     check.names = FALSE
   )
-  names(df) <- c("year", "_PSU", "_STSTR", wt_col, "GENHLTH")
+  names(df) <- c(
+    "year",
+    DESIGN_PSU,
+    DESIGN_STRATA,
+    wt_col,
+    "GENHLTH",
+    "PHYSHLTH",
+    "_STATE"
+  )
+  if (llcpwt2) {
+    # Differs from the main weight on every row, like the real files.
+    df[["_LLCPWT2"]] <- df[[wt_col]] * 3 + 7
+  }
   if (!is.null(extra)) {
-    df[[extra]] <- sample(0:1, n, replace = TRUE)
+    df[[extra]] <- as.numeric(sample(0:1, n, replace = TRUE))
   }
   write_fixture_parquet(df, file.path(dir, sprintf("brfss_%d.parquet", year)))
 }
@@ -80,8 +111,23 @@ guard_network <- function(env) {
   )
 }
 
-reset_manifest_state <- function() {
-  assign("last_failure", NULL, envir = manifest_state)
+# Clear the manifest failure memo for the test and restore whatever was
+# there before when the test ends. Without the restore, a test that
+# drives last_failure would leave the memo set in the session that ran
+# devtools::test(), silently skipping real manifest refreshes for a day
+# (the same leak class the suite already scopes for survey.lonely.psu).
+local_manifest_state <- function(env = parent.frame()) {
+  old <- as.list(manifest_state)
+  rm(list = ls(manifest_state), envir = manifest_state)
+  withr::defer(
+    {
+      rm(list = ls(manifest_state), envir = manifest_state)
+      for (nm in names(old)) {
+        assign(nm, old[[nm]], envir = manifest_state)
+      }
+    },
+    envir = env
+  )
 }
 
 # Write a manifest covering whatever parquet files are in `dir`. Schema 2
@@ -129,7 +175,7 @@ local_brfss_cache <- function(
   dir <- withr::local_tempdir(.local_envir = env)
   withr::local_options(brfssdata.cache_dir = dir, .local_envir = env)
   local_lonely_psu(env)
-  reset_manifest_state()
+  local_manifest_state(env)
   guard_network(env)
   for (y in years) {
     write_fixture_year(
@@ -151,95 +197,79 @@ local_brfss_manifest <- function(years, schema = 2, env = parent.frame()) {
   dir <- withr::local_tempdir(.local_envir = env)
   withr::local_options(brfssdata.cache_dir = dir, .local_envir = env)
   local_lonely_psu(env)
-  reset_manifest_state()
+  local_manifest_state(env)
   guard_network(env)
   write_fixture_manifest(dir, years, schema = schema)
   dir
 }
 
-# A labels catalog fixture: GENHLTH fully mapped (complete), PHYSHLTH
-# mixed (incomplete), DRIFTVAR with a code set that changes across years,
-# DUPLABEL a complete map that gives two codes the same label.
+# A labels catalog fixture: GENHLTH fully mapped (complete, including
+# CDC's don't-know and refused codes, matching the fixture data),
+# PHYSHLTH mixed (incomplete), DRIFTVAR with a code set that changes
+# across years, DUPLABEL a complete map that gives two codes the same
+# label.
 write_fixture_labels <- function(dir) {
-  labels <- data.frame(
-    year = c(
-      rep(2022L, 5),
-      rep(2023L, 5),
-      2023L,
-      2023L,
-      2022L,
-      2022L,
-      2023L,
-      2023L,
-      2023L
-    ),
-    variable = c(
-      rep("GENHLTH", 10),
-      "PHYSHLTH",
-      "PHYSHLTH",
-      rep("DRIFTVAR", 5)
-    ),
-    code = c(
-      1:5,
-      1:5,
-      88L,
-      99L,
-      0L,
-      1L,
-      0L,
-      1L,
-      2L
-    ),
-    label = c(
-      "Excellent",
-      "Very good",
-      "Good",
-      "Fair",
-      "Poor",
-      "Excellent",
-      "Very good",
-      "Good",
-      "Fair",
-      "Poor",
-      "None",
-      "Refused",
-      "Yes",
-      "No",
-      "Yes",
-      "No",
-      "Maybe"
-    ),
-    complete = c(rep(TRUE, 10), FALSE, FALSE, rep(TRUE, 5)),
+  genhlth_labels <- c(
+    "Excellent",
+    "Very good",
+    "Good",
+    "Fair",
+    "Poor",
+    "Don't know/Not Sure",
+    "Refused"
+  )
+  genhlth <- data.frame(
+    year = rep(c(2022L, 2023L), each = 7),
+    variable = "GENHLTH",
+    code = rep(c(1:5, 7L, 9L), 2),
+    label = rep(genhlth_labels, 2),
+    complete = TRUE,
+    stringsAsFactors = FALSE
+  )
+  physhlth <- data.frame(
+    year = 2023L,
+    variable = "PHYSHLTH",
+    code = c(88L, 99L),
+    label = c("None", "Refused"),
+    complete = FALSE,
+    stringsAsFactors = FALSE
+  )
+  driftvar <- data.frame(
+    year = c(2022L, 2022L, 2023L, 2023L, 2023L),
+    variable = "DRIFTVAR",
+    code = c(0L, 1L, 0L, 1L, 2L),
+    label = c("Yes", "No", "Yes", "No", "Maybe"),
+    complete = TRUE,
     stringsAsFactors = FALSE
   )
   # A complete map that labels two codes identically, the shape that
   # makes factor() merge them (CDC ships several of these).
-  labels <- rbind(
-    labels,
-    data.frame(
-      year = c(2023L, 2023L),
-      variable = c("DUPLABEL", "DUPLABEL"),
-      code = c(0L, 1L),
-      label = c("Same", "Same"),
-      complete = c(TRUE, TRUE),
-      stringsAsFactors = FALSE
-    )
+  duplabel <- data.frame(
+    year = c(2023L, 2023L),
+    variable = "DUPLABEL",
+    code = c(0L, 1L),
+    label = c("Same", "Same"),
+    complete = TRUE,
+    stringsAsFactors = FALSE
   )
-  write_fixture_parquet(labels, file.path(dir, "brfss_labels.parquet"))
+  write_fixture_parquet(
+    rbind(genhlth, physhlth, driftvar, duplabel),
+    file.path(dir, "brfss_labels.parquet")
+  )
 }
 
 # A year whose stratum column carries a missing value.
 write_fixture_year_na_strata <- function(year, dir, n = 30) {
-  wt_col <- if (year >= 2011) "_LLCPWT" else "_FINALWT"
+  wt_col <- if (year >= BREAK_YEAR) WEIGHT_POST else WEIGHT_PRE
   set.seed(year)
   df <- data.frame(
     year = as.integer(year),
-    psu = seq_len(n),
-    ststr = c(NA_integer_, rep(1:3, length.out = n - 1)),
+    psu = as.numeric(seq_len(n)),
+    ststr = as.numeric(c(NA, rep(1:3, length.out = n - 1))),
     wt = stats::runif(n, 100, 500),
-    GENHLTH = sample(1:5, n, replace = TRUE),
+    GENHLTH = as.numeric(sample(c(1:5, 7, 9), n, replace = TRUE)),
     check.names = FALSE
   )
-  names(df) <- c("year", "_PSU", "_STSTR", wt_col, "GENHLTH")
+  names(df) <- c("year", DESIGN_PSU, DESIGN_STRATA, wt_col, "GENHLTH")
   write_fixture_parquet(df, file.path(dir, sprintf("brfss_%d.parquet", year)))
 }

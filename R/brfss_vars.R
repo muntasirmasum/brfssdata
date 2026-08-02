@@ -56,9 +56,13 @@ brfss_vars <- function(
   }
   if (!is.null(pattern)) {
     label_text <- ifelse(is.na(catalog$label), "", catalog$label)
+    # suppressWarnings: an invalid regex emits a TRE warning before the
+    # error; the abort below already carries the compiler's message.
     hit <- tryCatch(
-      grepl(pattern, catalog$variable, ignore.case = TRUE) |
-        grepl(pattern, label_text, ignore.case = TRUE),
+      suppressWarnings(
+        grepl(pattern, catalog$variable, ignore.case = TRUE) |
+          grepl(pattern, label_text, ignore.case = TRUE)
+      ),
       error = function(e) {
         cli::cli_abort(
           c(

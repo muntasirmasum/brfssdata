@@ -2,7 +2,7 @@ test_that("brfss_labels filters by variable and year", {
   dir <- local_brfss_cache(2023)
   write_fixture_labels(dir)
   out <- brfss_labels("GENHLTH", years = 2023)
-  expect_identical(nrow(out), 5L)
+  expect_identical(nrow(out), 7L)
   expect_identical(out$label[out$code == 1], "Excellent")
 })
 
@@ -10,7 +10,7 @@ test_that("brfss_labels matches variables case-insensitively", {
   dir <- local_brfss_cache(2023)
   write_fixture_labels(dir)
   out <- brfss_labels("genhlth", years = 2023)
-  expect_identical(nrow(out), 5L)
+  expect_identical(nrow(out), 7L)
   expect_identical(unique(out$variable), "GENHLTH")
 })
 
@@ -21,16 +21,27 @@ test_that("labels = TRUE converts fully mapped variables to factors", {
   expect_s3_class(dat$GENHLTH, "factor")
   expect_identical(
     levels(dat$GENHLTH),
-    c("Excellent", "Very good", "Good", "Fair", "Poor")
+    c(
+      "Excellent",
+      "Very good",
+      "Good",
+      "Fair",
+      "Poor",
+      "Don't know/Not Sure",
+      "Refused"
+    )
   )
   expect_identical(sort(unique(dat$year)), 2023L)
 })
 
 test_that("incomplete formats keep their numeric codes", {
-  dir <- local_brfss_cache(2023, extra = list("2023" = "PHYSHLTH"))
+  dir <- local_brfss_cache(2023)
   write_fixture_labels(dir)
   dat <- read_brfss(2023, quiet = TRUE, labels = TRUE)
-  expect_type(dat$PHYSHLTH, "integer")
+  # The contract is "not converted", not a storage type: real files carry
+  # doubles, and a factor here would be the bug.
+  expect_false(is.factor(dat$PHYSHLTH))
+  expect_true(is.numeric(dat$PHYSHLTH))
 })
 
 test_that("observed values outside the map block conversion", {
@@ -48,7 +59,8 @@ test_that("observed values outside the map block conversion", {
   writeLines('{"years": [2023]}', file.path(dir, "manifest.json"))
   write_fixture_labels(dir)
   dat <- read_brfss(2023, quiet = TRUE, labels = TRUE)
-  expect_type(dat$GENHLTH, "integer")
+  expect_false(is.factor(dat$GENHLTH))
+  expect_true(is.numeric(dat$GENHLTH))
 })
 
 test_that("code sets that drift across years block conversion", {
@@ -61,7 +73,8 @@ test_that("code sets that drift across years block conversion", {
   )
   write_fixture_labels(dir)
   dat <- read_brfss(2022:2023, quiet = TRUE, labels = TRUE)
-  expect_type(dat$DRIFTVAR, "integer")
+  expect_false(is.factor(dat$DRIFTVAR))
+  expect_true(is.numeric(dat$DRIFTVAR))
 
   # But single-year requests convert with that year's map.
   one <- read_brfss(2023, quiet = TRUE, labels = TRUE)

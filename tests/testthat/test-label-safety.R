@@ -144,14 +144,16 @@ test_that("labels never convert the columns the design is built on", {
     dir,
     data.frame(
       year = 2023L,
-      variable = c(rep("GENHLTH", 5), "_STSTR", "_STSTR", "_STSTR"),
-      code = c(1:5, 1L, 2L, 3L),
+      variable = c(rep("GENHLTH", 7), "_STSTR", "_STSTR", "_STSTR"),
+      code = c(1:5, 7L, 9L, 1L, 2L, 3L),
       label = c(
         "Excellent",
         "Very good",
         "Good",
         "Fair",
         "Poor",
+        "Don't know/Not Sure",
+        "Refused",
         "Stratum A",
         "Stratum B",
         "Stratum C"
