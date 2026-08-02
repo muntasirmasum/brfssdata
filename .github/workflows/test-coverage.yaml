@@ -12,6 +12,9 @@ permissions: read-all
 jobs:
   test-coverage:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
 
@@ -38,12 +41,13 @@ jobs:
 
       - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
-          # Fail if error if not on PR, or if on PR and token is given
-          fail_ci_if_error: ${{ github.event_name != 'pull_request' || secrets.CODECOV_TOKEN }}
+          # OIDC auth: no upload token needed (fork PRs lack id-token, so
+          # don't fail the build there)
+          fail_ci_if_error: ${{ github.event_name != 'pull_request' }}
           files: ./cobertura.xml
           plugins: noop
           disable_search: true
-          token: ${{ secrets.CODECOV_TOKEN }}
+          use_oidc: true
 
       - name: Show testthat output
         if: always()
