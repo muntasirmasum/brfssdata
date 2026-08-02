@@ -200,18 +200,18 @@ names and their labels, and reports the years each match appears in.
 
 brfss_vars("smok")
 #> # A tibble: 96 × 3
-#>    variable label                                    years     
-#>    <chr>    <chr>                                    <chr>     
-#>  1 _LCSSMKG SMOKING GROUP                            2024      
-#>  2 _LCSYQTS NUMBER OF YEARS SINCE QUIT SMOKING CIGAR 2024      
-#>  3 _LCSYSMK NUMBER OF YEARS SMOKED CIGARETTES        2024      
-#>  4 _PACKDAY NUMBER OF PACKS OF CIGARETTES SMOKED PER 2022, 2024
-#>  5 _PACKYRS YEARS SMOKED REPORTED PACKS PER DAY      2022, 2024
-#>  6 _RFSMOK2 CURRENT SMOKING STATUS RISK FACTOR.      1993-2004 
-#>  7 _RFSMOK3 CURRENT SMOKING CALCULATED VARIABLE      2005-2024 
-#>  8 _RFSMOKE CURRENT SMOKING (REGULAR)                1985-1993 
-#>  9 _RFTOBAC SMOKELESS TOBACCO (CURRENT USER)         1987-2001 
-#> 10 _SMKLESS SMOKELESS STATUS                         1987-2001 
+#>    variable label                                    years    
+#>    <chr>    <chr>                                    <chr>    
+#>  1 ALLOWADS PLACEMENT OF BILLBOARD ADS ABOUT SMOKING 1998     
+#>  2 ATKNSMOK START SMOKING AFTER ATTK?                2002     
+#>  3 ATKSMOK  SMOKE MORE AFTER ATTK?                   2002     
+#>  4 BEGSMOKE AGE STARTED SMOKING REGULARLY            1991-1992
+#>  5 BIDINOW  NOW SMOKE INDIAN CIGARETTES              2001-2003
+#>  6 BIDISMK  EVER SMOKED INDIAN CIGARETTE             2001-2003
+#>  7 CANCER   THINK SMOKELESS USE CAUSE MOUTH CANCER   1986     
+#>  8 CIGAR    EVER SMOKED A CIGAR                      1998     
+#>  9 CIGAR2   EVER SMOKED CIGAR                        2001-2003
+#> 10 CIGARNOW CURRENTLY SMOKE CIGARS                   2001-2003
 #> # ℹ 86 more rows
 ```
 
@@ -235,9 +235,9 @@ brfss_vars("binge", years = 2021:2023)
 #> # A tibble: 3 × 3
 #>   variable label                              years    
 #>   <chr>    <chr>                              <chr>    
-#> 1 _RFBING5 BINGE DRINKING CALCULATED VARIABLE 2021     
-#> 2 _RFBING6 BINGE DRINKING CALCULATED VARIABLE 2022-2023
-#> 3 DRNK3GE5 BINGE DRINKING                     2021-2023
+#> 1 DRNK3GE5 BINGE DRINKING                     2021-2023
+#> 2 _RFBING5 BINGE DRINKING CALCULATED VARIABLE 2021     
+#> 3 _RFBING6 BINGE DRINKING CALCULATED VARIABLE 2022-2023
 ```
 
 `_RFBING5` and `_RFBING6` share a label and cover 2021 and then 2022 to

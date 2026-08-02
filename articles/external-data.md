@@ -23,9 +23,9 @@ brfss_vars("state fips|metropolitan status", years = 2023)
 #> # A tibble: 3 × 3
 #>   variable label                    years
 #>   <chr>    <chr>                    <chr>
-#> 1 _METSTAT METROPOLITAN STATUS      2023 
-#> 2 _STATE   STATE FIPS CODE          2023 
-#> 3 MSCODE   METROPOLITAN STATUS CODE 2023
+#> 1 MSCODE   METROPOLITAN STATUS CODE 2023 
+#> 2 _METSTAT METROPOLITAN STATUS      2023 
+#> 3 _STATE   STATE FIPS CODE          2023
 ```
 
 ## Building the state lookup from the package
@@ -372,11 +372,11 @@ brfss_vars("county|census tract|zip")
 #> # A tibble: 5 × 3
 #>   variable label                        years    
 #>   <chr>    <chr>                        <chr>    
-#> 1 _IMPCTY  IMPUTED COUNTY               2007     
-#> 2 CPCOUNTY CELL PHONE PILOT COUNTY NAME 2009-2010
-#> 3 CTYCODE  COUNTY CODE                  1988-2010
-#> 4 CTYCODE1 COUNTY CODE                  2011-2012
-#> 5 ZIPCODE  ZIPCODE OF RESIDENCE         2007
+#> 1 CPCOUNTY CELL PHONE PILOT COUNTY NAME 2009-2010
+#> 2 CTYCODE  COUNTY CODE                  1988-2010
+#> 3 CTYCODE1 COUNTY CODE                  2011-2012
+#> 4 ZIPCODE  ZIPCODE OF RESIDENCE         2007     
+#> 5 _IMPCTY  IMPUTED COUNTY               2007
 ```
 
 A county code runs through 2012 and a ZIP code appears in 2007, so the

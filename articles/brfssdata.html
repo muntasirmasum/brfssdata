@@ -252,18 +252,18 @@ reports the years each match appears in.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/brfss_vars.html">brfss_vars</a></span><span class="op">(</span><span class="st">"smok"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 96 × 3</span></span></span>
-<span><span class="co">#&gt;    variable label                                    years     </span></span>
-<span><span class="co">#&gt;    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                                    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 1</span> _LCSSMKG SMOKING GROUP                            2024      </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 2</span> _LCSYQTS NUMBER OF YEARS SINCE QUIT SMOKING CIGAR 2024      </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 3</span> _LCSYSMK NUMBER OF YEARS SMOKED CIGARETTES        2024      </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 4</span> _PACKDAY NUMBER OF PACKS OF CIGARETTES SMOKED PER 2022, 2024</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 5</span> _PACKYRS YEARS SMOKED REPORTED PACKS PER DAY      2022, 2024</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 6</span> _RFSMOK2 CURRENT SMOKING STATUS RISK FACTOR.      1993-2004 </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 7</span> _RFSMOK3 CURRENT SMOKING CALCULATED VARIABLE      2005-2024 </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 8</span> _RFSMOKE CURRENT SMOKING (REGULAR)                1985-1993 </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span> _RFTOBAC SMOKELESS TOBACCO (CURRENT USER)         1987-2001 </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">10</span> _SMKLESS SMOKELESS STATUS                         1987-2001 </span></span>
+<span><span class="co">#&gt;    variable label                                    years    </span></span>
+<span><span class="co">#&gt;    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                                    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 1</span> ALLOWADS PLACEMENT OF BILLBOARD ADS ABOUT SMOKING 1998     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 2</span> ATKNSMOK START SMOKING AFTER ATTK?                2002     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 3</span> ATKSMOK  SMOKE MORE AFTER ATTK?                   2002     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 4</span> BEGSMOKE AGE STARTED SMOKING REGULARLY            1991-1992</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 5</span> BIDINOW  NOW SMOKE INDIAN CIGARETTES              2001-2003</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 6</span> BIDISMK  EVER SMOKED INDIAN CIGARETTE             2001-2003</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 7</span> CANCER   THINK SMOKELESS USE CAUSE MOUTH CANCER   1986     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 8</span> CIGAR    EVER SMOKED A CIGAR                      1998     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span> CIGAR2   EVER SMOKED CIGAR                        2001-2003</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">10</span> CIGARNOW CURRENTLY SMOKE CIGARS                   2001-2003</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># ℹ 86 more rows</span></span></span></code></pre></div>
 <p>The <code>years</code> column collapses runs of consecutive years, so
 <code>2005-2024</code> means every year in that span and
@@ -281,9 +281,9 @@ shows the rename pattern plainly.</p>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 3 × 3</span></span></span>
 <span><span class="co">#&gt;   variable label                              years    </span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                              <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> _RFBING5 BINGE DRINKING CALCULATED VARIABLE 2021     </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> _RFBING6 BINGE DRINKING CALCULATED VARIABLE 2022-2023</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> DRNK3GE5 BINGE DRINKING                     2021-2023</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> DRNK3GE5 BINGE DRINKING                     2021-2023</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> _RFBING5 BINGE DRINKING CALCULATED VARIABLE 2021     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> _RFBING6 BINGE DRINKING CALCULATED VARIABLE 2022-2023</span></span></code></pre></div>
 <p><code>_RFBING5</code> and <code>_RFBING6</code> share a label and
 cover 2021 and then 2022 to 2023, which is the signature of a calculated
 variable whose definition was revised. The underlying questionnaire
@@ -509,7 +509,7 @@ years analyzed.</p>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Muntasir Masum.</p>
+  <p>Developed by <a href="https://muntasirmasum.com" class="external-link">Muntasir Masum</a>.</p>
 </div>
 
 <div class="pkgdown-footer-right">

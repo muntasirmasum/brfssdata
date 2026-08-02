@@ -2,8 +2,8 @@
 
 ## Authors
 
-- **Muntasir Masum**. Author, maintainer, copyright holder.
-  [](https://orcid.org/0000-0002-4210-2844)
+- **[Muntasir Masum](https://muntasirmasum.com)**. Author, maintainer,
+  copyright holder. [](https://orcid.org/0000-0002-4210-2844)
 
 ## Citation
 

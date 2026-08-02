@@ -14,17 +14,20 @@ years (pool_weights = TRUE, the default) so that pooled estimates
 represent an average year rather than a sum of populations, and the
 variance strata become the year-by-stratum interaction, treating each
 annual survey as an independent sample.
-From 2001 on, BRFSS public-use files make each respondent their own
-primary sampling unit, so single-PSU strata are common and would make
-variance estimation fail. If options(survey.lonely.psu) is unset,
-this function sets it to "adjust" (standard BRFSS practice) and says
-so once per session; an option you set yourself is always respected.
+From 2001 on, _PSU is a record sequence number that restarts in
+each state, so it repeats across the file but is unique within a
+stratum: every stratum-by-PSU cell holds exactly one respondent.
+Single-PSU strata are therefore common and would make variance
+estimation fail. If options(survey.lonely.psu) is unset, this
+function sets it to "adjust" (standard BRFSS practice) and says so
+once per session; an option you set yourself is always respected.
 Because that clustering is nominal, the design for those years is
 built without a cluster term, which gives the same estimates, standard
 errors, and degrees of freedom far faster than carrying a cluster
 factor with one level per respondent. Files through 2000 carry genuine
-multi-respondent PSUs and keep the clustered estimator. The choice is
-made from the data, so it follows the file rather than the year.'><meta property="og:description" content='Returns a srvyr::as_survey_design() tbl_svy with the complex sampling
+multi-respondent PSUs and keep the clustered estimator, nested within
+stratum because the identifiers are reused. The choice is made from
+the data, so it follows the file rather than the year.'><meta property="og:description" content='Returns a srvyr::as_survey_design() tbl_svy with the complex sampling
 design applied: primary sampling units (_PSU), strata (_STSTR), and
 the year-appropriate final weight. Weight selection is automatic:
 _FINALWT for years before 2011 (post-stratification era) and
@@ -39,17 +42,20 @@ years (pool_weights = TRUE, the default) so that pooled estimates
 represent an average year rather than a sum of populations, and the
 variance strata become the year-by-stratum interaction, treating each
 annual survey as an independent sample.
-From 2001 on, BRFSS public-use files make each respondent their own
-primary sampling unit, so single-PSU strata are common and would make
-variance estimation fail. If options(survey.lonely.psu) is unset,
-this function sets it to "adjust" (standard BRFSS practice) and says
-so once per session; an option you set yourself is always respected.
+From 2001 on, _PSU is a record sequence number that restarts in
+each state, so it repeats across the file but is unique within a
+stratum: every stratum-by-PSU cell holds exactly one respondent.
+Single-PSU strata are therefore common and would make variance
+estimation fail. If options(survey.lonely.psu) is unset, this
+function sets it to "adjust" (standard BRFSS practice) and says so
+once per session; an option you set yourself is always respected.
 Because that clustering is nominal, the design for those years is
 built without a cluster term, which gives the same estimates, standard
 errors, and degrees of freedom far faster than carrying a cluster
 factor with one level per respondent. Files through 2000 carry genuine
-multi-respondent PSUs and keep the clustered estimator. The choice is
-made from the data, so it follows the file rather than the year.'><meta property="og:image" content="https://muntasirmasum.github.io/brfssdata/logo.svg"></head><body>
+multi-respondent PSUs and keep the clustered estimator, nested within
+stratum because the identifiers are reused. The choice is made from
+the data, so it follows the file rather than the year.'><meta property="og:image" content="https://muntasirmasum.github.io/brfssdata/logo.svg"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -107,17 +113,20 @@ years (<code>pool_weights = TRUE</code>, the default) so that pooled estimates
 represent an average year rather than a sum of populations, and the
 variance strata become the year-by-stratum interaction, treating each
 annual survey as an independent sample.</p>
-<p>From 2001 on, BRFSS public-use files make each respondent their own
-primary sampling unit, so single-PSU strata are common and would make
-variance estimation fail. If <code>options(survey.lonely.psu)</code> is unset,
-this function sets it to <code>"adjust"</code> (standard BRFSS practice) and says
-so once per session; an option you set yourself is always respected.</p>
+<p>From 2001 on, <code>_PSU</code> is a record sequence number that restarts in
+each state, so it repeats across the file but is unique within a
+stratum: every stratum-by-PSU cell holds exactly one respondent.
+Single-PSU strata are therefore common and would make variance
+estimation fail. If <code>options(survey.lonely.psu)</code> is unset, this
+function sets it to <code>"adjust"</code> (standard BRFSS practice) and says so
+once per session; an option you set yourself is always respected.</p>
 <p>Because that clustering is nominal, the design for those years is
 built without a cluster term, which gives the same estimates, standard
 errors, and degrees of freedom far faster than carrying a cluster
 factor with one level per respondent. Files through 2000 carry genuine
-multi-respondent PSUs and keep the clustered estimator. The choice is
-made from the data, so it follows the file rather than the year.</p>
+multi-respondent PSUs and keep the clustered estimator, nested within
+stratum because the identifiers are reused. The choice is made from
+the data, so it follows the file rather than the year.</p>
     </div>
 
     <div class="section level2">
@@ -202,7 +211,7 @@ CDC columns are kept unchanged.</p>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Muntasir Masum.</p>
+  <p>Developed by <a href="https://muntasirmasum.com" class="external-link">Muntasir Masum</a>.</p>
 </div>
 
 <div class="pkgdown-footer-right">
