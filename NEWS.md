@@ -1,4 +1,4 @@
-# brfssdata 0.0.0.9000
+# brfssdata 0.1.0
 
 * Initial development version: read_brfss(), brfss_design(), brfss_vars(),
   brfss_years(), and cache management.

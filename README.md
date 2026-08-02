@@ -14,7 +14,7 @@ Survey years are processed once into compact parquet files and hosted as
 GitHub release assets. The package downloads each requested year a single
 time into a local cache, queries it through DuckDB (so pulling a handful
 of variables from a 300-plus column survey is fast), and hands back
-either a tibble or a ready-made [srvyr](https://gdfe.co/srvyr/)
+either a tibble or a ready-made [srvyr](https://cran.r-project.org/package=srvyr)
 survey-design object with the correct weights, strata, and primary
 sampling units for each survey era.
 

@@ -18,11 +18,11 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Muntasir Masum \email{muntasir.1124@gmail.com}
+\strong{Maintainer}: Muntasir Masum \email{muntasir.1124@gmail.com} (\href{https://orcid.org/0000-0002-4210-2844}{ORCID}) [copyright holder]
 
 Authors:
 \itemize{
-  \item Muntasir Masum \email{muntasir.1124@gmail.com}
+  \item Muntasir Masum \email{muntasir.1124@gmail.com} (\href{https://orcid.org/0000-0002-4210-2844}{ORCID}) [copyright holder]
 }
 
 }
