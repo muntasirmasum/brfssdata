@@ -9,9 +9,17 @@ redirected with `options(brfssdata.cache_dir = ...)` or the
 
 - `brfss_cache_dir()` returns the cache directory path.
 
-- `brfss_cache_info()` lists cached files with their sizes.
+- `brfss_cache_info()` lists cached files with their sizes. Rows with
+  `year = NA` are the metadata files (the manifest and the variable and
+  label catalogs), not survey years.
 
-- `brfss_cache_clear()` deletes cached files, all years by default.
+- `brfss_cache_clear()` deletes cached survey years, all of them by
+  default, and reports what it removed. The manifest and catalogs are
+  kept unless `catalogs = TRUE`, so offline use of
+  [`brfss_vars()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_vars.md)
+  and
+  [`brfss_labels()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_labels.md)
+  survives a data-cache clear.
 
 ## Usage
 
@@ -20,7 +28,7 @@ brfss_cache_dir()
 
 brfss_cache_info()
 
-brfss_cache_clear(years = NULL)
+brfss_cache_clear(years = NULL, catalogs = FALSE)
 ```
 
 ## Arguments
@@ -28,12 +36,18 @@ brfss_cache_clear(years = NULL)
 - years:
 
   Optional integer vector. If supplied to `brfss_cache_clear()`, only
-  those survey years are removed.
+  those survey years are removed; `integer(0)` removes none (useful with
+  `catalogs = TRUE`).
+
+- catalogs:
+
+  If `TRUE`, `brfss_cache_clear()` also removes the manifest and the
+  variable and label catalogs.
 
 ## Value
 
 `brfss_cache_dir()` returns a path (character). `brfss_cache_info()`
-returns a tibble with columns `file`, `year`, and `size`.
+returns a tibble with columns `file`, `year`, and `size` (bytes).
 `brfss_cache_clear()` returns, invisibly, the paths it removed.
 
 ## Examples

@@ -68,7 +68,14 @@ column always identifies the survey year of each row.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">read_brfss</span><span class="op">(</span><span class="va">years</span>, vars <span class="op">=</span> <span class="cn">NULL</span>, download <span class="op">=</span> <span class="cn">TRUE</span>, quiet <span class="op">=</span> <span class="cn">FALSE</span>, labels <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">read_brfss</span><span class="op">(</span></span>
+<span>  <span class="va">years</span>,</span>
+<span>  vars <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  download <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  quiet <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  labels <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  na <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -98,16 +105,31 @@ years raise an error instead of being downloaded.</p></dd>
 
 
 <dt id="arg-labels">labels<a class="anchor" aria-label="anchor" href="#arg-labels"></a></dt>
-<dd><p>If <code>TRUE</code>, convert variables with safe value-label maps
-to factors using CDC's format libraries (available from 1998 on).
-A variable converts only when its format is a pure code-to-label
-map, its code set agrees across the requested years, and every
-observed value is covered; everything else keeps its numeric codes.
-Labeling does not decide what counts as missing: CDC's codes for
-don't know and refused become ordinary factor levels, so <code>GENHLTH</code>
-arrives with seven levels rather than five. Set those to <code>NA</code>
-yourself before treating a labeled variable as ordinal. See
-<code><a href="brfss_labels.html">brfss_labels()</a></code> for the raw catalog.</p></dd>
+<dd><p>Controls value-label conversion via CDC's format
+libraries (available from 1998 on). <code>FALSE</code> (the default) keeps
+every numeric code. <code>TRUE</code> converts variables with safe maps to
+factors; note the conversion is lossy: the CDC codes are gone, and
+<code><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric()</a></code> on the result returns factor level positions, not
+codes (most CDC code sets are non-contiguous, so the two disagree).
+<code>"both"</code> keeps the code in the level text (<code>"[1] Excellent"</code>) so it
+stays recoverable. A variable converts only when its format is a
+pure code-to-label map, its code set agrees across the requested
+years, and every observed value is covered; everything else keeps
+its numeric codes. Identifier and design columns (<code>_STATE</code>, the
+weights, strata, and PSU) always keep numeric codes so filters like
+<code>_STATE == 6</code> keep working. See <code><a href="brfss_labels.html">brfss_labels()</a></code> for the catalog.</p></dd>
+
+
+<dt id="arg-na">na<a class="anchor" aria-label="anchor" href="#arg-na"></a></dt>
+<dd><p>If <code>TRUE</code>, set the codes CDC uses for missing-type answers
+(don't know / not sure, refused, not asked) to <code>NA</code>, using the
+value-label catalog; see <code><a href="brfss_missing_codes.html">brfss_missing_codes()</a></code> for exactly which
+codes. The default here is <code>FALSE</code>: <code>read_brfss()</code> returns the file
+as CDC published it. (<code><a href="brfss_design.html">brfss_design()</a></code> defaults to <code>TRUE</code>, because
+estimates over raw codes are almost never what an analyst wants.)
+Code 88/888 ("None") means zero, is never touched, and needs
+recoding to 0 by hand before averaging count variables. Labels
+cover 1998 on, so earlier years pass through unchanged.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -117,7 +139,8 @@ yourself before treating a labeled variable as ordinal. See
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="brfss_design.html">brfss_design()</a></code> to get a survey-design object instead of a
-plain tibble.</p></div>
+plain tibble; <a href="brfssdata-conditions.html">brfssdata-conditions</a> for the classes of every error,
+warning, and message this package signals.</p></div>
     </div>
 
     <div class="section level2">

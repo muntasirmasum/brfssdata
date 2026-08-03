@@ -21,8 +21,10 @@ three-hundred-column survey reads two columns instead of the whole
 table.
 
 The installed vignette leaves most of this code unevaluated so the
-package builds offline; on the package website the same document runs
-live against real data.
+package builds offline, which means the copy you are reading in R shows
+no output under the code. The same document runs live against real data
+at <https://muntasirmasum.github.io/brfssdata/articles/brfssdata.html>,
+and reading it there is the better experience.
 
 ## Installation
 
@@ -126,7 +128,6 @@ If you would rather work in syntactic names throughout,
 
 read_brfss(2023, vars = c("GENHLTH", "_EDUCAG")) |>
   janitor::clean_names()
-#> columns: genhlth, educag, year
 ```
 
 The underscore is dropped rather than escaped, so `_EDUCAG` becomes
@@ -323,22 +324,21 @@ read_brfss(2023, vars = c("GENHLTH", "SEXVAR"), labels = TRUE)
 #> # ℹ 433,313 more rows
 ```
 
-Labeling renames codes; it does not decide which of them mean missing.
-CDC’s don’t-know and refused codes become factor levels like any other,
-so the `GENHLTH` above has seven levels rather than five. Set them to
-`NA` before treating a labeled variable as ordinal, or the two
-missing-data codes will sit at the bottom of the scale as though they
-were health states.
+Labeling renames codes; deciding which of them mean missing is a
+separate step, and the `GENHLTH` above has seven levels rather than five
+because CDC’s don’t-know and refused codes became factor levels like any
+other. The `na` argument handles that: `na = TRUE` sets the codes CDC
+uses for missing-type answers to `NA` before labeling, using the same
+catalog, so the factor arrives with its five substantive levels.
 
 ``` r
 
-missing_codes <- c("Dont know/Not Sure", "Refused")
-
-read_brfss(2023, vars = "GENHLTH", labels = TRUE) |>
-  mutate(
-    GENHLTH = droplevels(replace(GENHLTH, GENHLTH %in% missing_codes, NA))
-  ) |>
+read_brfss(2023, vars = "GENHLTH", labels = TRUE, na = TRUE) |>
   count(GENHLTH)
+#> ℹ Set 1258 responses across 1 variable to NA (don't know / refused / missing
+#>   codes).
+#> ℹ See `brfss_missing_codes()` for the affected codes; disable with `na =
+#>   FALSE`.
 #> # A tibble: 6 × 2
 #>   GENHLTH        n
 #>   <fct>      <int>
@@ -348,6 +348,26 @@ read_brfss(2023, vars = "GENHLTH", labels = TRUE) |>
 #> 4 Fair       61955
 #> 5 Poor       20372
 #> 6 NA          1262
+```
+
+[`read_brfss()`](https://muntasirmasum.github.io/brfssdata/reference/read_brfss.md)
+defaults to `na = FALSE` and returns the file exactly as CDC published
+it;
+[`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
+defaults to `na = TRUE`, because an estimate whose denominator includes
+“Refused” is almost never the estimate anyone wants.
+[`brfss_missing_codes()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_missing_codes.md)
+lists exactly which year, variable, and code combinations are affected,
+so the behavior is auditable rather than magic.
+
+``` r
+
+brfss_missing_codes("GENHLTH", years = 2023)
+#> # A tibble: 2 × 4
+#>    year variable  code label             
+#>   <int> <chr>    <int> <chr>             
+#> 1  2023 GENHLTH      9 Refused           
+#> 2  2023 GENHLTH      7 Dont know/Not Sure
 ```
 
 Conversion is deliberately conservative. A variable becomes a factor
@@ -373,11 +393,20 @@ brfss_labels("PHYSHLTH", years = 2023)
 ```
 
 Turning that into a factor would silently destroy the day counts, so
-`labels = TRUE` leaves it numeric and the catalog tells you that 88
-means none, 77 means don’t know, and 99 means refused. Recoding those to
-`NA` by hand is the right move. The same caution applies across years:
-when several years are requested, a variable converts only if its code
-set agrees across them.
+`labels = TRUE` leaves it numeric, and the catalog tells you that 88
+means none, 77 means don’t know, and 99 means refused. `na = TRUE`
+clears 77 and 99 here too, but 88 is an answer (zero days), not a
+missing code, and averaging `PHYSHLTH` without recoding it to 0 first
+overstates bad-health days for the healthiest respondents.
+
+``` r
+
+read_brfss(2023, vars = "PHYSHLTH", na = TRUE) |>
+  mutate(PHYSHLTH = replace(PHYSHLTH, PHYSHLTH == 88, 0))
+```
+
+The same caution applies across years: when several years are requested,
+a variable converts only if its code set agrees across them.
 
 Labels cover 1998 onward. CDC does not distribute usable format
 libraries for earlier years, so `labels = TRUE` has nothing to work with
@@ -419,17 +448,34 @@ nrow(read_brfss(2023, vars = "GENHLTH", download = FALSE))
 
 This is the setting to use on a compute cluster without outbound network
 access, or in a reproducible pipeline where an unexpected download would
-be a bug. Populate the cache once on a connected machine, copy the
-directory across, and point `options(brfssdata.cache_dir = ...)` at it.
+be a bug.
+[`brfss_download()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_download.md)
+populates the cache in one call, years and metadata catalogs together,
+so the usual offline recipe is to run it once on a connected machine,
+copy the directory across, and point
+`options(brfssdata.cache_dir = ...)` at it.
+
+``` r
+
+brfss_download(2019:2023)
+```
+
+Downloads are verified against the sha256 checksums published with each
+release, and a cached file that later turns out damaged is either
+re-downloaded automatically or named in an error along with the exact
+call that fixes it.
 
 [`brfss_cache_clear()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_cache_dir.md)
-empties the cache when called with no arguments, and removes only the
-years you name when you give it some.
+removes cached survey years, all of them when called with no arguments,
+only the ones you name otherwise. The manifest and catalogs stay unless
+you also pass `catalogs = TRUE`, so clearing data does not break offline
+variable searches.
 
 ``` r
 
 brfss_cache_clear(2021)
 brfss_cache_clear()
+brfss_cache_clear(catalogs = TRUE)
 ```
 
 ## Survey-weighted analysis
@@ -446,7 +492,7 @@ units (`_PSU`) already applied, so you can move straight to analysis.
 library(srvyr)
 
 brfss_design(2023, vars = "GENHLTH") |>
-  filter(GENHLTH %in% 1:5) |>
+  filter(!is.na(GENHLTH)) |>
   group_by(GENHLTH) |>
   summarize(pct = survey_prop(vartype = "ci"))
 #> # A tibble: 5 × 4
@@ -460,22 +506,31 @@ brfss_design(2023, vars = "GENHLTH") |>
 ```
 
 The weight is chosen to match the survey era: `_FINALWT` for years
-before 2011 and `_LLCPWT` from 2011 on. The design is built on three
-added columns, `brfss_wt`, `brfss_psu`, and `brfss_strata`, because
-CDC’s names are not syntactic and cannot enter a model formula; the
-original CDC columns are kept alongside them, unchanged.
+before 2011 and `_LLCPWT` from 2011 on (a `weight` argument selects
+split-questionnaire weights such as `_LLCPWT2` when CDC’s module
+documentation calls for them). The design is built on three added
+columns, `brfss_wt`, `brfss_psu`, and `brfss_strata`, because CDC’s
+names are not syntactic and cannot enter a model formula; the original
+CDC columns are kept alongside them, unchanged. The don’t-know and
+refused codes arrive as `NA` here by default (`na = TRUE`), which is why
+the filter above is on [`is.na()`](https://rdrr.io/r/base/NA.html) and
+not on code ranges; pass `na = FALSE` for the raw codes.
 
 Two behaviors are worth knowing about up front. Because BRFSS public-use
 files make each respondent their own primary sampling unit, single-PSU
 strata are common and would otherwise make variance estimation fail, so
 [`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
-sets `options(survey.lonely.psu = "adjust")` if you have not set that
-option yourself, and says so once per session. And when you request
+sets `options(survey.lonely.psu = "adjust")` if the option is unset, and
+says so once per session. Any value you set other than `"fail"` is
+respected as yours; `"fail"` is what the survey package itself installs
+on load, so it reads as unset, and `options(brfssdata.lonely_psu = ...)`
+is the way to pin any handling, `"fail"` included. And when you request
 several years, weights are divided by the number of years, so pooled
 estimates describe an average year rather than a summed population,
 while the strata become the year-by-stratum interaction, which treats
 each annual survey as an independent sample. Pass `pool_weights = FALSE`
-to leave the weights undivided.
+to leave the weights undivided; if state participation differs across
+the pooled years, a warning names the states involved.
 
 ### The 2011 boundary
 

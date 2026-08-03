@@ -24,9 +24,13 @@ Search the variable catalog and CDC value-label maps.
   : Search BRFSS variables across survey years
 - [`brfss_labels()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_labels.md)
   : Value labels for BRFSS variables
+- [`brfss_missing_codes()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_missing_codes.md)
+  : Codes CDC uses for missing-type answers
 
 ## Cache management
 
+- [`brfss_download()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_download.md)
+  : Prefetch BRFSS data and metadata into the local cache
 - [`brfss_cache_dir()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_cache_dir.md)
   [`brfss_cache_info()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_cache_dir.md)
   [`brfss_cache_clear()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_cache_dir.md)

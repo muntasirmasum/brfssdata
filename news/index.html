@@ -42,14 +42,19 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.0" id="brfssdata-010">brfssdata 0.1.0<a class="anchor" aria-label="anchor" href="#brfssdata-010"></a></h2>
-<ul><li>Initial development version: read_brfss(), brfss_design(), brfss_vars(), brfss_years(), and cache management.</li>
-<li>Value labels: brfss_labels() exposes CDC’s format-library labels (1998-2024), and <code>labels = TRUE</code> in read_brfss()/brfss_design() converts variables with safe code-to-label maps into factors.</li>
+<p>Initial CRAN release.</p>
+<ul><li>
+<code><a href="../reference/read_brfss.html">read_brfss()</a></code> returns respondent-level BRFSS microdata for any of the 40 published survey years (1985-2024) as a tibble. Each year is downloaded once from the package’s data releases, verified against a published sha256 checksum, and cached under <code><a href="https://rdrr.io/r/tools/userdir.html" class="external-link">tools::R_user_dir()</a></code>; queries run locally through DuckDB, so selecting a handful of variables from a 300-plus column survey stays fast and repeat use works offline.</li>
 <li>
-<code>vars</code> is matched case-insensitively in read_brfss(), brfss_design(), and brfss_labels(), so <code>"genhlth"</code> finds <code>GENHLTH</code>. Returned columns keep CDC’s canonical uppercase names.</li>
-<li>Added a package citation (<code>citation("brfssdata")</code>) alongside the CDC data citation.</li>
-<li>Declared the minimum duckdb version (&gt;= 1.5.5). Connections are opened with <code>shared_home = FALSE</code>, which earlier duckdb releases reject.</li>
-<li>brfss_design() is much faster on 2001 and later years, and pooling several of them now works at all. Those files give every respondent their own PSU, so the clustering carries no information; the design is built without a cluster term, which leaves the estimates, standard errors, and degrees of freedom unchanged. A weighted mean over one year went from about 80 seconds to 1.5, and over two pooled years from 345 seconds to 3. Pooling three years previously failed outright, because the nested-clusters check that <code>survey</code> runs on a design without nesting builds a cluster-by-stratum table too large for R to allocate.</li>
-<li>Years through 2000 carry genuine multi-respondent PSUs and keep the clustered estimator, which gives a different (correct) standard error for them. The choice is made from the data rather than from the year.</li>
+<code><a href="../reference/brfss_design.html">brfss_design()</a></code> builds a srvyr survey-design object with the era-correct final weight (<code>_FINALWT</code> through 2010, <code>_LLCPWT</code> from 2011), strata, and primary sampling units. Requests that pool years across the 2011 redesign fail unless <code>allow_break = TRUE</code> is set, because CDC states estimates are not comparable across that boundary. Files through 2000 carry genuine multi-respondent PSUs and keep the clustered variance estimator; from 2001 on each respondent is their own PSU, and the design drops the nominal cluster term for identical estimates at a fraction of the cost. A <code>weight</code> argument selects split-questionnaire weights such as <code>_LLCPWT2</code> when CDC’s module documentation calls for them.</li>
+<li>By default, <code><a href="../reference/brfss_design.html">brfss_design()</a></code> sets the codes CDC uses for don’t-know, refused, and missing-type answers to <code>NA</code> (<code>na = TRUE</code>), so means and proportions cover substantive answers; <code><a href="../reference/read_brfss.html">read_brfss()</a></code> defaults to <code>na = FALSE</code> and returns the file as published. The exported <code><a href="../reference/brfss_missing_codes.html">brfss_missing_codes()</a></code> lists exactly which codes are affected.</li>
+<li>
+<code><a href="../reference/brfss_labels.html">brfss_labels()</a></code> exposes CDC’s value-label catalog (1998-2024), and <code>labels = TRUE</code> converts variables with safe one-to-one maps to factors; ambiguous maps keep their numeric codes. <code>labels = "both"</code> keeps the code in the level text so it survives conversion.</li>
+<li>
+<code><a href="../reference/brfss_vars.html">brfss_vars()</a></code> searches variable names and labels across years; <code><a href="../reference/brfss_years.html">brfss_years()</a></code> lists the published years. Variable names match case-insensitively everywhere, and returned columns keep CDC’s canonical spelling.</li>
+<li>
+<code><a href="../reference/brfss_download.html">brfss_download()</a></code> prefetches years and the metadata catalogs for offline use; <code><a href="../reference/brfss_cache_dir.html">brfss_cache_dir()</a></code>, <code><a href="../reference/brfss_cache_dir.html">brfss_cache_info()</a></code>, and <code><a href="../reference/brfss_cache_dir.html">brfss_cache_clear()</a></code> manage the cache. A cached file that fails integrity checks is re-downloaded automatically or named in a classed error with its remedy.</li>
+<li>Every error, warning, and message carries a documented condition class; see <code>?brfssdata-conditions</code>.</li>
 </ul></div>
   </main></div>
 

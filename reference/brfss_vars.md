@@ -15,8 +15,8 @@ brfss_vars(pattern = NULL, years = NULL, download = TRUE, quiet = TRUE)
 
 - pattern:
 
-  Optional regular expression matched (case-insensitively) against
-  variable names and labels. The default lists every variable.
+  Optional single regular expression matched (case-insensitively)
+  against variable names and labels. The default lists every variable.
 
 - years:
 
@@ -25,8 +25,8 @@ brfss_vars(pattern = NULL, years = NULL, download = TRUE, quiet = TRUE)
 
 - download:
 
-  If `FALSE`, only cached years are used and missing years raise an
-  error instead of being downloaded.
+  If `FALSE`, only a cached catalog is used, and a missing catalog
+  raises an error instead of being downloaded.
 
 - quiet:
 

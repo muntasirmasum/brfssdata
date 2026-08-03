@@ -14,7 +14,14 @@ column always identifies the survey year of each row.
 ## Usage
 
 ``` r
-read_brfss(years, vars = NULL, download = TRUE, quiet = FALSE, labels = FALSE)
+read_brfss(
+  years,
+  vars = NULL,
+  download = TRUE,
+  quiet = FALSE,
+  labels = FALSE,
+  na = FALSE
+)
 ```
 
 ## Arguments
@@ -45,17 +52,36 @@ read_brfss(years, vars = NULL, download = TRUE, quiet = FALSE, labels = FALSE)
 
 - labels:
 
-  If `TRUE`, convert variables with safe value-label maps to factors
-  using CDC's format libraries (available from 1998 on). A variable
+  Controls value-label conversion via CDC's format libraries (available
+  from 1998 on). `FALSE` (the default) keeps every numeric code. `TRUE`
+  converts variables with safe maps to factors; note the conversion is
+  lossy: the CDC codes are gone, and
+  [`as.numeric()`](https://rdrr.io/r/base/numeric.html) on the result
+  returns factor level positions, not codes (most CDC code sets are
+  non-contiguous, so the two disagree). `"both"` keeps the code in the
+  level text (`"[1] Excellent"`) so it stays recoverable. A variable
   converts only when its format is a pure code-to-label map, its code
   set agrees across the requested years, and every observed value is
-  covered; everything else keeps its numeric codes. Labeling does not
-  decide what counts as missing: CDC's codes for don't know and refused
-  become ordinary factor levels, so `GENHLTH` arrives with seven levels
-  rather than five. Set those to `NA` yourself before treating a labeled
-  variable as ordinal. See
+  covered; everything else keeps its numeric codes. Identifier and
+  design columns (`_STATE`, the weights, strata, and PSU) always keep
+  numeric codes so filters like `_STATE == 6` keep working. See
   [`brfss_labels()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_labels.md)
-  for the raw catalog.
+  for the catalog.
+
+- na:
+
+  If `TRUE`, set the codes CDC uses for missing-type answers (don't know
+  / not sure, refused, not asked) to `NA`, using the value-label
+  catalog; see
+  [`brfss_missing_codes()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_missing_codes.md)
+  for exactly which codes. The default here is `FALSE`: `read_brfss()`
+  returns the file as CDC published it.
+  ([`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
+  defaults to `TRUE`, because estimates over raw codes are almost never
+  what an analyst wants.) Code 88/888 ("None") means zero, is never
+  touched, and needs recoding to 0 by hand before averaging count
+  variables. Labels cover 1998 on, so earlier years pass through
+  unchanged.
 
 ## Value
 
@@ -64,7 +90,10 @@ A tibble with one row per respondent and a `year` column.
 ## See also
 
 [`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
-to get a survey-design object instead of a plain tibble.
+to get a survey-design object instead of a plain tibble;
+[brfssdata-conditions](https://muntasirmasum.github.io/brfssdata/reference/brfssdata-conditions.md)
+for the classes of every error, warning, and message this package
+signals.
 
 ## Examples
 

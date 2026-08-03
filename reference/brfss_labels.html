@@ -80,7 +80,9 @@ the special codes (typically 77/88/99) so you can recode by hand.</p>
 
 <dl><dt id="arg-vars">vars<a class="anchor" aria-label="anchor" href="#arg-vars"></a></dt>
 <dd><p>Optional character vector restricting to those variables,
-matched case-insensitively.</p></dd>
+matched case-insensitively by exact name. (Contrast <code><a href="brfss_vars.html">brfss_vars()</a></code>,
+whose <code>pattern</code> is a regular expression searched over names <em>and</em>
+label text: this function looks names up, that one searches.)</p></dd>
 
 
 <dt id="arg-years">years<a class="anchor" aria-label="anchor" href="#arg-years"></a></dt>
@@ -88,8 +90,8 @@ matched case-insensitively.</p></dd>
 
 
 <dt id="arg-download">download<a class="anchor" aria-label="anchor" href="#arg-download"></a></dt>
-<dd><p>If <code>FALSE</code>, only cached years are used and missing
-years raise an error instead of being downloaded.</p></dd>
+<dd><p>If <code>FALSE</code>, only a cached catalog is used, and a
+missing catalog raises an error instead of being downloaded.</p></dd>
 
 
 <dt id="arg-quiet">quiet<a class="anchor" aria-label="anchor" href="#arg-quiet"></a></dt>
@@ -99,7 +101,9 @@ years raise an error instead of being downloaded.</p></dd>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A tibble with columns <code>year</code>, <code>variable</code>, <code>code</code>, <code>label</code>,
-and <code>complete</code>.</p>
+and <code>complete</code>. A lookup that matches nothing returns zero rows and
+says so with a <code>brfssdata_empty_result</code> message (regardless of
+<code>quiet</code>, which governs download output only).</p>
     </div>
 
     <div class="section level2">

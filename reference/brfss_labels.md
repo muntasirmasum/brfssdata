@@ -22,7 +22,10 @@ brfss_labels(vars = NULL, years = NULL, download = TRUE, quiet = TRUE)
 - vars:
 
   Optional character vector restricting to those variables, matched
-  case-insensitively.
+  case-insensitively by exact name. (Contrast
+  [`brfss_vars()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_vars.md),
+  whose `pattern` is a regular expression searched over names *and*
+  label text: this function looks names up, that one searches.)
 
 - years:
 
@@ -30,8 +33,8 @@ brfss_labels(vars = NULL, years = NULL, download = TRUE, quiet = TRUE)
 
 - download:
 
-  If `FALSE`, only cached years are used and missing years raise an
-  error instead of being downloaded.
+  If `FALSE`, only a cached catalog is used, and a missing catalog
+  raises an error instead of being downloaded.
 
 - quiet:
 
@@ -40,7 +43,9 @@ brfss_labels(vars = NULL, years = NULL, download = TRUE, quiet = TRUE)
 ## Value
 
 A tibble with columns `year`, `variable`, `code`, `label`, and
-`complete`.
+`complete`. A lookup that matches nothing returns zero rows and says so
+with a `brfssdata_empty_result` message (regardless of `quiet`, which
+governs download output only).
 
 ## Examples
 

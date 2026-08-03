@@ -92,7 +92,7 @@ places:</p>
 <pre><code>https://github.com/muntasirmasum/brfssdata/releases/download/data-YYYY/brfss_YYYY.parquet</code></pre>
 <p>For 2023 that resolves to:</p>
 <pre><code>https://github.com/muntasirmasum/brfssdata/releases/download/data-2023/brfss_2023.parquet</code></pre>
-<p>There is no token and no API. The 2023 file is about 29 MB and holds
+<p>There is no token and no API. The 2023 file is about 28 MB and holds
 433,323 rows and 351 columns, compressed with zstd, which every parquet
 reader of the last few years handles. Columns keep CDC’s canonical
 uppercase names, leading underscores on calculated variables included
@@ -343,8 +343,9 @@ comes near.</p>
 give each respondent their own primary sampling unit within a stratum,
 so any stratum holding one respondent holds one PSU. Software differs in
 what it does with them. In R, <code><a href="../reference/brfss_design.html">brfss_design()</a></code> sets
-<code>options(survey.lonely.psu = "adjust")</code> when you have not set
-that option yourself, which centers those strata at the grand mean;
+<code>options(survey.lonely.psu = "adjust")</code> when the option is
+unset (any value other than survey’s own load-time <code>"fail"</code>
+counts as set by you), which centers those strata at the grand mean;
 <code>singleunit(centered)</code> is the Stata option with the same
 behavior.</p>
 <p>Reading with <code>read_brfss(labels = TRUE)</code> returns factors
@@ -363,7 +364,7 @@ recipient will open the file with, it is the safe answer.</p>
 <span><span class="co"># base R only</span></span>
 <span><span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/write.table.html" class="external-link">write.csv</a></span><span class="op">(</span><span class="va">for_stata</span>, <span class="st">"brfss_2023_extract.csv"</span>, row.names <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
 <p>The cost is size and types. Written out in full, the 2023 file is
-about 447 MB as CSV against 29 MB as parquet, roughly fifteen times
+about 447 MB as CSV against 28 MB as parquet, roughly sixteen times
 larger. None of the column types survive the trip either, so every
 reader on the other end re-guesses whether a column is integer, double,
 or text, and a leading-zero FIPS code or a variable that is numeric in

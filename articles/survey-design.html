@@ -264,8 +264,23 @@ it can parse.</p>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>023 <span style="text-decoration: underline;">2</span>023<span style="text-decoration: underline;">000</span>002    <span style="text-decoration: underline;">11</span>012     <span style="text-decoration: underline;">1</span>122. <span style="text-decoration: underline;">2</span>023<span style="text-decoration: underline;">000</span>002        <span style="text-decoration: underline;">11</span>012    <span style="text-decoration: underline;">1</span>122.</span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>  <span style="text-decoration: underline;">2</span>023 <span style="text-decoration: underline;">2</span>023<span style="text-decoration: underline;">000</span>003    <span style="text-decoration: underline;">11</span>011      601. <span style="text-decoration: underline;">2</span>023<span style="text-decoration: underline;">000</span>003        <span style="text-decoration: underline;">11</span>011     601.</span></span></code></pre></div>
 <p>The weight is selected by year, <code>_FINALWT</code> before 2011 and
-<code>_LLCPWT</code> from 2011 on, so you never name a weight column and
-a request cannot quietly pick up the wrong one.</p>
+<code>_LLCPWT</code> from 2011 on, so a core-questionnaire analysis
+never names a weight column and cannot quietly pick up the wrong
+one.</p>
+<p>One family of analyses needs to override that choice. From 2013 on
+(2015 excepted), the files also carry <code>_LLCPWT2</code>, the weight
+for split-questionnaire and module content, and it is not a rounding
+difference: the two weights disagree on essentially every respondent, by
+large factors. A module variable analyzed under the overall weight
+produces a materially wrong estimate, and nothing in the file itself
+says which weight a variable needs. CDC’s annual “Complex Sampling
+Weights and Preparing Module Data for Analysis” document does say, and
+<code>brfss_design(weight = "_LLCPWT2")</code> applies it when it does.
+The missing-code handling is also on by default here
+(<code>na = TRUE</code>): the don’t-know and refused codes arrive as
+<code>NA</code>, so denominators cover substantive answers, with
+<code><a href="../reference/brfss_missing_codes.html">brfss_missing_codes()</a></code> as the audit trail and
+<code>na = FALSE</code> as the way back to the raw codes.</p>
 <p>The design is then built on syntactic copies of the design variables.
 <code>_PSU</code> and <code>_STSTR</code> are not legal R names, so
 <code>~_PSU</code> does not parse and every formula interface in
@@ -366,7 +381,12 @@ annual populations.</p>
 <p>Proportions and means are unaffected by that rescaling, since it
 divides numerator and denominator alike; only totals change scale. Set
 <code>pool_weights = FALSE</code> when you want each year at full scale,
-for instance when reproducing a published single-year count.</p>
+for instance when reproducing a published single-year count. The
+division also assumes each pooled year covers the same states;
+participation does drift (states join, skip a year, return), and when
+the requested years differ that way <code><a href="../reference/brfss_design.html">brfss_design()</a></code> warns
+with the state codes involved, because a pooled total then averages over
+changing coverage.</p>
 <p>The variance strata also change. Each annual BRFSS is drawn
 independently, so the same geographic stratum in 2021 and in 2023 is two
 different strata, and <code><a href="../reference/brfss_design.html">brfss_design()</a></code> makes the pooled
@@ -442,11 +462,14 @@ conservative choice. <code>survey</code> also offers
 <code>"remove"</code>, which drops the stratum’s contribution and
 understates the variance, and <code>"average"</code>, which substitutes
 the average variance contribution of the strata that do have more than
-one cluster. Any value you set yourself is respected, so make the choice
-before you build the design:</p>
+one cluster. Any value you set other than <code>"fail"</code> is
+respected as your choice; <code>"fail"</code> itself cannot be, because
+it is indistinguishable from the default <code>survey</code> installs on
+load. To insist on <code>"fail"</code>, or to pin any handling
+explicitly, set the package option, which wins unconditionally:</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span></span>
-<span>  survey.lonely.psu <span class="op">=</span> <span class="st">"adjust"</span>,</span>
+<span>  brfssdata.lonely_psu <span class="op">=</span> <span class="st">"adjust"</span>,</span>
 <span>  survey.adjust.domain.lonely <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
 <span></span>

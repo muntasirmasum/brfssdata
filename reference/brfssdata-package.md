@@ -2,13 +2,15 @@
 
 Download, cache, and analyze annual microdata from the United States
 Centers for Disease Control and Prevention Behavioral Risk Factor
-Surveillance System (BRFSS) <https://www.cdc.gov/brfss/>. Survey years
-are stored as compact files hosted on public releases and queried lazily
-with 'DuckDB' (via the 'duckdb' package), so only the requested years
-and variables are transferred. Survey-design helpers construct 'srvyr'
-design objects with year-appropriate weights, strata, and primary
-sampling units, including explicit handling of the 2011 weighting
-methodology change.
+Surveillance System (BRFSS) <https://www.cdc.gov/brfss/>. Each requested
+survey year is downloaded once as a compact file hosted on public
+releases, verified against a published checksum, and cached locally;
+queries then run through 'DuckDB' (via the 'duckdb' package), so column
+selection and repeat analyses never re-transfer data. Survey-design
+helpers construct 'srvyr' design objects with year-appropriate weights,
+strata, and primary sampling units, including explicit handling of the
+2011 weighting methodology change and of the codes CDC uses for
+missing-type answers.
 
 ## See also
 
