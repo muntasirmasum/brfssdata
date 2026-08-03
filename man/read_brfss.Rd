@@ -4,7 +4,14 @@
 \alias{read_brfss}
 \title{Read BRFSS survey microdata}
 \usage{
-read_brfss(years, vars = NULL, download = TRUE, quiet = FALSE, labels = FALSE)
+read_brfss(
+  years,
+  vars = NULL,
+  download = TRUE,
+  quiet = FALSE,
+  labels = FALSE,
+  na = FALSE
+)
 }
 \arguments{
 \item{years}{Integer vector of survey years, e.g. \code{2023} or
@@ -21,16 +28,29 @@ years raise an error instead of being downloaded.}
 
 \item{quiet}{If \code{TRUE}, suppress download progress output.}
 
-\item{labels}{If \code{TRUE}, convert variables with safe value-label maps
-to factors using CDC's format libraries (available from 1998 on).
-A variable converts only when its format is a pure code-to-label
-map, its code set agrees across the requested years, and every
-observed value is covered; everything else keeps its numeric codes.
-Labeling does not decide what counts as missing: CDC's codes for
-don't know and refused become ordinary factor levels, so \code{GENHLTH}
-arrives with seven levels rather than five. Set those to \code{NA}
-yourself before treating a labeled variable as ordinal. See
-\code{\link[=brfss_labels]{brfss_labels()}} for the raw catalog.}
+\item{labels}{Controls value-label conversion via CDC's format
+libraries (available from 1998 on). \code{FALSE} (the default) keeps
+every numeric code. \code{TRUE} converts variables with safe maps to
+factors; note the conversion is lossy: the CDC codes are gone, and
+\code{as.numeric()} on the result returns factor level positions, not
+codes (most CDC code sets are non-contiguous, so the two disagree).
+\code{"both"} keeps the code in the level text (\code{"[1] Excellent"}) so it
+stays recoverable. A variable converts only when its format is a
+pure code-to-label map, its code set agrees across the requested
+years, and every observed value is covered; everything else keeps
+its numeric codes. Identifier and design columns (\verb{_STATE}, the
+weights, strata, and PSU) always keep numeric codes so filters like
+\verb{_STATE == 6} keep working. See \code{\link[=brfss_labels]{brfss_labels()}} for the catalog.}
+
+\item{na}{If \code{TRUE}, set the codes CDC uses for missing-type answers
+(don't know / not sure, refused, not asked) to \code{NA}, using the
+value-label catalog; see \code{\link[=brfss_missing_codes]{brfss_missing_codes()}} for exactly which
+codes. The default here is \code{FALSE}: \code{read_brfss()} returns the file
+as CDC published it. (\code{\link[=brfss_design]{brfss_design()}} defaults to \code{TRUE}, because
+estimates over raw codes are almost never what an analyst wants.)
+Code 88/888 ("None") means zero, is never touched, and needs
+recoding to 0 by hand before averaging count variables. Labels
+cover 1998 on, so earlier years pass through unchanged.}
 }
 \value{
 A tibble with one row per respondent and a \code{year} column.

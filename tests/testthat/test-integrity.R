@@ -241,10 +241,9 @@ test_that("the catalog freshness check runs at most once per day", {
 })
 
 test_that("a catalog with no manifest entry is kept silently", {
-  dir <- local_brfss_cache(2023)
-  # write_fixture_labels() runs after the manifest was written, so the
-  # labels catalog has no files entry: no hash, no verdict, no download
-  # (guard_network() proves it).
+  dir <- local_brfss_cache(2023, label_catalog = FALSE)
+  # Written after the manifest, so the labels catalog has no files
+  # entry: no hash, no verdict, no download (guard_network() proves it).
   write_fixture_labels(dir)
   out <- brfss_labels("GENHLTH", years = 2023)
   expect_identical(nrow(out), 7L)

@@ -13,12 +13,16 @@
 #' the special codes (typically 77/88/99) so you can recode by hand.
 #'
 #' @param vars Optional character vector restricting to those variables,
-#'   matched case-insensitively.
+#'   matched case-insensitively by exact name. (Contrast [brfss_vars()],
+#'   whose `pattern` is a regular expression searched over names *and*
+#'   label text: this function looks names up, that one searches.)
 #' @param years Optional integer vector restricting to those years.
 #' @inheritParams read_brfss
 #'
 #' @return A tibble with columns `year`, `variable`, `code`, `label`,
-#'   and `complete`.
+#'   and `complete`. A lookup that matches nothing returns zero rows and
+#'   says so with a `brfssdata_empty_result` message (regardless of
+#'   `quiet`, which governs download output only).
 #'
 #' @examplesIf interactive()
 #' brfss_labels("GENHLTH", years = 2023)
@@ -29,6 +33,27 @@ brfss_labels <- function(
   download = TRUE,
   quiet = TRUE
 ) {
+  if (!is.null(vars) && (!is.character(vars) || anyNA(vars))) {
+    hint <- if (is.numeric(vars) && all(vars >= 1984 & vars <= 2100)) {
+      c(
+        "i" = "Did you mean {.code brfss_labels(years = ...)}? The first
+               argument is variable names; survey years come second."
+      )
+    }
+    cli::cli_abort(
+      c("{.arg vars} must be a character vector of variable names.", hint),
+      class = "brfssdata_bad_vars_arg"
+    )
+  }
+  if (
+    !is.null(years) &&
+      (!is.numeric(years) || anyNA(years) || any(years != trunc(years)))
+  ) {
+    cli::cli_abort(
+      "{.arg years} must be a numeric vector of survey years.",
+      class = "brfssdata_bad_years_arg"
+    )
+  }
   catalog <- labels_catalog(download = download, quiet = quiet)
   if (!is.null(years)) {
     catalog <- catalog[catalog$year %in% as.integer(years), , drop = FALSE]
@@ -36,6 +61,16 @@ brfss_labels <- function(
   if (!is.null(vars)) {
     keep <- toupper(catalog$variable) %in% toupper(vars)
     catalog <- catalog[keep, , drop = FALSE]
+  }
+  if (nrow(catalog) == 0 && !is.null(vars)) {
+    cli::cli_inform(
+      c(
+        "No label entries for {.val {vars}}.",
+        "i" = "Labels cover 1998 on; search variable names with
+               {.fun brfss_vars}."
+      ),
+      class = "brfssdata_empty_result"
+    )
   }
   catalog
 }
@@ -58,14 +93,23 @@ labels_catalog <- function(
 # Convert eligible variables to factors. A variable qualifies when, for
 # the requested years, its format is `complete` everywhere, the code set
 # is identical across those years, and every observed value is covered.
-# Labels come from the most recent requested year (wording drifts).
-# Anything else is left untouched.
+# Labels come from the most recent requested year (wording drifts;
+# semantic drift converts but warns). Anything else is left untouched.
+#
+# how = "label" gives plain label levels; "both" prefixes each level
+# with its CDC code ("[1] Excellent", the haven convention), keeping
+# codes recoverable after conversion. na = TRUE drops missing-type rows
+# (don't know / refused) from the map, so the factor carries substantive
+# levels only; the values themselves were already set to NA upstream by
+# apply_missing_codes().
 apply_labels <- function(
   dat,
   years,
   quiet = TRUE,
   exclude = character(0),
-  download = TRUE
+  download = TRUE,
+  how = "label",
+  na = FALSE
 ) {
   catalog <- labels_catalog(download = download, quiet = quiet)
   catalog <- catalog[
@@ -73,11 +117,15 @@ apply_labels <- function(
     ,
     drop = FALSE
   ]
+  if (isTRUE(na)) {
+    catalog <- catalog[!is_missing_label(catalog$label), , drop = FALSE]
+  }
 
   candidates <- setdiff(
     intersect(unique(catalog$variable), names(dat)),
     exclude
   )
+  drifted <- character(0)
   for (v in candidates) {
     sub <- catalog[catalog$variable == v, , drop = FALSE]
 
@@ -123,7 +171,71 @@ apply_labels <- function(
       next
     }
 
-    dat[[v]] <- factor(vals, levels = latest$code, labels = latest$label)
+    # Every observed real difference in CDC's catalogs is cosmetic
+    # (case, apostrophes, punctuation); normalize those away and warn
+    # only when the wording genuinely changed between requested years.
+    if (length(unique(sub$year)) > 1) {
+      per_year <- vapply(
+        split(sub, sub$year),
+        function(d) {
+          ord <- order(d$code)
+          paste(
+            d$code[ord],
+            normalize_semantic(d$label[ord]),
+            collapse = "|"
+          )
+        },
+        character(1)
+      )
+      if (length(unique(per_year)) != 1) {
+        drifted <- c(drifted, v)
+      }
+    }
+
+    level_labels <- switch(
+      how,
+      label = latest$label,
+      both = sprintf("[%s] %s", as.character(latest$code), latest$label)
+    )
+    dat[[v]] <- factor(vals, levels = latest$code, labels = level_labels)
+  }
+  if (length(drifted) > 0) {
+    cli::cli_warn(
+      c(
+        "Label wording for {.val {drifted}} differs across the requested
+         years beyond cosmetic changes; the newest year's wording was
+         applied to all rows.",
+        "i" = "Compare {.code brfss_labels(c({paste0('\"', drifted, '\"',
+               collapse = ', ')}))} across years if the difference
+               matters."
+      ),
+      class = "brfssdata_label_drift_warning"
+    )
   }
   dat
+}
+
+# Case, apostrophes, punctuation, and spacing are presentation, not
+# meaning; strip them before comparing label wording across years.
+normalize_semantic <- function(x) {
+  x <- normalize_label(x)
+  x <- gsub("[^a-z0-9 ]", "", x)
+  gsub("[[:space:]]+", " ", trimws(x))
+}
+
+# Shared validation for the labels argument of read_brfss() and
+# brfss_design(): FALSE is handled by the callers, so this sees only
+# TRUE or "both" (or something to reject).
+labels_how <- function(labels, call = rlang::caller_env()) {
+  if (isTRUE(labels)) {
+    return("label")
+  }
+  if (identical(labels, "both")) {
+    return("both")
+  }
+  cli::cli_abort(
+    '{.arg labels} must be `TRUE`, `FALSE`, or `"both"`.',
+    class = "brfssdata_bad_labels_arg",
+    call = call
+  )
 }

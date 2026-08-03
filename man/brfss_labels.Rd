@@ -8,7 +8,9 @@ brfss_labels(vars = NULL, years = NULL, download = TRUE, quiet = TRUE)
 }
 \arguments{
 \item{vars}{Optional character vector restricting to those variables,
-matched case-insensitively.}
+matched case-insensitively by exact name. (Contrast \code{\link[=brfss_vars]{brfss_vars()}},
+whose \code{pattern} is a regular expression searched over names \emph{and}
+label text: this function looks names up, that one searches.)}
 
 \item{years}{Optional integer vector restricting to those years.}
 
@@ -19,7 +21,9 @@ years raise an error instead of being downloaded.}
 }
 \value{
 A tibble with columns \code{year}, \code{variable}, \code{code}, \code{label},
-and \code{complete}.
+and \code{complete}. A lookup that matches nothing returns zero rows and
+says so with a \code{brfssdata_empty_result} message (regardless of
+\code{quiet}, which governs download output only).
 }
 \description{
 Returns the value-label catalog that accompanies the data releases:

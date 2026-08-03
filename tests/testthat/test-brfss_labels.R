@@ -90,7 +90,7 @@ test_that("design objects can carry labels without touching design vars", {
 })
 
 test_that("uncached labels with download = FALSE error cleanly", {
-  local_brfss_cache(2023)
+  local_brfss_cache(2023, label_catalog = FALSE)
   expect_error(
     brfss_labels(download = FALSE),
     class = "brfssdata_not_cached"
@@ -109,9 +109,83 @@ test_that("a map that labels two codes the same keeps its numeric codes", {
 })
 
 test_that("labels = TRUE respects download = FALSE", {
-  local_brfss_cache(2023)
+  local_brfss_cache(2023, label_catalog = FALSE)
   expect_error(
     read_brfss(2023, quiet = TRUE, labels = TRUE, download = FALSE),
     class = "brfssdata_not_cached"
+  )
+})
+
+test_that("labels = 'both' keeps codes in the level text", {
+  local_brfss_cache(2023)
+  dat <- read_brfss(2023, vars = "GENHLTH", quiet = TRUE, labels = "both")
+  expect_s3_class(dat$GENHLTH, "factor")
+  expect_identical(
+    levels(dat$GENHLTH)[[1]],
+    "[1] Excellent"
+  )
+  expect_true("[7] Don't know/Not Sure" %in% levels(dat$GENHLTH))
+})
+
+test_that("'both' mode obeys the same safety rules", {
+  local_brfss_cache(2023, extra = list("2023" = "DUPLABEL"))
+  dat <- read_brfss(2023, quiet = TRUE, labels = "both")
+  expect_false(is.factor(dat$DUPLABEL))
+})
+
+test_that("an invalid labels value is rejected", {
+  local_brfss_cache(2023)
+  expect_error(
+    read_brfss(2023, quiet = TRUE, labels = "yes"),
+    class = "brfssdata_bad_labels_arg"
+  )
+})
+
+test_that("semantic label drift warns; identical wording stays silent", {
+  local_brfss_cache(
+    c(2022, 2023),
+    extra = list("2022" = "SEMDRIFT", "2023" = "SEMDRIFT")
+  )
+  expect_warning(
+    dat <- read_brfss(2022:2023, quiet = TRUE, labels = TRUE),
+    class = "brfssdata_label_drift_warning"
+  )
+  expect_s3_class(dat$SEMDRIFT, "factor")
+  expect_true("Quit over a year ago" %in% levels(dat$SEMDRIFT))
+
+  # GENHLTH spans the same years with identical wording: no warning.
+  expect_no_warning(
+    read_brfss(2022:2023, vars = "GENHLTH", quiet = TRUE, labels = TRUE)
+  )
+})
+
+test_that("a numeric vars argument errors with a year hint", {
+  local_brfss_cache(2023)
+  err <- expect_error(brfss_labels(2023), class = "brfssdata_bad_vars_arg")
+  expect_match(conditionMessage(err), "years")
+})
+
+test_that("a malformed years argument is rejected", {
+  local_brfss_cache(2023)
+  expect_error(
+    brfss_labels("GENHLTH", years = "recent"),
+    class = "brfssdata_bad_years_arg"
+  )
+})
+
+test_that("an empty lookup returns zero rows and says so", {
+  local_brfss_cache(2023)
+  expect_message(
+    out <- brfss_labels("NOSUCHVAR"),
+    class = "brfssdata_empty_result"
+  )
+  expect_identical(nrow(out), 0L)
+})
+
+test_that("a matching lookup stays silent", {
+  local_brfss_cache(2023)
+  expect_no_message(
+    brfss_labels("GENHLTH", years = 2023),
+    class = "brfssdata_empty_result"
   )
 })

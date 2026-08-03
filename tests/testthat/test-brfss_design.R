@@ -151,8 +151,8 @@ test_that("singleton PSUs give the same answer as the clustered design", {
     nest = TRUE
   )
 
-  got <- survey::svymean(~GENHLTH, des)
-  ref <- survey::svymean(~GENHLTH, clustered)
+  got <- survey::svymean(~GENHLTH, des, na.rm = TRUE)
+  ref <- survey::svymean(~GENHLTH, clustered, na.rm = TRUE)
   expect_equal(survey::SE(got), survey::SE(ref))
   expect_equal(coef(got), coef(ref))
   expect_equal(survey::degf(des), survey::degf(clustered))
@@ -178,10 +178,10 @@ test_that("shared PSUs keep the clustered variance estimator", {
     weights = brfss_wt
   )
 
-  got <- survey::svymean(~GENHLTH, des)
+  got <- survey::svymean(~GENHLTH, des, na.rm = TRUE)
   expect_equal(
     survey::SE(got),
-    survey::SE(survey::svymean(~GENHLTH, clustered))
+    survey::SE(survey::svymean(~GENHLTH, clustered, na.rm = TRUE))
   )
   expect_equal(survey::degf(des), survey::degf(clustered))
   # and the two estimators really do disagree here, so the branch matters
@@ -221,6 +221,89 @@ test_that("pool_weights divides by the year count, not by two", {
   pooled <- brfss_design(2021:2023, quiet = TRUE)
   unpooled <- brfss_design(2021:2023, pool_weights = FALSE, quiet = TRUE)
   expect_equal(pooled$variables$brfss_wt, unpooled$variables$brfss_wt / 3)
+})
+
+test_that("a user-supplied weight overrides the era default", {
+  local_brfss_cache(2023, llcpwt2 = 2023)
+  des <- brfss_design(2023, vars = "GENHLTH", weight = "_LLCPWT2", quiet = TRUE)
+  dat <- des$variables
+  expect_identical(dat$brfss_wt, dat$`_LLCPWT2`)
+  # the era weight is not even loaded when a weight override is given
+  expect_false("_LLCPWT" %in% names(dat))
+})
+
+test_that("a user-supplied weight matches case-insensitively", {
+  local_brfss_cache(2023, llcpwt2 = 2023)
+  des <- brfss_design(2023, vars = "GENHLTH", weight = "_llcpwt2", quiet = TRUE)
+  expect_identical(des$variables$brfss_wt, des$variables$`_LLCPWT2`)
+})
+
+test_that("a weight absent from a requested year names that year", {
+  local_brfss_cache(c(2022, 2023), llcpwt2 = 2023)
+  err <- expect_error(
+    brfss_design(2022:2023, vars = "GENHLTH", weight = "_LLCPWT2", quiet = TRUE),
+    class = "brfssdata_bad_weight"
+  )
+  expect_match(conditionMessage(err), "2022")
+})
+
+test_that("a pooled user-supplied weight is divided by the year count", {
+  local_brfss_cache(c(2022, 2023), llcpwt2 = c(2022, 2023))
+  pooled <- brfss_design(
+    2022:2023,
+    vars = "GENHLTH",
+    weight = "_LLCPWT2",
+    quiet = TRUE
+  )
+  unpooled <- brfss_design(
+    2022:2023,
+    vars = "GENHLTH",
+    weight = "_LLCPWT2",
+    pool_weights = FALSE,
+    quiet = TRUE
+  )
+  expect_equal(pooled$variables$brfss_wt, unpooled$variables$brfss_wt / 2)
+})
+
+test_that("an unknown weight errors with the pointed class", {
+  local_brfss_cache(2023)
+  expect_error(
+    brfss_design(2023, weight = "_NOPE", quiet = TRUE),
+    class = "brfssdata_bad_weight"
+  )
+})
+
+test_that("a malformed weight argument is rejected", {
+  local_brfss_cache(2023)
+  expect_error(
+    brfss_design(2023, weight = c("_A", "_B"), quiet = TRUE),
+    class = "brfssdata_bad_weight"
+  )
+})
+
+test_that("pooling warns when state participation differs across years", {
+  local_brfss_cache(
+    c(2022, 2023),
+    states = list("2022" = 1:2, "2023" = 1:3)
+  )
+  expect_warning(
+    brfss_design(2022:2023, vars = "GENHLTH", quiet = TRUE),
+    class = "brfssdata_pooled_states_warning"
+  )
+})
+
+test_that("no state warning when participation is identical", {
+  local_brfss_cache(c(2022, 2023))
+  expect_no_warning(brfss_design(2022:2023, vars = "GENHLTH", quiet = TRUE))
+})
+
+test_that("vars = NULL announces the full-width load", {
+  local_brfss_cache(2023)
+  expect_message(brfss_design(2023), class = "brfssdata_full_load_note")
+  expect_no_message(
+    brfss_design(2023, quiet = TRUE),
+    class = "brfssdata_full_load_note"
+  )
 })
 
 test_that("allow_break with pooled weights divides era weights by year count", {

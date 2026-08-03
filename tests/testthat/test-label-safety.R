@@ -6,6 +6,16 @@
 
 write_labels_catalog <- function(dir, rows) {
   write_fixture_parquet(rows, file.path(dir, "brfss_labels.parquet"))
+  # Keep a v2 fixture manifest's hash entries in sync: a stale hash for
+  # the labels file would trigger a refresh download straight into the
+  # network guard. v1 manifests carry no hashes and need nothing.
+  manifest <- file.path(dir, "manifest.json")
+  if (file.exists(manifest)) {
+    parsed <- jsonlite::read_json(manifest, simplifyVector = TRUE)
+    if (!is.null(parsed$schema_version)) {
+      write_fixture_manifest(dir, parsed$years)
+    }
+  }
 }
 
 one_year_fixture <- function(dir, var, values) {
@@ -171,4 +181,14 @@ test_that("labels never convert the columns the design is built on", {
   expect_false(is.factor(v$brfss_wt))
   # a normal analysis variable in the same call still converts
   expect_s3_class(v$GENHLTH, "factor")
+})
+
+test_that("the read path never converts _STATE", {
+  # _STATE carries a complete label map in every real year; a factor of
+  # state names would make `_STATE == 6` silently match nothing.
+  local_brfss_cache(2023)
+  dat <- read_brfss(2023, quiet = TRUE, labels = TRUE)
+  expect_false(is.factor(dat$`_STATE`))
+  expect_true(is.numeric(dat$`_STATE`))
+  expect_identical(sum(dat$`_STATE` == 1), nrow(dat))
 })

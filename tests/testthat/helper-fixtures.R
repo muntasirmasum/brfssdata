@@ -47,6 +47,10 @@ write_fixture_year <- function(
     "PHYSHLTH",
     "_STATE"
   )
+  # Guarantee the special codes appear regardless of the draw, so tests
+  # can assert on them deterministically.
+  df$GENHLTH[1:2] <- c(7, 9)
+  df$PHYSHLTH[1:3] <- c(77, 88, 99)
   if (llcpwt2) {
     # Differs from the main weight on every row, like the real files.
     df[["_LLCPWT2"]] <- df[[wt_col]] * 3 + 7
@@ -177,7 +181,10 @@ local_brfss_cache <- function(
   years,
   extra = list(),
   catalog = FALSE,
+  label_catalog = TRUE,
   psu_size = 1,
+  llcpwt2 = integer(0),
+  states = list(),
   schema = 2,
   env = parent.frame()
 ) {
@@ -191,11 +198,19 @@ local_brfss_cache <- function(
       y,
       dir,
       extra = extra[[as.character(y)]],
-      psu_size = psu_size
+      psu_size = psu_size,
+      llcpwt2 = y %in% llcpwt2,
+      states = states[[as.character(y)]] %||% 1
     )
   }
   if (catalog) {
     write_fixture_catalog(dir)
+  }
+  # The label catalog ships by default because brfss_design(na = TRUE),
+  # the default, consults it; tests of the catalog-not-cached paths opt
+  # out with label_catalog = FALSE.
+  if (label_catalog) {
+    write_fixture_labels(dir)
   }
   write_fixture_manifest(dir, years, schema = schema)
   dir
@@ -238,9 +253,45 @@ write_fixture_labels <- function(dir) {
   physhlth <- data.frame(
     year = 2023L,
     variable = "PHYSHLTH",
-    code = c(88L, 99L),
-    label = c("None", "Refused"),
+    code = c(77L, 88L, 99L),
+    label = c("Dont know/Not sure", "None", "Refused"),
     complete = FALSE,
+    stringsAsFactors = FALSE
+  )
+  # _STATE has a complete map in every real year; LABEL_EXCLUDE must
+  # keep it numeric on every path so `_STATE == 6` keeps working.
+  state <- data.frame(
+    year = rep(c(2022L, 2023L), each = 2),
+    variable = "_STATE",
+    code = rep(c(1L, 2L), 2),
+    label = rep(c("Alabama", "Alaska"), 2),
+    complete = TRUE,
+    stringsAsFactors = FALSE
+  )
+  # A substantive answer that merely contains the word "refused"; the
+  # missing-code matcher must never treat it as missing.
+  trapvar <- data.frame(
+    year = 2023L,
+    variable = "TRAPVAR",
+    code = c(1L, 2L, 3L),
+    label = c("Yes", "No", "Doctor refused when asked"),
+    complete = TRUE,
+    stringsAsFactors = FALSE
+  )
+  # Same code set across years but genuinely reworded (not cosmetic):
+  # converts with the newest wording and warns. Codes 0/1 so the extra
+  # fixture columns (which sample 0:1) stay inside the map.
+  semdrift <- data.frame(
+    year = c(2022L, 2022L, 2023L, 2023L),
+    variable = "SEMDRIFT",
+    code = c(0L, 1L, 0L, 1L),
+    label = c(
+      "Current smoker",
+      "Former smoker",
+      "Current smoker",
+      "Quit over a year ago"
+    ),
+    complete = TRUE,
     stringsAsFactors = FALSE
   )
   driftvar <- data.frame(
@@ -262,7 +313,7 @@ write_fixture_labels <- function(dir) {
     stringsAsFactors = FALSE
   )
   write_fixture_parquet(
-    rbind(genhlth, physhlth, driftvar, duplabel),
+    rbind(genhlth, physhlth, state, trapvar, semdrift, driftvar, duplabel),
     file.path(dir, "brfss_labels.parquet")
   )
 }

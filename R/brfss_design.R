@@ -5,7 +5,28 @@
 #' design applied: primary sampling units (`_PSU`), strata (`_STSTR`), and
 #' the year-appropriate final weight. Weight selection is automatic:
 #' `_FINALWT` for years before 2011 (post-stratification era) and
-#' `_LLCPWT` from 2011 on (raking era).
+#' `_LLCPWT` from 2011 on (raking era). Pass `weight` to override it
+#' (see *Choosing a weight*).
+#'
+#' By default the codes CDC uses for don't know / refused / missing
+#' answers are set to `NA` (`na = TRUE`), so means and proportions are
+#' computed over substantive answers; see [brfss_missing_codes()] for
+#' the exact codes and the `na` entry under Arguments for details.
+#'
+#' @section Choosing a weight:
+#' `_LLCPWT` is the final weight for the combined landline-and-cell
+#' sample and is correct for core-questionnaire analyses. From 2013 on
+#' (2015 excepted), the files also carry `_LLCPWT2` and related weights
+#' for split-questionnaire and module content; the two differ on
+#' essentially every respondent, so analyzing a variable asked of only
+#' one questionnaire version with the overall weight gives a materially
+#' wrong estimate. This package cannot tell which weight an analysis
+#' variable needs (the files do not say), so consult the year's CDC
+#' module-analysis documentation ("Complex Sampling Weights and
+#' Preparing Module Data for Analysis") and pass, e.g.,
+#' `weight = "_LLCPWT2"` when it says to. A user-supplied weight is used
+#' for every requested year and still divides by the year count under
+#' `pool_weights`.
 #'
 #' CDC states that estimates from 2011 onward are not directly comparable
 #' to earlier years, because 2011 added cell-phone-only respondents and
@@ -24,7 +45,9 @@
 #' years (`pool_weights = TRUE`, the default) so that pooled estimates
 #' represent an average year rather than a sum of populations, and the
 #' variance strata become the year-by-stratum interaction, treating each
-#' annual survey as an independent sample.
+#' annual survey as an independent sample. The pooled estimate averages
+#' over the states participating each year; when participation differs
+#' across the pooled years, totals mix coverage, and a warning says so.
 #'
 #' From 2001 on, `_PSU` is a record sequence number that restarts in
 #' each state, so it repeats across the file but is unique within a
@@ -32,7 +55,14 @@
 #' Single-PSU strata are therefore common and would make variance
 #' estimation fail. If `options(survey.lonely.psu)` is unset, this
 #' function sets it to `"adjust"` (standard BRFSS practice) and says so
-#' once per session; an option you set yourself is always respected.
+#' once per session. Any value you set other than `"fail"` is respected;
+#' `"fail"` is what the survey package itself installs on load, so it
+#' cannot be told apart from "never set" and is treated as unset. To
+#' insist on `"fail"`, or to pin any handling, set
+#' `options(brfssdata.lonely_psu = ...)`, which is copied into
+#' `survey.lonely.psu` unconditionally. The option stays set for the
+#' session because survey consults it at estimation time, not design
+#' time.
 #'
 #' Because that clustering is nominal, the design for those years is
 #' built without a cluster term, which gives the same estimates, standard
@@ -45,7 +75,12 @@
 #' @inheritParams read_brfss
 #' @param vars Optional character vector of analysis variables to carry
 #'   into the design, matched case-insensitively like in [read_brfss()].
-#'   Design variables are always included.
+#'   Design variables are always included. The default loads every
+#'   column (455 columns by 506,467 rows for 2011 alone) and says so;
+#'   passing only the variables you analyze is much faster and smaller.
+#' @param weight Optional name of the weight column to use instead of
+#'   the automatic era weight, e.g. `"_LLCPWT2"` for split-questionnaire
+#'   content; matched case-insensitively. See *Choosing a weight*.
 #' @param allow_break Set to `TRUE` to permit pooling years across the
 #'   2011 methodology change. A warning is still issued.
 #' @param pool_weights If `TRUE` and more than one year is requested,
@@ -68,13 +103,33 @@
 brfss_design <- function(
   years,
   vars = NULL,
+  weight = NULL,
   allow_break = FALSE,
   pool_weights = TRUE,
   download = TRUE,
   quiet = FALSE,
-  labels = FALSE
+  labels = FALSE,
+  na = TRUE
 ) {
   years <- validate_years(years, download = download)
+  if (
+    !is.null(weight) &&
+      (!is.character(weight) ||
+        length(weight) != 1L ||
+        is.na(weight) ||
+        !nzchar(weight))
+  ) {
+    cli::cli_abort(
+      "{.arg weight} must be a single column name, e.g. {.val _LLCPWT2}.",
+      class = "brfssdata_bad_weight"
+    )
+  }
+  if (!isTRUE(na) && !isFALSE(na)) {
+    cli::cli_abort(
+      "{.arg na} must be TRUE or FALSE.",
+      class = "brfssdata_bad_na_arg"
+    )
+  }
 
   pre <- years[years < BREAK_YEAR]
   post <- years[years >= BREAK_YEAR]
@@ -83,7 +138,7 @@ brfss_design <- function(
   if (spans_break && !allow_break) {
     cli::cli_abort(
       c(
-        "Years {min(years)}-{max(years)} span the 2011 BRFSS redesign.",
+        "Years {summarize_years(years)} span the 2011 BRFSS redesign.",
         "x" = "CDC states post-2011 estimates are not directly comparable
                to earlier years (cell-phone frame and raking weights).",
         "i" = "Analyze the eras separately, or set
@@ -93,18 +148,51 @@ brfss_design <- function(
     )
   }
 
-  weight_vars <- c(
+  auto_weights <- c(
     if (length(pre) > 0) WEIGHT_PRE,
     if (length(post) > 0) WEIGHT_POST
   )
-  design_vars <- c(weight_vars, DESIGN_STRATA, DESIGN_PSU)
+
+  if (is.null(vars) && !quiet) {
+    cli::cli_inform(
+      c(
+        "i" = "Loading every column for {summarize_years(years)}; pass
+               {.code vars = c(...)} to carry only analysis variables
+               (faster, much smaller)."
+      ),
+      class = "brfssdata_full_load_note"
+    )
+  }
 
   dat <- read_brfss(
     years,
-    vars = if (is.null(vars)) NULL else union(vars, design_vars),
+    vars = if (is.null(vars)) {
+      NULL
+    } else {
+      union(vars, c(weight %||% auto_weights, DESIGN_STRATA, DESIGN_PSU))
+    },
     download = download,
     quiet = quiet
   )
+
+  requested_weight <- weight
+  if (!is.null(weight)) {
+    weight <- match_vars_ci(weight, names(dat))
+    if (!weight %in% names(dat)) {
+      cli::cli_abort(
+        c(
+          "Weight {.val {requested_weight}} was not found in the
+           requested year{?s}.",
+          "i" = "Use {.fun brfss_vars} to check which years carry it."
+        ),
+        class = "brfssdata_bad_weight"
+      )
+    }
+    weight_vars <- weight
+  } else {
+    weight_vars <- auto_weights
+  }
+  design_vars <- c(weight_vars, DESIGN_STRATA, DESIGN_PSU)
 
   missing_cols <- setdiff(design_vars, names(dat))
   if (length(missing_cols) > 0) {
@@ -119,10 +207,29 @@ brfss_design <- function(
     )
   }
 
-  if (spans_break) {
-    cli::cli_warn(
-      "Pooling across the 2011 redesign: interpret trends with caution."
+  if (!is.null(weight)) {
+    # A year that lacks the column entirely comes back all-NA under
+    # union_by_name; that means the weight does not exist in that year
+    # (e.g. _LLCPWT2 is absent from 2015).
+    na_by_year <- vapply(
+      split(is.na(dat[[weight]]), dat$year),
+      all,
+      logical(1)
     )
+    absent_years <- as.integer(names(na_by_year))[na_by_year]
+    if (length(absent_years) > 0) {
+      cli::cli_abort(
+        c(
+          "Weight {.val {requested_weight}} is not present in year{?s}
+           {absent_years}.",
+          "i" = "Use {.fun brfss_vars} to check availability, or request
+                 only the years that carry it."
+        ),
+        class = "brfssdata_bad_weight"
+      )
+    }
+    wt <- dat[[weight]]
+  } else if (spans_break) {
     wt <- ifelse(
       dat$year >= BREAK_YEAR,
       dat[[WEIGHT_POST]],
@@ -132,8 +239,21 @@ brfss_design <- function(
     wt <- dat[[weight_vars]]
   }
 
+  if (spans_break) {
+    cli::cli_warn(
+      c(
+        "Pooling across the 2011 redesign: the two eras' weights are not
+         on a common basis (post-stratified landline vs raked
+         dual-frame).",
+        "i" = "Interpret any trend across 2010/2011 with caution."
+      ),
+      class = "brfssdata_break_warning"
+    )
+  }
+
   if (pool_weights && length(years) > 1) {
     wt <- wt / length(years)
+    warn_unequal_state_participation(years)
   }
 
   bad_wt <- is.na(wt)
@@ -183,19 +303,28 @@ brfss_design <- function(
     dat[[DESIGN_STRATA]]
   }
 
-  if (isTRUE(labels)) {
+  exclude_cols <- union(
+    LABEL_EXCLUDE,
+    c(design_vars, "brfss_wt", "brfss_psu", "brfss_strata", "year")
+  )
+  if (isTRUE(na)) {
+    dat <- apply_missing_codes(
+      dat,
+      years,
+      quiet = quiet,
+      download = download,
+      exclude = exclude_cols
+    )
+  }
+  if (!isFALSE(labels)) {
     dat <- apply_labels(
       dat,
       years,
       quiet = quiet,
       download = download,
-      exclude = c(
-        design_vars,
-        "brfss_wt",
-        "brfss_psu",
-        "brfss_strata",
-        "year"
-      )
+      exclude = exclude_cols,
+      how = labels_how(labels),
+      na = isTRUE(na)
     )
   }
 
@@ -203,17 +332,36 @@ brfss_design <- function(
   # PSU, so small strata (and most subgroup analyses) contain single-PSU
   # strata that make variance estimation fail. "adjust" is standard
   # BRFSS practice. The survey package sets "fail" in .onLoad, so that
-  # value is treated as unset; any other user-chosen value is respected.
-  # identical() rather than %in%: a malformed option of length != 1
-  # would make `if` error with "the condition has length > 1".
-  if (identical(getOption("survey.lonely.psu", "fail"), "fail")) {
+  # value cannot be told apart from "never set" and is treated as unset;
+  # any other user-chosen value is respected, and the package option
+  # brfssdata.lonely_psu wins over everything (it is the only way to
+  # deliberately choose "fail"). identical() rather than %in%: a
+  # malformed option of length != 1 would make `if` error with "the
+  # condition has length > 1".
+  pkg_lonely <- getOption("brfssdata.lonely_psu")
+  if (!is.null(pkg_lonely)) {
+    if (
+      !is.character(pkg_lonely) ||
+        length(pkg_lonely) != 1L ||
+        is.na(pkg_lonely)
+    ) {
+      cli::cli_abort(
+        "{.code options(brfssdata.lonely_psu)} must be a single string,
+         e.g. \"adjust\", \"fail\", \"certainty\", \"remove\", or
+         \"average\".",
+        class = "brfssdata_bad_option"
+      )
+    }
+    options(survey.lonely.psu = pkg_lonely)
+  } else if (identical(getOption("survey.lonely.psu", "fail"), "fail")) {
     options(survey.lonely.psu = "adjust")
     cli::cli_inform(
       c(
         "i" = "Set {.code options(survey.lonely.psu = \"adjust\")} for
                single-PSU strata (standard BRFSS practice).",
-        "i" = "Set that option yourself before calling
-               {.fun brfss_design} to choose different handling."
+        "i" = "Set that option yourself, or set
+               {.code options(brfssdata.lonely_psu = ...)}, before
+               calling {.fun brfss_design} to choose different handling."
       ),
       .frequency = "once",
       .frequency_id = "brfssdata_lonely_psu"
@@ -253,4 +401,63 @@ brfss_design <- function(
       nest = TRUE
     )
   }
+}
+
+# Dividing pooled weights by the year count treats every year as
+# covering the same states. When participation differs, totals mix
+# coverage; say so. One cheap columnar query over the already-cached
+# files rather than the loaded frame, because the design usually
+# carries only the requested analysis variables, not _STATE. Skipped
+# silently when any file lacks _STATE (never true of real BRFSS years).
+warn_unequal_state_participation <- function(years) {
+  paths <- cache_path(year_asset(years))
+  paths <- paths[file.exists(paths)]
+  if (length(paths) < 2) {
+    return(invisible())
+  }
+  sets <- tryCatch(
+    {
+      con <- duckdb_connect()
+      on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
+      files_sql <- paste0(
+        "[",
+        paste(quote_literal(paths), collapse = ", "),
+        "]"
+      )
+      q <- DBI::dbGetQuery(
+        con,
+        sprintf(
+          'SELECT year, "_STATE" AS state
+           FROM read_parquet(%s, union_by_name = true)
+           GROUP BY 1, 2',
+          files_sql
+        )
+      )
+      if (anyNA(q$state)) {
+        NULL
+      } else {
+        lapply(split(q$state, q$year), function(s) sort(unique(s)))
+      }
+    },
+    error = function(e) NULL
+  )
+  if (is.null(sets) || length(sets) < 2) {
+    return(invisible())
+  }
+  everywhere <- Reduce(intersect, sets)
+  anywhere <- Reduce(union, sets)
+  uneven <- sort(setdiff(anywhere, everywhere))
+  if (length(uneven) == 0) {
+    return(invisible())
+  }
+  cli::cli_warn(
+    c(
+      "State participation differs across the pooled years: state
+       FIPS code{?s} {uneven} {?does/do} not appear in every year.",
+      "i" = "Pooled totals average over changing state coverage; filter
+             to the common states, or set {.code pool_weights = FALSE}
+             and estimate per year, if that matters for your analysis."
+    ),
+    class = "brfssdata_pooled_states_warning"
+  )
 }

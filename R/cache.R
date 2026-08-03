@@ -55,6 +55,58 @@ CACHE_META_FILES <- c(
   "brfss_labels.parquet"
 )
 
+#' Prefetch BRFSS data and metadata into the local cache
+#'
+#' @description
+#' Downloads the requested survey years, and by default also the data
+#' manifest and the variable and label catalogs, so that everything
+#' works offline afterwards: [read_brfss()], [brfss_design()],
+#' [brfss_vars()], [brfss_labels()], and `labels`/`na` conversion all
+#' run from the cache. Use it to populate the cache once on a connected
+#' machine (the directory from [brfss_cache_dir()] can then be copied to
+#' an air-gapped one), or to pre-download years ahead of a workshop.
+#' Files already cached and current are not re-downloaded.
+#'
+#' @param years Optional integer vector of survey years to cache.
+#'   `NULL` fetches only the metadata.
+#' @param catalogs If `TRUE` (the default), also cache the manifest and
+#'   the variable and label catalogs.
+#' @param quiet If `TRUE`, suppress download progress and the summary.
+#'
+#' @return Invisibly, the [brfss_cache_info()] tibble after the fetch.
+#'
+#' @examplesIf interactive()
+#' brfss_download(2019:2023)
+#' @export
+brfss_download <- function(years = NULL, catalogs = TRUE, quiet = FALSE) {
+  if (!is.null(years)) {
+    years <- validate_years(years)
+    ensure_years_cached(years, download = TRUE, quiet = quiet)
+  }
+  if (isTRUE(catalogs)) {
+    read_manifest()
+    ensure_catalog_cached(
+      "brfss_variables.parquet",
+      what = "variable catalog",
+      quiet = quiet
+    )
+    ensure_catalog_cached(
+      "brfss_labels.parquet",
+      what = "label catalog",
+      quiet = quiet
+    )
+  }
+  info <- brfss_cache_info()
+  if (!quiet) {
+    cli::cli_inform(
+      "Cache at {.path {brfss_cache_dir()}}: {sum(!is.na(info$year))}
+       year{?s}, {format(structure(sum(info$size, na.rm = TRUE),
+       class = 'object_size'), units = 'auto')}."
+    )
+  }
+  invisible(info)
+}
+
 #' @rdname brfss_cache_dir
 #' @export
 brfss_cache_clear <- function(years = NULL, catalogs = FALSE) {

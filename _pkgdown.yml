@@ -48,8 +48,10 @@ reference:
   contents:
   - brfss_vars
   - brfss_labels
+  - brfss_missing_codes
 - title: Cache management
   contents:
+  - brfss_download
   - brfss_cache_dir
   - brfss_cache_info
   - brfss_cache_clear

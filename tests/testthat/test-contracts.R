@@ -96,6 +96,25 @@ test_that("a malformed lonely-PSU option does not error the design", {
   expect_no_error(brfss_design(2023, quiet = TRUE))
 })
 
+test_that("brfssdata.lonely_psu wins, including a deliberate fail", {
+  local_brfss_cache(2023)
+  withr::local_options(
+    brfssdata.lonely_psu = "fail",
+    survey.lonely.psu = NULL
+  )
+  brfss_design(2023, vars = "GENHLTH", quiet = TRUE)
+  expect_identical(getOption("survey.lonely.psu"), "fail")
+})
+
+test_that("a malformed brfssdata.lonely_psu aborts", {
+  local_brfss_cache(2023)
+  withr::local_options(brfssdata.lonely_psu = c("adjust", "fail"))
+  expect_error(
+    brfss_design(2023, vars = "GENHLTH", quiet = TRUE),
+    class = "brfssdata_bad_option"
+  )
+})
+
 test_that("release URLs follow the documented scheme", {
   expect_identical(
     year_url(2023),

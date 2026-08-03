@@ -10,6 +10,23 @@ DESIGN_STRATA <- "_STSTR"
 WEIGHT_PRE <- "_FINALWT"
 WEIGHT_POST <- "_LLCPWT"
 
+# Columns that keep their numeric codes on every labeling and
+# missing-code path, on both the read and the design routes: a factor
+# _STATE would make `_STATE == 6` silently match nothing, and a labeled
+# weight or design variable would corrupt the survey design.
+LABEL_EXCLUDE <- c(
+  "_STATE",
+  DESIGN_PSU,
+  DESIGN_STRATA,
+  WEIGHT_PRE,
+  WEIGHT_POST,
+  "_LLCPWT2",
+  "_CLLCPWT",
+  "_WT2RAKE",
+  "_STRWT",
+  "year"
+)
+
 brfss_repo <- function() {
   getOption("brfssdata.repo", "muntasirmasum/brfssdata")
 }
