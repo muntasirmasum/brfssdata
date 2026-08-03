@@ -18,28 +18,28 @@ stats <- local({
   DBI::dbExecute(con, "INSTALL httpfs; LOAD httpfs;")
 
   lapply(years, function(year) {
-  url <- sprintf(
-    "https://github.com/muntasirmasum/brfssdata/releases/download/data-%d/brfss_%d.parquet",
-    year,
-    year
-  )
-  meta <- DBI::dbGetQuery(
-    con,
-    sprintf(
-      "SELECT any_value(num_rows) AS rows,
+    url <- sprintf(
+      "https://github.com/muntasirmasum/brfssdata/releases/download/data-%d/brfss_%d.parquet",
+      year,
+      year
+    )
+    meta <- DBI::dbGetQuery(
+      con,
+      sprintf(
+        "SELECT any_value(num_rows) AS rows,
               any_value(footer_size) AS footer
        FROM parquet_file_metadata('%s')",
-      url
+        url
+      )
     )
-  )
-  cols <- DBI::dbGetQuery(
-    con,
-    sprintf(
-      "SELECT count(*) AS n FROM parquet_schema('%s')
+    cols <- DBI::dbGetQuery(
+      con,
+      sprintf(
+        "SELECT count(*) AS n FROM parquet_schema('%s')
        WHERE num_children IS NULL OR num_children = 0",
-      url
+        url
+      )
     )
-  )
     cat(sprintf("%d: %d rows\n", year, meta$rows))
     data.frame(year = year, respondents = meta$rows, variables = cols$n)
   })

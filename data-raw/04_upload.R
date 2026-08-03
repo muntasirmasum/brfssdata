@@ -171,7 +171,11 @@ publish_meta <- function(years) {
     ),
     stdout = TRUE
   )
-  hosted_years <- as.integer(sub("^data-", "", grep("^data-\\d{4}$", hosted, value = TRUE)))
+  hosted_years <- as.integer(sub(
+    "^data-",
+    "",
+    grep("^data-\\d{4}$", hosted, value = TRUE)
+  ))
   delisted <- setdiff(hosted_years, years)
   if (length(delisted) > 0) {
     stop(
@@ -217,7 +221,12 @@ publish_meta <- function(years) {
     files = files
   )
   manifest <- file.path(out_dir, "manifest.json")
-  jsonlite::write_json(manifest_body, manifest, auto_unbox = TRUE, pretty = TRUE)
+  jsonlite::write_json(
+    manifest_body,
+    manifest,
+    auto_unbox = TRUE,
+    pretty = TRUE
+  )
 
   # The bundled fallback ships the same content from the same code path,
   # so it always carries hashes too (plus a note on its role).
