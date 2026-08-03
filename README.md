@@ -22,8 +22,9 @@ sampling units for each survey era.
 > releases. BRFSS began in 1984, and CDC does distribute a 1984 file
 > (12,258 records from the first 15 states) from its
 > [web archive](https://archive.cdc.gov/www_cdc_gov/brfss/annual_data/annual_1984.htm);
-> that year is not part of this collection. `brfss_years()` always
-> reports the currently hosted years.
+> that year is not part of this collection. `brfss_years()` reports the
+> currently hosted years, refreshing its manifest at most once a day
+> (`refresh = TRUE` forces a fresh look).
 
 ## Installation
 
@@ -49,7 +50,9 @@ dat <- read_brfss(2023, vars = c("GENHLTH", "SEXVAR"), labels = TRUE)
 # The value-label codebook itself (1998 onward)
 brfss_labels("GENHLTH", years = 2023)
 
-# A survey-design object with era-correct weights, ready for srvyr
+# A survey-design object with era-correct weights, ready for srvyr.
+# Codes CDC uses for "don't know" and "refused" are NA by default here,
+# so the proportions cover substantive answers; see ?brfss_missing_codes.
 library(srvyr)
 brfss_design(2023, vars = "GENHLTH") |>
   group_by(GENHLTH) |>
@@ -59,9 +62,11 @@ brfss_design(2023, vars = "GENHLTH") |>
 brfss_vars("smok")
 ```
 
-Downloads are cached under `brfss_cache_dir()` (per
-`tools::R_user_dir()`), so everything after the first pull works offline.
-`brfss_cache_info()` and `brfss_cache_clear()` manage the cache.
+Downloads are verified against published checksums and cached under
+`brfss_cache_dir()` (per `tools::R_user_dir()`). One call to
+`brfss_download(2019:2023)` prefetches years plus the variable and label
+catalogs, after which everything runs offline; `brfss_cache_info()` and
+`brfss_cache_clear()` manage the cache.
 
 ## The 2011 design break
 
@@ -119,9 +124,14 @@ the public domain. Suggested citation for the data:
 > Department of Health and Human Services, Centers for Disease Control
 > and Prevention, \[appropriate year\].
 
-The hosted parquet files are byte-for-byte derived from CDC's published
-SAS Transport files; the processing pipeline lives in
-[`data-raw/`](https://github.com/muntasirmasum/brfssdata/tree/main/data-raw) and every artifact is checksummed.
+The hosted parquet files are derived from CDC's published SAS Transport
+files with no rows dropped, no columns dropped, and no values recoded;
+the only transformations are re-encoding the Windows-1252 text older
+files carry to UTF-8 and adding an integer `year` column. The processing
+pipeline lives in
+[`data-raw/`](https://github.com/muntasirmasum/brfssdata/tree/main/data-raw);
+every artifact is checksummed, and the package verifies those checksums
+when it downloads.
 
 ## License
 

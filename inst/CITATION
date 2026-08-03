@@ -12,7 +12,11 @@ bibentry(
     "Masum",
     comment = c(ORCID = "0000-0002-4210-2844")
   ),
-  year = "2026",
+  year = if (!is.null(meta$Date)) {
+    sub("-.*", "", meta$Date)
+  } else {
+    format(Sys.Date(), "%Y")
+  },
   note = sprintf("R package version %s", meta$Version),
   url = "https://muntasirmasum.github.io/brfssdata/"
 )
@@ -21,7 +25,7 @@ bibentry(
   bibtype = "Misc",
   title = "Behavioral Risk Factor Surveillance System Survey Data",
   author = person("{Centers for Disease Control and Prevention (CDC)}"),
-  year = "1984--2024",
+  year = "1985--2024",
   organization = "U.S. Department of Health and Human Services, Centers for Disease Control and Prevention",
   address = "Atlanta, Georgia",
   url = "https://www.cdc.gov/brfss/",

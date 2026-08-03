@@ -14,6 +14,20 @@ cdc_targets <- list(
   `2024` = c(457670L, 345L)
 )
 
+# Regression pins for every year: row counts recorded from the published
+# releases by site_year_stats.R. These catch a rebuild that silently
+# gains or loses rows; cdc_targets above stays the independent
+# ground-truth layer from CDC's own pages.
+published_counts <- local({
+  path <- file.path("vignettes", "articles", "brfss_year_stats.csv")
+  if (!file.exists(path)) {
+    message("no brfss_year_stats.csv; skipping published-count pins")
+    return(list())
+  }
+  stats <- utils::read.csv(path)
+  as.list(stats::setNames(as.integer(stats$respondents), stats$year))
+})
+
 build_year <- function(year, overwrite = FALSE) {
   out <- file.path(out_dir, sprintf("brfss_%d.parquet", year))
   if (file.exists(out) && !overwrite) {
@@ -66,6 +80,10 @@ build_year <- function(year, overwrite = FALSE) {
         target[2]
       )
     }
+  }
+  published <- published_counts[[as.character(year)]]
+  if (!is.null(published)) {
+    stopifnot(nrow(dat) == published)
   }
 
   con <- DBI::dbConnect(duckdb::duckdb(shared_home = FALSE))

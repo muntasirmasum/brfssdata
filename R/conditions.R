@@ -1,4 +1,4 @@
-#' Conditions signalled by brfssdata
+#' Conditions signaled by brfssdata
 #'
 #' @description
 #' Every error, warning, and message this package signals carries a

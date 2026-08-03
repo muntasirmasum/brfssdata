@@ -2,7 +2,7 @@
 % Please edit documentation in R/conditions.R
 \name{brfssdata-conditions}
 \alias{brfssdata-conditions}
-\title{Conditions signalled by brfssdata}
+\title{Conditions signaled by brfssdata}
 \description{
 Every error, warning, and message this package signals carries a
 class, so \code{tryCatch()} and \code{withCallingHandlers()} can react to

@@ -8,11 +8,16 @@ library(brfssdata)
 
 years <- brfss_years()
 
-con <- DBI::dbConnect(duckdb::duckdb())
-on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
-DBI::dbExecute(con, "INSTALL httpfs; LOAD httpfs;")
+# local() so the on.exit() actually fires when this block finishes; at
+# script top level it never would. shared_home = FALSE keeps DuckDB out
+# of ~/.duckdb, the same invariant the package itself maintains; httpfs
+# installs into the session-scoped extension directory.
+stats <- local({
+  con <- DBI::dbConnect(duckdb::duckdb(shared_home = FALSE))
+  on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
+  DBI::dbExecute(con, "INSTALL httpfs; LOAD httpfs;")
 
-stats <- lapply(years, function(year) {
+  lapply(years, function(year) {
   url <- sprintf(
     "https://github.com/muntasirmasum/brfssdata/releases/download/data-%d/brfss_%d.parquet",
     year,
@@ -35,8 +40,9 @@ stats <- lapply(years, function(year) {
       url
     )
   )
-  cat(sprintf("%d: %d rows\n", year, meta$rows))
-  data.frame(year = year, respondents = meta$rows, variables = cols$n)
+    cat(sprintf("%d: %d rows\n", year, meta$rows))
+    data.frame(year = year, respondents = meta$rows, variables = cols$n)
+  })
 })
 stats <- do.call(rbind, stats)
 

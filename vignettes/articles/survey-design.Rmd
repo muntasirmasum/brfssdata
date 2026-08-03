@@ -177,8 +177,22 @@ des$variables |>
 ```
 
 The weight is selected by year, `_FINALWT` before 2011 and `_LLCPWT`
-from 2011 on, so you never name a weight column and a request cannot
-quietly pick up the wrong one.
+from 2011 on, so a core-questionnaire analysis never names a weight
+column and cannot quietly pick up the wrong one.
+
+One family of analyses needs to override that choice. From 2013 on
+(2015 excepted), the files also carry `_LLCPWT2`, the weight for
+split-questionnaire and module content, and it is not a rounding
+difference: the two weights disagree on essentially every respondent,
+by large factors. A module variable analyzed under the overall weight
+produces a materially wrong estimate, and nothing in the file itself
+says which weight a variable needs. CDC's annual "Complex Sampling
+Weights and Preparing Module Data for Analysis" document does say, and
+`brfss_design(weight = "_LLCPWT2")` applies it when it does. The
+missing-code handling is also on by default here (`na = TRUE`): the
+don't-know and refused codes arrive as `NA`, so denominators cover
+substantive answers, with `brfss_missing_codes()` as the audit trail
+and `na = FALSE` as the way back to the raw codes.
 
 The design is then built on syntactic copies of the design variables.
 `_PSU` and `_STSTR` are not legal R names, so `~_PSU` does not parse and
@@ -273,7 +287,11 @@ pool$variables |>
 Proportions and means are unaffected by that rescaling, since it divides
 numerator and denominator alike; only totals change scale. Set
 `pool_weights = FALSE` when you want each year at full scale, for
-instance when reproducing a published single-year count.
+instance when reproducing a published single-year count. The division
+also assumes each pooled year covers the same states; participation
+does drift (states join, skip a year, return), and when the requested
+years differ that way `brfss_design()` warns with the state codes
+involved, because a pooled total then averages over changing coverage.
 
 The variance strata also change. Each annual BRFSS is drawn
 independently, so the same geographic stratum in 2021 and in 2023 is two
@@ -345,12 +363,15 @@ variance term instead of an undefined one. It is the conservative
 choice. `survey` also offers `"remove"`, which drops the stratum's
 contribution and understates the variance, and `"average"`, which
 substitutes the average variance contribution of the strata that do have
-more than one cluster. Any value you set yourself is respected, so make
-the choice before you build the design:
+more than one cluster. Any value you set other than `"fail"` is
+respected as your choice; `"fail"` itself cannot be, because it is
+indistinguishable from the default `survey` installs on load. To insist
+on `"fail"`, or to pin any handling explicitly, set the package option,
+which wins unconditionally:
 
 ```{r lonely-choice, eval = FALSE}
 options(
-  survey.lonely.psu = "adjust",
+  brfssdata.lonely_psu = "adjust",
   survey.adjust.domain.lonely = TRUE
 )
 
