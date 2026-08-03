@@ -23,13 +23,16 @@
     <path d="M 113 0 V 1000 M 253 0 V 1000 M 393 0 V 1000 M 533 0 V 1000 M 673 0 V 1000 M 813 0 V 1000"/>
   </g>
 
-  <!-- ECG pulse: drawn left to right, then erased behind, indefinitely -->
+  <!-- ECG pulse: drawn left to right, then erased behind, indefinitely.
+       The static dashoffset is 0 (trace fully visible) so renderers
+       without SMIL support show the drawn pulse instead of an empty
+       hexagon; a running animation overrides it from t=0. -->
   <g clip-path="url(#hexclip)">
     <path id="pulse"
           d="M 60 440 L 250 440 L 292 398 L 334 440 L 408 440 L 458 265 L 512 590 L 560 440 L 806 440"
           pathLength="1000" fill="none" stroke="#cbb1e8" stroke-width="16"
           stroke-linecap="round" stroke-linejoin="round"
-          stroke-dasharray="1000 1000" stroke-dashoffset="1000">
+          stroke-dasharray="1000 1000" stroke-dashoffset="0">
       <animate attributeName="stroke-dashoffset"
                values="1000;-1000" dur="4s" repeatCount="indefinite"/>
     </path>
