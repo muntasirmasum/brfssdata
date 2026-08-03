@@ -24,6 +24,9 @@ jobs:
           - {os: ubuntu-latest,   r: 'devel', http-user-agent: 'release'}
           - {os: ubuntu-latest,   r: 'release'}
           - {os: ubuntu-latest,   r: 'oldrel-1'}
+          # The declared floor in DESCRIPTION; without this entry it
+          # would be aspirational rather than tested.
+          - {os: ubuntu-latest,   r: '4.2'}
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
@@ -48,3 +51,6 @@ jobs:
         with:
           upload-snapshots: true
           build_args: 'c("--no-manual","--compact-vignettes=gs+qpdf")'
+          # A new NOTE should fail CI rather than land silently; the
+          # default only fails on warnings.
+          error-on: '"note"'

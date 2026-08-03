@@ -1,0 +1,53 @@
+# Weekly integration test against the real released data. The unit
+# suite runs fully offline against fixtures by design, so this is the
+# only job that proves the hosted assets, their checksums, and the
+# package's estimates still agree end to end. On failure it opens (or
+# comments on) a labeled issue, because nobody watches scheduled runs.
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+name: integration.yaml
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: local::., any::survey
+          needs: check
+
+      - name: Download, verify, and estimate against released data
+        run: Rscript .github/integration-check.R
+
+      - name: Open or update failure issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          existing=$(gh issue list --label integration-failure --state open --json number --jq '.[0].number' --repo "$GITHUB_REPOSITORY")
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" \
+              --body "Integration run failed again: $RUN_URL"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" \
+              --title "Integration check against released data failed" \
+              --label integration-failure \
+              --body "The weekly integration workflow failed. Run: $RUN_URL. This usually means a release asset, its checksum, or an estimate no longer matches expectations."
+          fi
