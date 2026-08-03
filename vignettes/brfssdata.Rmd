@@ -354,9 +354,10 @@ brfss_design(2023, vars = "GENHLTH") |>
 ```
 
 The weight is chosen to match the survey era: `_FINALWT` for years before
-2011 and `_LLCPWT` from 2011 on (a `weight` argument selects
-split-questionnaire weights such as `_LLCPWT2` when CDC's module
-documentation calls for them). The design is built on three added
+2011 and `_LLCPWT` from 2011 on (a `weight` argument selects another
+final weight, such as the child weight `_CLLCPWT`, when CDC's
+documentation calls for it; see `?brfss_design` for why the
+intermediate pipeline weights like `_LLCPWT2` warn). The design is built on three added
 columns, `brfss_wt`, `brfss_psu`, and `brfss_strata`, because CDC's names
 are not syntactic and cannot enter a model formula; the original CDC
 columns are kept alongside them, unchanged. The don't-know and refused

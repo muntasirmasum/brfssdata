@@ -55,6 +55,10 @@ message names the file and the \code{\link[=brfss_cache_clear]{brfss_cache_clear
 \describe{
 \item{\code{brfssdata_break_warning}}{Pooling across the 2011 redesign
 with \code{allow_break = TRUE}.}
+\item{\code{brfssdata_intermediate_weight_warning}}{\code{weight} in
+\code{\link[=brfss_design]{brfss_design()}} names an intermediate stage of CDC's weighting
+pipeline (e.g. \verb{_LLCPWT2}, the truncated pre-raking design
+weight), not a final analysis weight.}
 \item{\code{brfssdata_pooled_states_warning}}{Pooled years differ in
 state participation, so totals mix coverage.}
 \item{\code{brfssdata_label_drift_warning}}{Label wording for a

@@ -237,41 +237,61 @@ test_that("pool_weights divides by the year count, not by two", {
 })
 
 test_that("a user-supplied weight overrides the era default", {
-  local_brfss_cache(2023, llcpwt2 = 2023)
-  des <- brfss_design(2023, vars = "GENHLTH", weight = "_LLCPWT2", quiet = TRUE)
+  local_brfss_cache(2023, alt_weights = 2023)
+  des <- brfss_design(2023, vars = "GENHLTH", weight = "_CLLCPWT", quiet = TRUE)
   dat <- des$variables
-  expect_identical(dat$brfss_wt, dat$`_LLCPWT2`)
+  expect_identical(dat$brfss_wt, dat$`_CLLCPWT`)
   # the era weight is not even loaded when a weight override is given
   expect_false("_LLCPWT" %in% names(dat))
 })
 
 test_that("a user-supplied weight matches case-insensitively", {
-  local_brfss_cache(2023, llcpwt2 = 2023)
-  des <- brfss_design(2023, vars = "GENHLTH", weight = "_llcpwt2", quiet = TRUE)
+  local_brfss_cache(2023, alt_weights = 2023)
+  des <- brfss_design(2023, vars = "GENHLTH", weight = "_cllcpwt", quiet = TRUE)
+  expect_identical(des$variables$brfss_wt, des$variables$`_CLLCPWT`)
+})
+
+test_that("an intermediate pipeline weight warns with the pointed class", {
+  local_brfss_cache(2023, alt_weights = 2023)
+  expect_warning(
+    des <- brfss_design(
+      2023,
+      vars = "GENHLTH",
+      weight = "_LLCPWT2",
+      quiet = TRUE
+    ),
+    class = "brfssdata_intermediate_weight_warning"
+  )
+  # the override is still honored: warned, not blocked
   expect_identical(des$variables$brfss_wt, des$variables$`_LLCPWT2`)
 })
 
 test_that("a weight absent from a requested year names that year", {
-  local_brfss_cache(c(2022, 2023), llcpwt2 = 2023)
+  local_brfss_cache(c(2022, 2023), alt_weights = 2023)
   err <- expect_error(
-    brfss_design(2022:2023, vars = "GENHLTH", weight = "_LLCPWT2", quiet = TRUE),
+    brfss_design(
+      2022:2023,
+      vars = "GENHLTH",
+      weight = "_CLLCPWT",
+      quiet = TRUE
+    ),
     class = "brfssdata_bad_weight"
   )
   expect_match(conditionMessage(err), "2022")
 })
 
 test_that("a pooled user-supplied weight is divided by the year count", {
-  local_brfss_cache(c(2022, 2023), llcpwt2 = c(2022, 2023))
+  local_brfss_cache(c(2022, 2023), alt_weights = c(2022, 2023))
   pooled <- brfss_design(
     2022:2023,
     vars = "GENHLTH",
-    weight = "_LLCPWT2",
+    weight = "_CLLCPWT",
     quiet = TRUE
   )
   unpooled <- brfss_design(
     2022:2023,
     vars = "GENHLTH",
-    weight = "_LLCPWT2",
+    weight = "_CLLCPWT",
     pool_weights = FALSE,
     quiet = TRUE
   )

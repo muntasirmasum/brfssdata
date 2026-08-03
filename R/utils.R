@@ -27,6 +27,19 @@ LABEL_EXCLUDE <- c(
   "year"
 )
 
+# Intermediate stages of CDC's weighting pipeline that ship in the files
+# but are not final analysis weights. Their own catalog labels say so:
+# stratum weight, post-stratification weight, raw weighting factor,
+# design weight used in raking, truncated design weight (pre-raking).
+# brfss_design() warns when one is requested as `weight`.
+INTERMEDIATE_WEIGHTS <- c(
+  "_STRWT",
+  "_POSTSTR",
+  "_RAWRAKE",
+  "_WT2RAKE",
+  "_LLCPWT2"
+)
+
 brfss_repo <- function() {
   getOption("brfssdata.repo", "muntasirmasum/brfssdata")
 }

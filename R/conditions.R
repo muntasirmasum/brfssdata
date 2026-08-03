@@ -49,6 +49,10 @@
 #' \describe{
 #'   \item{`brfssdata_break_warning`}{Pooling across the 2011 redesign
 #'     with `allow_break = TRUE`.}
+#'   \item{`brfssdata_intermediate_weight_warning`}{`weight` in
+#'     [brfss_design()] names an intermediate stage of CDC's weighting
+#'     pipeline (e.g. `_LLCPWT2`, the truncated pre-raking design
+#'     weight), not a final analysis weight.}
 #'   \item{`brfssdata_pooled_states_warning`}{Pooled years differ in
 #'     state participation, so totals mix coverage.}
 #'   \item{`brfssdata_label_drift_warning`}{Label wording for a

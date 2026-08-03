@@ -15,17 +15,26 @@
 #'
 #' @section Choosing a weight:
 #' `_LLCPWT` is the final weight for the combined landline-and-cell
-#' sample and is correct for core-questionnaire analyses. From 2013 on
-#' (2015 excepted), the files also carry `_LLCPWT2` and related weights
-#' for split-questionnaire and module content; the two differ on
-#' essentially every respondent, so analyzing a variable asked of only
-#' one questionnaire version with the overall weight gives a materially
-#' wrong estimate. This package cannot tell which weight an analysis
-#' variable needs (the files do not say), so consult the year's CDC
-#' module-analysis documentation ("Complex Sampling Weights and
-#' Preparing Module Data for Analysis") and pass, e.g.,
-#' `weight = "_LLCPWT2"` when it says to. A user-supplied weight is used
-#' for every requested year and still divides by the year count under
+#' sample and is correct for core-questionnaire analyses; `_FINALWT` is
+#' its pre-2011 counterpart. The files also carry the intermediate
+#' stages of CDC's weighting pipeline, such as `_STRWT`, `_WT2RAKE`,
+#' and `_LLCPWT2` (the truncated design weight, computed before
+#' raking). None of those is an analysis weight, estimates computed
+#' with one are not calibrated to CDC's population totals, and
+#' requesting one via `weight` triggers a classed warning.
+#'
+#' Optional modules asked in states that fielded several questionnaire
+#' versions are published by CDC as separate version datasets
+#' (`LLCPyyV1` to `LLCPyyV3`) with their own final weights (`_LCPWTV1`
+#' to `_LCPWTV3`). Those datasets are not part of this package's hosted
+#' annual files, so version-specific module analyses need CDC's own
+#' downloads. The year's CDC module-analysis documentation ("Complex
+#' Sampling Weights and Preparing Module Data for Analysis") says which
+#' modules belong to the combined dataset, where the default `_LLCPWT`
+#' is correct. The `weight` argument overrides the era default for the
+#' final weights that do live in these files, e.g. `_CLLCPWT` for the
+#' child-level modules. A user-supplied weight is used for every
+#' requested year and still divides by the year count under
 #' `pool_weights`.
 #'
 #' CDC states that estimates from 2011 onward are not directly comparable
@@ -79,8 +88,8 @@
 #'   column (455 columns by 506,467 rows for 2011 alone) and says so;
 #'   passing only the variables you analyze is much faster and smaller.
 #' @param weight Optional name of the weight column to use instead of
-#'   the automatic era weight, e.g. `"_LLCPWT2"` for split-questionnaire
-#'   content; matched case-insensitively. See *Choosing a weight*.
+#'   the automatic era weight, e.g. `"_CLLCPWT"` for the child-level
+#'   modules; matched case-insensitively. See *Choosing a weight*.
 #' @param allow_break Set to `TRUE` to permit pooling years across the
 #'   2011 methodology change. A warning is still issued.
 #' @param pool_weights If `TRUE` and more than one year is requested,
@@ -126,7 +135,7 @@ brfss_design <- function(
         !nzchar(weight))
   ) {
     cli::cli_abort(
-      "{.arg weight} must be a single column name, e.g. {.val _LLCPWT2}.",
+      "{.arg weight} must be a single column name, e.g. {.val _CLLCPWT}.",
       class = "brfssdata_bad_weight"
     )
   }
@@ -195,6 +204,22 @@ brfss_design <- function(
           "i" = "Use {.fun brfss_vars} to check which years carry it."
         ),
         class = "brfssdata_bad_weight"
+      )
+    }
+    if (weight %in% INTERMEDIATE_WEIGHTS) {
+      cli::cli_warn(
+        c(
+          "{.val {weight}} is an intermediate stage of CDC's weighting
+           pipeline, not a final analysis weight.",
+          "x" = "Estimates weighted by it are not calibrated to CDC's
+                 population totals.",
+          "i" = "Module analyses that need a questionnaire-version
+                 weight ({.val _LCPWTV1} to {.val _LCPWTV3}) require
+                 CDC's separate version datasets, which this package
+                 does not provide; see the {.emph Choosing a weight}
+                 section of {.help brfssdata::brfss_design}."
+        ),
+        class = "brfssdata_intermediate_weight_warning"
       )
     }
     weight_vars <- weight

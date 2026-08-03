@@ -9,7 +9,7 @@ write_fixture_year <- function(
   n = 30,
   extra = NULL,
   psu_size = 1,
-  llcpwt2 = FALSE,
+  alt_weights = FALSE,
   states = 1
 ) {
   # The column name for the era weight comes from the package constants;
@@ -51,9 +51,12 @@ write_fixture_year <- function(
   # can assert on them deterministically.
   df$GENHLTH[1:2] <- c(7, 9)
   df$PHYSHLTH[1:3] <- c(77, 88, 99)
-  if (llcpwt2) {
-    # Differs from the main weight on every row, like the real files.
-    df[["_LLCPWT2"]] <- df[[wt_col]] * 3 + 7
+  if (alt_weights) {
+    # Both differ from the main weight on every row, like the real
+    # files: _CLLCPWT as a legitimate final-weight override, _LLCPWT2
+    # as an intermediate pipeline weight that should warn.
+    df[["_CLLCPWT"]] <- df[[wt_col]] * 3 + 7
+    df[["_LLCPWT2"]] <- df[[wt_col]] * 5 + 11
   }
   if (!is.null(extra)) {
     df[[extra]] <- as.numeric(sample(0:1, n, replace = TRUE))
@@ -183,7 +186,7 @@ local_brfss_cache <- function(
   catalog = FALSE,
   label_catalog = TRUE,
   psu_size = 1,
-  llcpwt2 = integer(0),
+  alt_weights = integer(0),
   states = list(),
   schema = 2,
   env = parent.frame()
@@ -199,7 +202,7 @@ local_brfss_cache <- function(
       dir,
       extra = extra[[as.character(y)]],
       psu_size = psu_size,
-      llcpwt2 = y %in% llcpwt2,
+      alt_weights = y %in% alt_weights,
       states = states[[as.character(y)]] %||% 1
     )
   }
