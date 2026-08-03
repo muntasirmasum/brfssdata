@@ -55,7 +55,11 @@ validate_years <- function(years, download = TRUE, call = rlang::caller_env()) {
       any(abs(years) > .Machine$integer.max)
   ) {
     cli::cli_abort(
-      "{.arg years} must be one or more whole survey years, e.g. {.code 2019:2023}.",
+      c(
+        "{.arg years} must be one or more whole survey years,
+         e.g. {.code 2019:2023}.",
+        "x" = "Got {.obj_type_friendly {years}}."
+      ),
       class = "brfssdata_bad_years_arg",
       call = call
     )
@@ -90,7 +94,7 @@ validate_years <- function(years, download = TRUE, call = rlang::caller_env()) {
     cli::cli_abort(
       c(
         "Year{?s} {missing} {?is/are} not available.",
-        "i" = "Published years: {min(available)}-{max(available)}
+        "i" = "Published years: {summarize_years(available)}
                ({length(available)} year{?s})."
       ),
       class = "brfssdata_bad_year",
@@ -98,6 +102,30 @@ validate_years <- function(years, download = TRUE, call = rlang::caller_env()) {
     )
   }
   years
+}
+
+# Collapse c(2011, 2012, 2013, 2020) to "2011-2013, 2020". Used in
+# messages everywhere a plain {min}-{max} range would misrepresent
+# non-contiguous input.
+summarize_years <- function(years) {
+  if (length(years) == 0) {
+    return("")
+  }
+  # The run-length logic below assumes ascending, deduplicated input.
+  years <- sort(unique(years))
+  breaks <- c(0, which(diff(years) != 1), length(years))
+  runs <- mapply(
+    function(from, to) {
+      if (years[from] == years[to]) {
+        as.character(years[from])
+      } else {
+        paste0(years[from], "-", years[to])
+      }
+    },
+    from = utils::head(breaks, -1) + 1,
+    to = utils::tail(breaks, -1)
+  )
+  paste(runs, collapse = ", ")
 }
 
 # Quote a DuckDB identifier (double quotes, doubled internal quotes).

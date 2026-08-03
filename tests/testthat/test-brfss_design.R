@@ -15,10 +15,14 @@ test_that("pre-2011 designs use the post-stratification weight", {
 
 test_that("spanning the 2011 break errors unless explicitly allowed", {
   local_brfss_cache(c(2009, 2023))
-  expect_error(
+  err <- expect_error(
     brfss_design(c(2009, 2023), quiet = TRUE, pool_weights = FALSE),
     class = "brfssdata_break_error"
   )
+  # Non-contiguous input renders as a list; "2009-2023" would imply
+  # fifteen years were requested when two were.
+  expect_match(conditionMessage(err), "2009, 2023")
+  expect_no_match(conditionMessage(err), "2009-2023")
 })
 
 test_that("allow_break pools with a warning and era-correct weights", {

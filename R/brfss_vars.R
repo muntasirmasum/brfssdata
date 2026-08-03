@@ -57,7 +57,8 @@ brfss_vars <- function(
       error = function(e) {
         cli::cli_abort(
           c(
-            "{.arg pattern} is not a valid regular expression.",
+            "{.arg pattern} ({.val {pattern}}) is not a valid regular
+             expression.",
             "x" = "{conditionMessage(e)}"
           ),
           class = "brfssdata_bad_pattern"
@@ -99,26 +100,4 @@ brfss_vars <- function(
   # radix ordering is locale-independent, so the catalog comes back in
   # the same order on every machine.
   out[order(out$variable, method = "radix"), ]
-}
-
-# Collapse c(2011, 2012, 2013, 2020) to "2011-2013, 2020".
-summarize_years <- function(years) {
-  if (length(years) == 0) {
-    return("")
-  }
-  # The run-length logic below assumes ascending, deduplicated input.
-  years <- sort(unique(years))
-  breaks <- c(0, which(diff(years) != 1), length(years))
-  runs <- mapply(
-    function(from, to) {
-      if (years[from] == years[to]) {
-        as.character(years[from])
-      } else {
-        paste0(years[from], "-", years[to])
-      }
-    },
-    from = utils::head(breaks, -1) + 1,
-    to = utils::tail(breaks, -1)
-  )
-  paste(runs, collapse = ", ")
 }

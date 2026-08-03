@@ -50,7 +50,8 @@
 #' # General health and design variables for two years
 #' dat <- read_brfss(2022:2023, vars = c("GENHLTH", "_LLCPWT"))
 #' @seealso [brfss_design()] to get a survey-design object instead of a
-#'   plain tibble.
+#'   plain tibble; [brfssdata-conditions] for the classes of every error,
+#'   warning, and message this package signals.
 #' @export
 read_brfss <- function(
   years,
@@ -66,7 +67,10 @@ read_brfss <- function(
       (!is.character(vars) || anyNA(vars) || length(vars) == 0)
   ) {
     cli::cli_abort(
-      "{.arg vars} must be a character vector of variable names.",
+      c(
+        "{.arg vars} must be a character vector of variable names.",
+        "x" = "Got {.obj_type_friendly {vars}}."
+      ),
       class = "brfssdata_bad_vars_arg"
     )
   }
@@ -146,7 +150,9 @@ ensure_years_cached <- function(
       c(
         "Year{?s} {missing} {?is/are} not in the local cache and
          {.code download = FALSE} was set.",
-        "i" = "Cached years: see {.fun brfss_cache_info}."
+        "i" = "Cached years: see {.fun brfss_cache_info}.",
+        "i" = "Prefetch on a connected machine with
+               {.code brfss_download({summarize_years(missing)})}."
       ),
       class = "brfssdata_not_cached",
       call = call

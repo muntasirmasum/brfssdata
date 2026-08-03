@@ -335,7 +335,8 @@ ensure_catalog_cached <- function(
         c(
           "The {what} is not cached and {.code download = FALSE} was set.",
           "i" = "Call once with {.code download = TRUE} (the default) on
-                 a connected machine to cache it."
+                 a connected machine, or prefetch everything with
+                 {.fun brfss_download}."
         ),
         class = "brfssdata_not_cached",
         call = call

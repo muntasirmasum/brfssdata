@@ -196,12 +196,16 @@ brfss_design <- function(
 
   missing_cols <- setdiff(design_vars, names(dat))
   if (length(missing_cols) > 0) {
+    # union_by_name keeps a column present in any year, so reaching here
+    # means the column exists in none of them.
     cli::cli_abort(
       c(
         "Design variable{?s} {.val {missing_cols}} {?is/are} missing from
-         the requested year{?s}.",
+         every requested year.",
+        "x" = "Years requested: {summarize_years(years)}.",
         "i" = "Each year needs its era weight, {.val {DESIGN_STRATA}},
-               and {.val {DESIGN_PSU}}."
+               and {.val {DESIGN_PSU}}; this points at a damaged file or
+               an upstream data problem worth reporting."
       ),
       class = "brfssdata_bad_design_var"
     )

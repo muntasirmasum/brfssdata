@@ -74,5 +74,6 @@ dat <- read_brfss(2022:2023, vars = c("GENHLTH", "_LLCPWT"))
 }
 \seealso{
 \code{\link[=brfss_design]{brfss_design()}} to get a survey-design object instead of a
-plain tibble.
+plain tibble; \link{brfssdata-conditions} for the classes of every error,
+warning, and message this package signals.
 }
