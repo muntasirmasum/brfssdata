@@ -17,7 +17,9 @@
 #'   whose `pattern` is a regular expression searched over names *and*
 #'   label text: this function looks names up, that one searches.)
 #' @param years Optional integer vector restricting to those years.
-#' @inheritParams read_brfss
+#' @param download If `FALSE`, only a cached catalog is used, and a
+#'   missing catalog raises an error instead of being downloaded.
+#' @param quiet If `TRUE`, suppress download progress output.
 #'
 #' @return A tibble with columns `year`, `variable`, `code`, `label`,
 #'   and `complete`. A lookup that matches nothing returns zero rows and
@@ -34,7 +36,9 @@ brfss_labels <- function(
   quiet = TRUE
 ) {
   if (!is.null(vars) && (!is.character(vars) || anyNA(vars))) {
-    hint <- if (is.numeric(vars) && all(vars >= 1984 & vars <= 2100)) {
+    year_like <- is.numeric(vars) &&
+      all(vars >= 1984 & vars <= 2100, na.rm = TRUE)
+    hint <- if (year_like) {
       c(
         "i" = "Did you mean {.code brfss_labels(years = ...)}? The first
                argument is variable names; survey years come second."
@@ -62,10 +66,14 @@ brfss_labels <- function(
     keep <- toupper(catalog$variable) %in% toupper(vars)
     catalog <- catalog[keep, , drop = FALSE]
   }
-  if (nrow(catalog) == 0 && !is.null(vars)) {
+  if (nrow(catalog) == 0 && (!is.null(vars) || !is.null(years))) {
     cli::cli_inform(
       c(
-        "No label entries for {.val {vars}}.",
+        if (is.null(vars)) {
+          "No label entries for year{?s} {.val {years}}."
+        } else {
+          "No label entries for {.val {vars}}."
+        },
         "i" = "Labels cover 1998 on; search variable names with
                {.fun brfss_vars}."
       ),

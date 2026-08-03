@@ -6,11 +6,14 @@
 #' reports, for each match, which years carry the variable. The catalog is
 #' downloaded once and cached like the data itself.
 #'
-#' @param pattern Optional regular expression matched (case-insensitively)
-#'   against variable names and labels. The default lists every variable.
+#' @param pattern Optional single regular expression matched
+#'   (case-insensitively) against variable names and labels. The default
+#'   lists every variable.
 #' @param years Optional integer vector restricting the search to
 #'   particular survey years.
-#' @inheritParams read_brfss
+#' @param download If `FALSE`, only a cached catalog is used, and a
+#'   missing catalog raises an error instead of being downloaded.
+#' @param quiet If `TRUE`, suppress download progress output.
 #'
 #' @return A tibble with one row per variable: `variable`, `label` (the
 #'   most recent non-missing label, since label text can drift across
@@ -46,6 +49,14 @@ brfss_vars <- function(
     catalog <- catalog[catalog$year %in% as.integer(years), , drop = FALSE]
   }
   if (!is.null(pattern)) {
+    if (!is.character(pattern) || length(pattern) != 1L || is.na(pattern)) {
+      # grepl() would silently use only the first element of a longer
+      # vector, and the suppressWarnings below would hide its warning.
+      cli::cli_abort(
+        "{.arg pattern} must be a single regular expression.",
+        class = "brfssdata_bad_pattern"
+      )
+    }
     label_text <- ifelse(is.na(catalog$label), "", catalog$label)
     # suppressWarnings: an invalid regex emits a TRE warning before the
     # error; the abort below already carries the compiler's message.

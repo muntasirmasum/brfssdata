@@ -7,14 +7,15 @@
 brfss_vars(pattern = NULL, years = NULL, download = TRUE, quiet = TRUE)
 }
 \arguments{
-\item{pattern}{Optional regular expression matched (case-insensitively)
-against variable names and labels. The default lists every variable.}
+\item{pattern}{Optional single regular expression matched
+(case-insensitively) against variable names and labels. The default
+lists every variable.}
 
 \item{years}{Optional integer vector restricting the search to
 particular survey years.}
 
-\item{download}{If \code{FALSE}, only cached years are used and missing
-years raise an error instead of being downloaded.}
+\item{download}{If \code{FALSE}, only a cached catalog is used, and a
+missing catalog raises an error instead of being downloaded.}
 
 \item{quiet}{If \code{TRUE}, suppress download progress output.}
 }

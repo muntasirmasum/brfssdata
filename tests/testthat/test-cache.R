@@ -67,8 +67,18 @@ test_that("foreign files in the cache dir are never deleted", {
 
 test_that("cache clear reports what it removed, and when there is nothing", {
   local_brfss_cache(2023)
-  expect_message(brfss_cache_clear(), class = "brfssdata_cache_note")
-  expect_message(brfss_cache_clear(), class = "brfssdata_cache_note")
+  # Text matched too: both branches share the class, so a class-only
+  # assertion cannot tell "Removed" from "Nothing to remove".
+  expect_message(
+    brfss_cache_clear(),
+    "Removed 1 file",
+    class = "brfssdata_cache_note"
+  )
+  expect_message(
+    brfss_cache_clear(),
+    "Nothing to remove",
+    class = "brfssdata_cache_note"
+  )
 })
 
 test_that("failed downloads raise a classed error and leave no debris", {

@@ -40,15 +40,60 @@ release_assets <- function(tag) {
   vapply(rel$assets, function(a) a$name, character(1))
 }
 
+# The published .sha256 sidecar for an asset, or NULL when none exists.
+published_sha256 <- function(tag, asset) {
+  tmp <- tempfile()
+  on.exit(unlink(tmp))
+  ok <- tryCatch(
+    {
+      utils::download.file(
+        sprintf(
+          "https://github.com/%s/releases/download/%s/%s.sha256",
+          repo,
+          tag,
+          asset
+        ),
+        tmp,
+        quiet = TRUE
+      )
+      TRUE
+    },
+    error = function(e) FALSE,
+    warning = function(w) FALSE
+  )
+  if (!ok) {
+    return(NULL)
+  }
+  strsplit(trimws(readLines(tmp)[[1]]), "\\s+")[[1]][[1]]
+}
+
 # Uploads go through the gh CLI: piggyback 0.1.5 memoizes its release
 # listings so aggressively that releases created moments earlier are
 # invisible to pb_upload. Verification reads the GitHub API directly.
-# Assets already present are not re-uploaded unless force = TRUE; the
-# name-based skip cannot see content changes, so anything mutable
-# (manifest, catalogs, sidecars) must force or a republish silently
-# keeps the stale copy.
+# Assets already present are not re-uploaded unless force = TRUE. The
+# name-based skip cannot see content changes, so before trusting it the
+# local bytes are compared against the published .sha256 sidecar: a
+# local rebuild that differs from the hosted asset must stop the
+# publish, or publish_meta() would advertise manifest hashes no
+# download can ever satisfy.
 upload_verified <- function(path, tag, force = FALSE) {
-  if (force || !basename(path) %in% release_assets(tag)) {
+  present <- basename(path) %in% release_assets(tag)
+  if (!force && present && !endsWith(path, ".sha256")) {
+    published <- published_sha256(tag, basename(path))
+    local <- cli::hash_file_sha256(path)
+    if (!is.null(published) && !identical(published, local)) {
+      stop(
+        basename(path),
+        " differs from the published copy on ",
+        tag,
+        "; local rebuilds of published years must not be skipped ",
+        "silently. Re-upload deliberately with force = TRUE (and its ",
+        "sidecar), or restore the published bytes.",
+        call. = FALSE
+      )
+    }
+  }
+  if (force || !present) {
     status <- system2(
       "gh",
       c("release", "upload", tag, path, "--repo", repo, "--clobber")
@@ -111,6 +156,32 @@ publish_meta <- function(years) {
     Sys.sleep(2)
   }
   years <- sort(as.integer(years))
+
+  # The manifest is rewritten from `years` alone, so an argument that
+  # omits a hosted year would delist it for every user whose manifest
+  # refreshes. Cross-check against the release tags actually hosted.
+  hosted <- system2(
+    "gh",
+    c(
+      "api",
+      sprintf("repos/%s/releases", repo),
+      "--paginate",
+      "--jq",
+      shQuote(".[].tag_name")
+    ),
+    stdout = TRUE
+  )
+  hosted_years <- as.integer(sub("^data-", "", grep("^data-\\d{4}$", hosted, value = TRUE)))
+  delisted <- setdiff(hosted_years, years)
+  if (length(delisted) > 0) {
+    stop(
+      "publish_meta(years) omits hosted year(s) ",
+      paste(sort(delisted), collapse = ", "),
+      "; publishing this manifest would delist them for every user. ",
+      "Pass every hosted year (see data-raw/README.md).",
+      call. = FALSE
+    )
+  }
   catalogs <- file.path(
     out_dir,
     c("brfss_variables.parquet", "brfss_labels.parquet")
@@ -172,7 +243,9 @@ publish_meta <- function(years) {
   message("published manifest: ", paste(range(years), collapse = "-"))
 }
 
-# Usage (after 02 and 03 have built everything):
-# years <- 2011:2024
+# Usage (after 02, 03, and 05 have built everything). publish_meta()
+# rewrites the manifest from exactly the years passed and aborts if that
+# would delist a hosted year, so pass the FULL hosted range:
+# years <- 1985:2024
 # purrr::walk(years, publish_year)
 # publish_meta(years)

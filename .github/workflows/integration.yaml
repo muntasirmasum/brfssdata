@@ -3,6 +3,12 @@
 # only job that proves the hosted assets, their checksums, and the
 # package's estimates still agree end to end. On failure it opens (or
 # comments on) a labeled issue, because nobody watches scheduled runs.
+#
+# NOTE: GitHub disables cron-triggered workflows in public repos after
+# 60 days without repository activity. If this repo goes quiet
+# post-release, re-enable the schedule from the Actions tab (GitHub
+# emails a warning first) or dispatch the workflow manually now and
+# then.
 on:
   schedule:
     - cron: '0 6 * * 1'
@@ -41,6 +47,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
+          # Idempotent: gh never auto-creates labels, and issue create
+          # fails outright on a label that does not exist.
+          gh label create integration-failure --force \
+            --description "Weekly released-data integration check failed" \
+            --color B60205 --repo "$GITHUB_REPOSITORY"
           existing=$(gh issue list --label integration-failure --state open --json number --jq '.[0].number' --repo "$GITHUB_REPOSITORY")
           if [ -n "$existing" ]; then
             gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" \

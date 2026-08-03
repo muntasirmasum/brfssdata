@@ -59,10 +59,15 @@
 #' @section Messages:
 #' \describe{
 #'   \item{`brfssdata_cache_note`}{Cache lifecycle notes: directory
-#'     created, files removed by [brfss_cache_clear()], or a
-#'     size-mismatched file re-downloaded.}
-#'   \item{`brfssdata_manifest_note`}{The manifest could not be
-#'     refreshed; a cached or bundled copy was used.}
+#'     created, files removed by [brfss_cache_clear()], a
+#'     size-mismatched file or stale catalog re-downloaded, or the
+#'     [brfss_download()] summary.}
+#'   \item{`brfssdata_download_note`}{A survey year is being downloaded
+#'     (once, then cached).}
+#'   \item{`brfssdata_manifest_note`}{The manifest or a catalog could
+#'     not be refreshed; a cached or bundled copy was used.}
+#'   \item{`brfssdata_lonely_psu_note`}{The once-per-session note that
+#'     `survey.lonely.psu` was set to `"adjust"`.}
 #'   \item{`brfssdata_unverified_note`}{An asset was downloaded without
 #'     checksum verification (the available manifest carries no hash
 #'     for it).}

@@ -56,6 +56,17 @@ test_that("download = FALSE refuses to fetch missing years", {
   )
 })
 
+test_that("a cached year reads offline even when the manifest omits it", {
+  # The fully-cached fast path in validate_years(): no manifest lookup,
+  # no network. A stale or year-omitting manifest (the bundled fallback
+  # after brfss_cache_clear(catalogs = TRUE), or a copy predating the
+  # year's release) must not block a read of data already on disk.
+  dir <- local_brfss_cache(2023)
+  writeLines('{"years": [2020]}', file.path(dir, "manifest.json"))
+  dat <- read_brfss(2023, quiet = TRUE)
+  expect_gt(nrow(dat), 0)
+})
+
 test_that("no download is attempted when all years are cached", {
   local_brfss_cache(2023)
   local_mocked_bindings(

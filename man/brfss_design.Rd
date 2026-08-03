@@ -55,15 +55,12 @@ its numeric codes. Identifier and design columns (\verb{_STATE}, the
 weights, strata, and PSU) always keep numeric codes so filters like
 \verb{_STATE == 6} keep working. See \code{\link[=brfss_labels]{brfss_labels()}} for the catalog.}
 
-\item{na}{If \code{TRUE}, set the codes CDC uses for missing-type answers
-(don't know / not sure, refused, not asked) to \code{NA}, using the
-value-label catalog; see \code{\link[=brfss_missing_codes]{brfss_missing_codes()}} for exactly which
-codes. The default here is \code{FALSE}: \code{read_brfss()} returns the file
-as CDC published it. (\code{\link[=brfss_design]{brfss_design()}} defaults to \code{TRUE}, because
-estimates over raw codes are almost never what an analyst wants.)
-Code 88/888 ("None") means zero, is never touched, and needs
-recoding to 0 by hand before averaging count variables. Labels
-cover 1998 on, so earlier years pass through unchanged.}
+\item{na}{If \code{TRUE} (the default here), set the codes CDC uses for
+missing-type answers (don't know / not sure, refused, not asked) to
+\code{NA} before the design is built, so estimates cover substantive
+answers; see \code{\link[=brfss_missing_codes]{brfss_missing_codes()}} for exactly which codes, and
+the same argument in \code{\link[=read_brfss]{read_brfss()}} (where the default is \code{FALSE})
+for the full details.}
 }
 \value{
 A \code{tbl_svy} survey-design object. The underlying data carry

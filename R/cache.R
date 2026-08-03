@@ -101,7 +101,8 @@ brfss_download <- function(years = NULL, catalogs = TRUE, quiet = FALSE) {
     cli::cli_inform(
       "Cache at {.path {brfss_cache_dir()}}: {sum(!is.na(info$year))}
        year{?s}, {format(structure(sum(info$size, na.rm = TRUE),
-       class = 'object_size'), units = 'auto')}."
+       class = 'object_size'), units = 'auto')}.",
+      class = "brfssdata_cache_note"
     )
   }
   invisible(info)
@@ -362,15 +363,29 @@ ensure_catalog_cached <- function(
     if (!is.null(want) && !identical(cli::hash_file_sha256(path), want)) {
       if (!quiet) {
         cli::cli_inform(
-          "Refreshing the {what}: a newer copy is published."
+          "Refreshing the {what}: a newer copy is published.",
+          class = "brfssdata_cache_note"
         )
       }
-      download_to_cache(
-        release_url("data-meta", asset),
-        path,
-        quiet = quiet,
-        expected_sha256 = want,
-        call = call
+      # A failed refresh keeps the cached copy: it was good enough
+      # yesterday, and an offline session must not lose access to it
+      # (the same fallback read_manifest() applies to the manifest).
+      tryCatch(
+        download_to_cache(
+          release_url("data-meta", asset),
+          path,
+          quiet = quiet,
+          expected_sha256 = want,
+          call = call
+        ),
+        brfssdata_download_error = function(e) {
+          cli::cli_inform(
+            c(
+              "!" = "Could not refresh the {what}; using the cached copy."
+            ),
+            class = "brfssdata_manifest_note"
+          )
+        }
       )
     }
     catalog_checked(asset)

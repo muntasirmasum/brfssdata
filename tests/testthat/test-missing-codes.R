@@ -94,6 +94,28 @@ test_that("the na step never touches excluded identifier columns", {
   expect_false(any(dat$GENHLTH %in% c(7, 9), na.rm = TRUE))
 })
 
+test_that("the design path's na step never touches identifier columns", {
+  # The design route builds its own exclusion list, and na = TRUE is the
+  # default there; mutation-verified as a separate surface from the
+  # read-path test above.
+  dir <- local_brfss_cache(2023)
+  write_fixture_parquet(
+    data.frame(
+      year = 2023L,
+      variable = c("_STATE", "GENHLTH", "GENHLTH"),
+      code = c(1L, 7L, 9L),
+      label = c("Refused", "Dont know/Not Sure", "Refused"),
+      complete = TRUE,
+      stringsAsFactors = FALSE
+    ),
+    file.path(dir, "brfss_labels.parquet")
+  )
+  write_fixture_manifest(dir, 2023)
+  des <- brfss_design(2023, quiet = TRUE)
+  expect_false(anyNA(des$variables$`_STATE`))
+  expect_false(any(des$variables$GENHLTH %in% c(7, 9), na.rm = TRUE))
+})
+
 test_that("codes are cleared only in years whose label matched", {
   local_brfss_cache(c(2022, 2023))
   dat <- read_brfss(2022:2023, quiet = TRUE, na = TRUE)

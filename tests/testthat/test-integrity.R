@@ -134,6 +134,72 @@ test_that("verified downloads pass the manifest hash through", {
   expect_identical(seen, cli::hash_file_sha256(keep))
 })
 
+test_that("a verified download does not claim to be unverified", {
+  local_brfss_manifest(integer(0))
+  dir <- brfss_cache_dir()
+  write_fixture_year(2023, dir)
+  write_fixture_manifest(dir, 2023)
+  real <- file.path(dir, "brfss_2023.parquet")
+  keep <- withr::local_tempfile()
+  file.copy(real, keep)
+  unlink(real)
+  local_mocked_bindings(
+    download_to_cache = function(url, dest, ..., expected_sha256 = NULL) {
+      file.copy(keep, dest)
+      dest
+    }
+  )
+  expect_no_message(
+    read_brfss(2023, quiet = FALSE),
+    class = "brfssdata_unverified_note"
+  )
+})
+
+test_that("a failed re-download keeps the size-mismatched cached file", {
+  # The heal must not destroy the user's only copy: download_to_cache()
+  # renames a verified temp over it on success, so nothing needs
+  # deleting up front, and offline the old file stays readable.
+  dir <- local_brfss_cache(2023)
+  path <- file.path(dir, "brfss_2023.parquet")
+  writeBin(readBin(path, "raw", 10), path)
+  local_mocked_bindings(
+    download_to_cache = function(...) {
+      cli::cli_abort("offline", class = "brfssdata_download_error")
+    }
+  )
+  expect_error(
+    read_brfss(2023, quiet = TRUE),
+    class = "brfssdata_download_error"
+  )
+  expect_true(file.exists(path))
+})
+
+test_that("a failed catalog refresh keeps the cached copy", {
+  dir <- local_brfss_cache(2020, catalog = TRUE)
+  # The manifest advertises the original catalog's hash; replace the
+  # cached catalog so a refresh is due, then fail the download. The
+  # cached copy must keep working, with the fallback note.
+  write_fixture_parquet(
+    data.frame(
+      variable = "STALE",
+      label = "old copy",
+      year = 2019L,
+      stringsAsFactors = FALSE
+    ),
+    file.path(dir, "brfss_variables.parquet")
+  )
+  local_mocked_bindings(
+    download_to_cache = function(...) {
+      cli::cli_abort("offline", class = "brfssdata_download_error")
+    }
+  )
+  expect_message(
+    out <- brfss_vars("stale"),
+    class = "brfssdata_manifest_note"
+  )
+  expect_identical(out$variable, "STALE")
+})
+
 test_that("a size-mismatched cached file is re-downloaded verified", {
   dir <- local_brfss_cache(2023)
   path <- file.path(dir, "brfss_2023.parquet")

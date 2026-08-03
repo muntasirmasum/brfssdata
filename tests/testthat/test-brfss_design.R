@@ -6,6 +6,15 @@ test_that("post-2011 designs use the raking weight", {
   expect_identical(dat$brfss_wt, dat$`_LLCPWT`)
 })
 
+test_that("the 2011 boundary year itself uses the raking weight", {
+  # Mutation-verified gap: an off-by-one in the era split (< vs <=)
+  # passed the whole suite because no test built a design for 2011, the
+  # first LLCP year and the boundary the package is documented around.
+  local_brfss_cache(2011)
+  des <- brfss_design(2011, vars = "GENHLTH", quiet = TRUE)
+  expect_identical(des$variables$brfss_wt, des$variables$`_LLCPWT`)
+})
+
 test_that("pre-2011 designs use the post-stratification weight", {
   local_brfss_cache(2009)
   des <- brfss_design(2009, quiet = TRUE)

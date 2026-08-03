@@ -183,6 +183,28 @@ test_that("labels never convert the columns the design is built on", {
   expect_s3_class(v$GENHLTH, "factor")
 })
 
+test_that("an incomplete format never converts, even when fully covered", {
+  # PHYSHLTH's incompleteness is shadowed by its uncovered day counts
+  # (the observed-coverage gate blocks it regardless), so this fixture
+  # isolates the complete-format gate itself: every observed value is on
+  # a labeled code, and only `complete = FALSE` stands in the way.
+  dir <- local_brfss_cache(integer(0))
+  one_year_fixture(dir, "RANGEVAR", c(88, 99))
+  write_labels_catalog(
+    dir,
+    data.frame(
+      year = 2023L,
+      variable = "RANGEVAR",
+      code = c(88L, 99L),
+      label = c("None", "Refused"),
+      complete = FALSE,
+      stringsAsFactors = FALSE
+    )
+  )
+  dat <- read_brfss(2023, quiet = TRUE, labels = TRUE)
+  expect_false(is.factor(dat$RANGEVAR))
+})
+
 test_that("the read path never converts _STATE", {
   # _STATE carries a complete label map in every real year; a factor of
   # state names would make `_STATE == 6` silently match nothing.

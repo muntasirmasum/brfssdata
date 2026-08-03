@@ -14,8 +14,8 @@ label text: this function looks names up, that one searches.)}
 
 \item{years}{Optional integer vector restricting to those years.}
 
-\item{download}{If \code{FALSE}, only cached years are used and missing
-years raise an error instead of being downloaded.}
+\item{download}{If \code{FALSE}, only a cached catalog is used, and a
+missing catalog raises an error instead of being downloaded.}
 
 \item{quiet}{If \code{TRUE}, suppress download progress output.}
 }

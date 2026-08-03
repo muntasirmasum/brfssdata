@@ -141,6 +141,37 @@ test_that("an invalid labels value is rejected", {
   )
 })
 
+test_that("an invalid labels value errors even when nothing converts", {
+  # Validation is eager; passed lazily it only surfaced when some
+  # variable actually qualified for conversion.
+  local_brfss_cache(2023)
+  expect_error(
+    read_brfss(2023, vars = "_STATE", quiet = TRUE, labels = "yes"),
+    class = "brfssdata_bad_labels_arg"
+  )
+  expect_error(
+    brfss_design(2023, vars = "_STATE", quiet = TRUE, labels = "yes"),
+    class = "brfssdata_bad_labels_arg"
+  )
+})
+
+test_that("numeric vars containing NA still get the classed error", {
+  local_brfss_cache(2023)
+  expect_error(
+    brfss_labels(c(2023, NA)),
+    class = "brfssdata_bad_vars_arg"
+  )
+})
+
+test_that("a years-only lookup that matches nothing says so", {
+  local_brfss_cache(2023)
+  expect_message(
+    out <- brfss_labels(years = 1997),
+    class = "brfssdata_empty_result"
+  )
+  expect_identical(nrow(out), 0L)
+})
+
 test_that("semantic label drift warns; identical wording stays silent", {
   local_brfss_cache(
     c(2022, 2023),

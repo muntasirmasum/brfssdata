@@ -39,6 +39,7 @@ standard statistical term for respondent-level records.
   R/Driver.R carries it at tag v1.5.5 and not at v1.5.4.3 or any
   earlier release, so the floor is the minimum that works, not merely
   the newest version.
-* The vignette's code is not evaluated during the package build, so no
-  network access is needed; the same document runs live on the package
-  website, where the data are available.
+* No vignette chunk that touches data or the network is evaluated
+  during the package build (the one evaluated chunk prints the local
+  citation), so checks need no network access; the same document runs
+  live on the package website, where the data are available.

@@ -80,6 +80,9 @@ read_brfss <- function(
       class = "brfssdata_bad_na_arg"
     )
   }
+  # Validated eagerly: passed lazily, an invalid labels value would only
+  # surface if some variable actually converted.
+  labels_mode <- if (isFALSE(labels)) NULL else labels_how(labels)
   paths <- ensure_years_cached(years, download = download, quiet = quiet)
   dat <- query_parquet(paths, vars = vars)
   if (isTRUE(na)) {
@@ -91,14 +94,14 @@ read_brfss <- function(
       exclude = LABEL_EXCLUDE
     )
   }
-  if (!isFALSE(labels)) {
+  if (!is.null(labels_mode)) {
     dat <- apply_labels(
       dat,
       years,
       quiet = quiet,
       download = download,
       exclude = LABEL_EXCLUDE,
-      how = labels_how(labels),
+      how = labels_mode,
       na = isTRUE(na)
     )
   }
@@ -126,7 +129,10 @@ ensure_years_cached <- function(
   # verified. Only sizes are compared here; hashing every cached year on
   # every read would be slow, and full verification happens at download
   # time. Skipped under download = FALSE, which must not delete files it
-  # cannot replace.
+  # cannot replace. The old file is deliberately NOT deleted here:
+  # download_to_cache() renames a verified temp file over it on success,
+  # and if the download fails (offline after a manifest refresh, say)
+  # the user still has whatever was readable before.
   if (download && any(present)) {
     expected <- vapply(assets, manifest_size, numeric(1), manifest = manifest)
     damaged <- present & !is.na(expected) & file.size(paths) != expected
@@ -138,7 +144,6 @@ ensure_years_cached <- function(
           class = "brfssdata_cache_note"
         )
       }
-      unlink(paths[damaged])
       present[damaged] <- FALSE
     }
   }
@@ -152,7 +157,7 @@ ensure_years_cached <- function(
          {.code download = FALSE} was set.",
         "i" = "Cached years: see {.fun brfss_cache_info}.",
         "i" = "Prefetch on a connected machine with
-               {.code brfss_download({summarize_years(missing)})}."
+               {.code brfss_download(c({paste(missing, collapse = ', ')}))}."
       ),
       class = "brfssdata_not_cached",
       call = call
@@ -166,7 +171,10 @@ ensure_years_cached <- function(
     for (i in seq_along(missing)) {
       year <- missing[[i]]
       if (!quiet) {
-        cli::cli_inform("Downloading BRFSS {year} (one-time, then cached).")
+        cli::cli_inform(
+          "Downloading BRFSS {year} (one-time, then cached).",
+          class = "brfssdata_download_note"
+        )
       }
       download_to_cache(
         year_url(year),

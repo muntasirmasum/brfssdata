@@ -85,6 +85,12 @@
 #'   2011 methodology change. A warning is still issued.
 #' @param pool_weights If `TRUE` and more than one year is requested,
 #'   divide each weight by the number of years.
+#' @param na If `TRUE` (the default here), set the codes CDC uses for
+#'   missing-type answers (don't know / not sure, refused, not asked) to
+#'   `NA` before the design is built, so estimates cover substantive
+#'   answers; see [brfss_missing_codes()] for exactly which codes, and
+#'   the same argument in [read_brfss()] (where the default is `FALSE`)
+#'   for the full details.
 #'
 #' @return A `tbl_svy` survey-design object. The underlying data carry
 #'   three added syntactic columns the design is built on: `brfss_wt`
@@ -130,6 +136,9 @@ brfss_design <- function(
       class = "brfssdata_bad_na_arg"
     )
   }
+  # Validated eagerly: passed lazily, an invalid labels value would only
+  # surface if some variable actually converted.
+  labels_mode <- if (isFALSE(labels)) NULL else labels_how(labels)
 
   pre <- years[years < BREAK_YEAR]
   post <- years[years >= BREAK_YEAR]
@@ -320,14 +329,14 @@ brfss_design <- function(
       exclude = exclude_cols
     )
   }
-  if (!isFALSE(labels)) {
+  if (!is.null(labels_mode)) {
     dat <- apply_labels(
       dat,
       years,
       quiet = quiet,
       download = download,
       exclude = exclude_cols,
-      how = labels_how(labels),
+      how = labels_mode,
       na = isTRUE(na)
     )
   }
@@ -368,7 +377,8 @@ brfss_design <- function(
                calling {.fun brfss_design} to choose different handling."
       ),
       .frequency = "once",
-      .frequency_id = "brfssdata_lonely_psu"
+      .frequency_id = "brfssdata_lonely_psu",
+      class = "brfssdata_lonely_psu_note"
     )
   }
 

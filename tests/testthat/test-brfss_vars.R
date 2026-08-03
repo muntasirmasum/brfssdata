@@ -48,6 +48,16 @@ test_that("an invalid regular expression is rejected with its cause", {
   expect_error(brfss_vars("("), class = "brfssdata_bad_pattern")
 })
 
+test_that("a multi-element pattern is rejected, not silently truncated", {
+  # grepl() would use only the first element; with its warning
+  # suppressed for the invalid-regex case, the truncation was silent.
+  local_brfss_cache(2020, catalog = TRUE)
+  expect_error(
+    brfss_vars(c("GENHLTH", "SMOK")),
+    class = "brfssdata_bad_pattern"
+  )
+})
+
 test_that("a malformed years argument is rejected", {
   local_brfss_cache(2020, catalog = TRUE)
   expect_error(
