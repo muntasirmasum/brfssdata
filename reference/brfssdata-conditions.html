@@ -138,6 +138,12 @@ message names the file and the <code><a href="brfss_cache_dir.html">brfss_cache_
 <dd><p>Pooling across the 2011 redesign
 with <code>allow_break = TRUE</code>.</p></dd>
 
+<dt><code>brfssdata_intermediate_weight_warning</code></dt>
+<dd><p><code>weight</code> in
+<code><a href="brfss_design.html">brfss_design()</a></code> names an intermediate stage of CDC's weighting
+pipeline (e.g. <code>_LLCPWT2</code>, the truncated pre-raking design
+weight), not a final analysis weight.</p></dd>
+
 <dt><code>brfssdata_pooled_states_warning</code></dt>
 <dd><p>Pooled years differ in
 state participation, so totals mix coverage.</p></dd>

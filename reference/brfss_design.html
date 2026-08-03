@@ -106,8 +106,8 @@ passing only the variables you analyze is much faster and smaller.</p></dd>
 
 <dt id="arg-weight">weight<a class="anchor" aria-label="anchor" href="#arg-weight"></a></dt>
 <dd><p>Optional name of the weight column to use instead of
-the automatic era weight, e.g. <code>"_LLCPWT2"</code> for split-questionnaire
-content; matched case-insensitively. See <em>Choosing a weight</em>.</p></dd>
+the automatic era weight, e.g. <code>"_CLLCPWT"</code> for the child-level
+modules; matched case-insensitively. See <em>Choosing a weight</em>.</p></dd>
 
 
 <dt id="arg-allow-break">allow_break<a class="anchor" aria-label="anchor" href="#arg-allow-break"></a></dt>
@@ -168,17 +168,25 @@ CDC columns are kept unchanged.</p>
 
 
 <p><code>_LLCPWT</code> is the final weight for the combined landline-and-cell
-sample and is correct for core-questionnaire analyses. From 2013 on
-(2015 excepted), the files also carry <code>_LLCPWT2</code> and related weights
-for split-questionnaire and module content; the two differ on
-essentially every respondent, so analyzing a variable asked of only
-one questionnaire version with the overall weight gives a materially
-wrong estimate. This package cannot tell which weight an analysis
-variable needs (the files do not say), so consult the year's CDC
-module-analysis documentation ("Complex Sampling Weights and
-Preparing Module Data for Analysis") and pass, e.g.,
-<code>weight = "_LLCPWT2"</code> when it says to. A user-supplied weight is used
-for every requested year and still divides by the year count under
+sample and is correct for core-questionnaire analyses; <code>_FINALWT</code> is
+its pre-2011 counterpart. The files also carry the intermediate
+stages of CDC's weighting pipeline, such as <code>_STRWT</code>, <code>_WT2RAKE</code>,
+and <code>_LLCPWT2</code> (the truncated design weight, computed before
+raking). None of those is an analysis weight, estimates computed
+with one are not calibrated to CDC's population totals, and
+requesting one via <code>weight</code> triggers a classed warning.</p>
+<p>Optional modules asked in states that fielded several questionnaire
+versions are published by CDC as separate version datasets
+(<code>LLCPyyV1</code> to <code>LLCPyyV3</code>) with their own final weights (<code>_LCPWTV1</code>
+to <code>_LCPWTV3</code>). Those datasets are not part of this package's hosted
+annual files, so version-specific module analyses need CDC's own
+downloads. The year's CDC module-analysis documentation ("Complex
+Sampling Weights and Preparing Module Data for Analysis") says which
+modules belong to the combined dataset, where the default <code>_LLCPWT</code>
+is correct. The <code>weight</code> argument overrides the era default for the
+final weights that do live in these files, e.g. <code>_CLLCPWT</code> for the
+child-level modules. A user-supplied weight is used for every
+requested year and still divides by the year count under
 <code>pool_weights</code>.</p>
 <p>CDC states that estimates from 2011 onward are not directly comparable
 to earlier years, because 2011 added cell-phone-only respondents and

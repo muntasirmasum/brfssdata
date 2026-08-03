@@ -90,6 +90,14 @@ react to exactly the situation they mean to and nothing else, e.g.
 
   Pooling across the 2011 redesign with `allow_break = TRUE`.
 
+- `brfssdata_intermediate_weight_warning`:
+
+  `weight` in
+  [`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
+  names an intermediate stage of CDC's weighting pipeline (e.g.
+  `_LLCPWT2`, the truncated pre-raking design weight), not a final
+  analysis weight.
+
 - `brfssdata_pooled_states_warning`:
 
   Pooled years differ in state participation, so totals mix coverage.

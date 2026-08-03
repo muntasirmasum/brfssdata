@@ -431,7 +431,7 @@ brfss_cache_info()
 #> 3 brfss_2023.parquet       2023 29077288
 #> 4 brfss_labels.parquet       NA   119739
 #> 5 brfss_variables.parquet    NA    63889
-#> 6 manifest.json              NA      285
+#> 6 manifest.json              NA     6275
 ```
 
 Because reads come from the cache, a year you have already downloaded is
@@ -507,14 +507,17 @@ brfss_design(2023, vars = "GENHLTH") |>
 
 The weight is chosen to match the survey era: `_FINALWT` for years
 before 2011 and `_LLCPWT` from 2011 on (a `weight` argument selects
-split-questionnaire weights such as `_LLCPWT2` when CDC’s module
-documentation calls for them). The design is built on three added
-columns, `brfss_wt`, `brfss_psu`, and `brfss_strata`, because CDC’s
-names are not syntactic and cannot enter a model formula; the original
-CDC columns are kept alongside them, unchanged. The don’t-know and
-refused codes arrive as `NA` here by default (`na = TRUE`), which is why
-the filter above is on [`is.na()`](https://rdrr.io/r/base/NA.html) and
-not on code ranges; pass `na = FALSE` for the raw codes.
+another final weight, such as the child weight `_CLLCPWT`, when CDC’s
+documentation calls for it; see
+[`?brfss_design`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
+for why the intermediate pipeline weights like `_LLCPWT2` warn). The
+design is built on three added columns, `brfss_wt`, `brfss_psu`, and
+`brfss_strata`, because CDC’s names are not syntactic and cannot enter a
+model formula; the original CDC columns are kept alongside them,
+unchanged. The don’t-know and refused codes arrive as `NA` here by
+default (`na = TRUE`), which is why the filter above is on
+[`is.na()`](https://rdrr.io/r/base/NA.html) and not on code ranges; pass
+`na = FALSE` for the raw codes.
 
 Two behaviors are worth knowing about up front. Because BRFSS public-use
 files make each respondent their own primary sampling unit, single-PSU

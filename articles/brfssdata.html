@@ -447,7 +447,7 @@ it.</p>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> brfss_2023.parquet       <span style="text-decoration: underline;">2</span>023 29<span style="text-decoration: underline;">077</span>288</span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> brfss_labels.parquet       <span style="color: #BB0000;">NA</span>   <span style="text-decoration: underline;">119</span>739</span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> brfss_variables.parquet    <span style="color: #BB0000;">NA</span>    <span style="text-decoration: underline;">63</span>889</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> manifest.json              <span style="color: #BB0000;">NA</span>      285</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> manifest.json              <span style="color: #BB0000;">NA</span>     <span style="text-decoration: underline;">6</span>275</span></span></code></pre></div>
 <p>Because reads come from the cache, a year you have already downloaded
 is available with no network at all. Setting
 <code>download = FALSE</code> makes that explicit: cached years are read
@@ -505,15 +505,16 @@ straight to analysis.</p>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span>       5 0.044<span style="text-decoration: underline;">6</span>  0.043<span style="text-decoration: underline;">3</span>  0.045<span style="text-decoration: underline;">9</span></span></span></code></pre></div>
 <p>The weight is chosen to match the survey era: <code>_FINALWT</code>
 for years before 2011 and <code>_LLCPWT</code> from 2011 on (a
-<code>weight</code> argument selects split-questionnaire weights such as
-<code>_LLCPWT2</code> when CDC’s module documentation calls for them).
-The design is built on three added columns, <code>brfss_wt</code>,
-<code>brfss_psu</code>, and <code>brfss_strata</code>, because CDC’s
-names are not syntactic and cannot enter a model formula; the original
-CDC columns are kept alongside them, unchanged. The don’t-know and
-refused codes arrive as <code>NA</code> here by default
-(<code>na = TRUE</code>), which is why the filter above is on
-<code><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na()</a></code> and not on code ranges; pass
+<code>weight</code> argument selects another final weight, such as the
+child weight <code>_CLLCPWT</code>, when CDC’s documentation calls for
+it; see <code><a href="../reference/brfss_design.html">?brfss_design</a></code> for why the intermediate pipeline
+weights like <code>_LLCPWT2</code> warn). The design is built on three
+added columns, <code>brfss_wt</code>, <code>brfss_psu</code>, and
+<code>brfss_strata</code>, because CDC’s names are not syntactic and
+cannot enter a model formula; the original CDC columns are kept
+alongside them, unchanged. The don’t-know and refused codes arrive as
+<code>NA</code> here by default (<code>na = TRUE</code>), which is why
+the filter above is on <code><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na()</a></code> and not on code ranges; pass
 <code>na = FALSE</code> for the raw codes.</p>
 <p>Two behaviors are worth knowing about up front. Because BRFSS
 public-use files make each respondent their own primary sampling unit,

@@ -50,7 +50,7 @@ brfss_design(
 - weight:
 
   Optional name of the weight column to use instead of the automatic era
-  weight, e.g. `"_LLCPWT2"` for split-questionnaire content; matched
+  weight, e.g. `"_CLLCPWT"` for the child-level modules; matched
   case-insensitively. See *Choosing a weight*.
 
 - allow_break:
@@ -111,15 +111,24 @@ are pooled). The original CDC columns are kept unchanged.
 ## Choosing a weight
 
 `_LLCPWT` is the final weight for the combined landline-and-cell sample
-and is correct for core-questionnaire analyses. From 2013 on (2015
-excepted), the files also carry `_LLCPWT2` and related weights for
-split-questionnaire and module content; the two differ on essentially
-every respondent, so analyzing a variable asked of only one
-questionnaire version with the overall weight gives a materially wrong
-estimate. This package cannot tell which weight an analysis variable
-needs (the files do not say), so consult the year's CDC module-analysis
-documentation ("Complex Sampling Weights and Preparing Module Data for
-Analysis") and pass, e.g., `weight = "_LLCPWT2"` when it says to. A
+and is correct for core-questionnaire analyses; `_FINALWT` is its
+pre-2011 counterpart. The files also carry the intermediate stages of
+CDC's weighting pipeline, such as `_STRWT`, `_WT2RAKE`, and `_LLCPWT2`
+(the truncated design weight, computed before raking). None of those is
+an analysis weight, estimates computed with one are not calibrated to
+CDC's population totals, and requesting one via `weight` triggers a
+classed warning.
+
+Optional modules asked in states that fielded several questionnaire
+versions are published by CDC as separate version datasets (`LLCPyyV1`
+to `LLCPyyV3`) with their own final weights (`_LCPWTV1` to `_LCPWTV3`).
+Those datasets are not part of this package's hosted annual files, so
+version-specific module analyses need CDC's own downloads. The year's
+CDC module-analysis documentation ("Complex Sampling Weights and
+Preparing Module Data for Analysis") says which modules belong to the
+combined dataset, where the default `_LLCPWT` is correct. The `weight`
+argument overrides the era default for the final weights that do live in
+these files, e.g. `_CLLCPWT` for the child-level modules. A
 user-supplied weight is used for every requested year and still divides
 by the year count under `pool_weights`.
 

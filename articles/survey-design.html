@@ -267,19 +267,27 @@ it can parse.</p>
 <code>_LLCPWT</code> from 2011 on, so a core-questionnaire analysis
 never names a weight column and cannot quietly pick up the wrong
 one.</p>
-<p>One family of analyses needs to override that choice. From 2013 on
-(2015 excepted), the files also carry <code>_LLCPWT2</code>, the weight
-for split-questionnaire and module content, and it is not a rounding
-difference: the two weights disagree on essentially every respondent, by
-large factors. A module variable analyzed under the overall weight
-produces a materially wrong estimate, and nothing in the file itself
-says which weight a variable needs. CDC’s annual “Complex Sampling
-Weights and Preparing Module Data for Analysis” document does say, and
-<code>brfss_design(weight = "_LLCPWT2")</code> applies it when it does.
-The missing-code handling is also on by default here
-(<code>na = TRUE</code>): the don’t-know and refused codes arrive as
-<code>NA</code>, so denominators cover substantive answers, with
-<code><a href="../reference/brfss_missing_codes.html">brfss_missing_codes()</a></code> as the audit trail and
+<p>The files also carry the intermediate stages of CDC’s weighting
+pipeline, <code>_STRWT</code>, <code>_RAWRAKE</code>,
+<code>_WT2RAKE</code>, and <code>_LLCPWT2</code> (the truncated design
+weight, computed before raking). None of them is an analysis weight, an
+estimate computed with one is calibrated to nothing, and
+<code><a href="../reference/brfss_design.html">brfss_design()</a></code> warns when a <code>weight</code> request
+names one. For optional modules the question is which dataset, not which
+column. When a state fielded several questionnaire versions, CDC
+publishes separate version datasets (<code>LLCP23V1</code> through
+<code>LLCP23V3</code> in 2023) with their own final weights
+(<code>_LCPWTV1</code> through <code>_LCPWTV3</code>); those files are
+not part of this collection, so version-specific module analyses need
+CDC’s own downloads. CDC’s annual “Complex Sampling Weights and
+Preparing Module Data for Analysis” document says which modules belong
+to the combined dataset, where the default <code>_LLCPWT</code> is
+correct, and the <code>weight</code> argument covers the final weights
+that do live in these files, such as the child weight
+(<code>weight = "_CLLCPWT"</code>). The missing-code handling is also on
+by default here (<code>na = TRUE</code>): the don’t-know and refused
+codes arrive as <code>NA</code>, so denominators cover substantive
+answers, with <code><a href="../reference/brfss_missing_codes.html">brfss_missing_codes()</a></code> as the audit trail and
 <code>na = FALSE</code> as the way back to the raw codes.</p>
 <p>The design is then built on syntactic copies of the design variables.
 <code>_PSU</code> and <code>_STSTR</code> are not legal R names, so

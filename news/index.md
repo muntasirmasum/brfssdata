@@ -21,8 +21,14 @@ Initial CRAN release.
   multi-respondent PSUs and keep the clustered variance estimator; from
   2001 on each respondent is their own PSU, and the design drops the
   nominal cluster term for identical estimates at a fraction of the
-  cost. A `weight` argument selects split-questionnaire weights such as
-  `_LLCPWT2` when CDC’s module documentation calls for them.
+  cost. A `weight` argument selects another final weight, such as the
+  child weight `_CLLCPWT`, when CDC’s documentation calls for it;
+  requesting an intermediate stage of CDC’s weighting pipeline (such as
+  `_LLCPWT2`, the truncated design weight computed before raking)
+  triggers a classed warning, because those columns are not analysis
+  weights. Module analyses that require CDC’s questionnaire-version
+  datasets and their `_LCPWTV1` to `_LCPWTV3` final weights are not
+  supported by the hosted annual files.
 - By default,
   [`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
   sets the codes CDC uses for don’t-know, refused, and missing-type

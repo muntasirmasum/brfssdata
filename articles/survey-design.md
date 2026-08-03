@@ -211,18 +211,25 @@ The weight is selected by year, `_FINALWT` before 2011 and `_LLCPWT`
 from 2011 on, so a core-questionnaire analysis never names a weight
 column and cannot quietly pick up the wrong one.
 
-One family of analyses needs to override that choice. From 2013 on (2015
-excepted), the files also carry `_LLCPWT2`, the weight for
-split-questionnaire and module content, and it is not a rounding
-difference: the two weights disagree on essentially every respondent, by
-large factors. A module variable analyzed under the overall weight
-produces a materially wrong estimate, and nothing in the file itself
-says which weight a variable needs. CDC’s annual “Complex Sampling
-Weights and Preparing Module Data for Analysis” document does say, and
-`brfss_design(weight = "_LLCPWT2")` applies it when it does. The
-missing-code handling is also on by default here (`na = TRUE`): the
-don’t-know and refused codes arrive as `NA`, so denominators cover
-substantive answers, with
+The files also carry the intermediate stages of CDC’s weighting
+pipeline, `_STRWT`, `_RAWRAKE`, `_WT2RAKE`, and `_LLCPWT2` (the
+truncated design weight, computed before raking). None of them is an
+analysis weight, an estimate computed with one is calibrated to nothing,
+and
+[`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
+warns when a `weight` request names one. For optional modules the
+question is which dataset, not which column. When a state fielded
+several questionnaire versions, CDC publishes separate version datasets
+(`LLCP23V1` through `LLCP23V3` in 2023) with their own final weights
+(`_LCPWTV1` through `_LCPWTV3`); those files are not part of this
+collection, so version-specific module analyses need CDC’s own
+downloads. CDC’s annual “Complex Sampling Weights and Preparing Module
+Data for Analysis” document says which modules belong to the combined
+dataset, where the default `_LLCPWT` is correct, and the `weight`
+argument covers the final weights that do live in these files, such as
+the child weight (`weight = "_CLLCPWT"`). The missing-code handling is
+also on by default here (`na = TRUE`): the don’t-know and refused codes
+arrive as `NA`, so denominators cover substantive answers, with
 [`brfss_missing_codes()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_missing_codes.md)
 as the audit trail and `na = FALSE` as the way back to the raw codes.
 
