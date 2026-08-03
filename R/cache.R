@@ -265,8 +265,8 @@ download_to_cache <- function(
         c(
           "Downloaded {.url {url}} but its checksum does not match the
            data manifest ({attempts} attempt{?s}).",
-          "x" = "Expected sha256 {substr(expected_sha256, 1, 12)}…,
-                 got {substr(got, 1, 12)}….",
+          "x" = "Expected sha256 {substr(expected_sha256, 1, 12)}...,
+                 got {substr(got, 1, 12)}....",
           "i" = "Nothing was written to the cache.",
           "i" = "If the release was recently republished, refresh the
                  manifest with {.code brfss_years(refresh = TRUE)} and

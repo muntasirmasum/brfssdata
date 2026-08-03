@@ -48,8 +48,8 @@ brfss_missing_codes <- function(
 
 # Normalize a label for missing-code matching: lower case, apostrophe
 # variants stripped (CDC files carry straight, curly, and acute
-# apostrophes, plus the Â´ mojibake from double-encoded CP1252), and
-# whitespace collapsed.
+# apostrophes, plus the A-circumflex mojibake from double-encoded
+# CP1252), and whitespace collapsed.
 normalize_label <- function(x) {
   x <- tolower(x)
   # \u00c2 is the mojibake byte; tolower() has already turned it into
