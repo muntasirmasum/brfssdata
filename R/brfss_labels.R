@@ -70,7 +70,7 @@ brfss_labels <- function(
     cli::cli_inform(
       c(
         if (is.null(vars)) {
-          "No label entries for year{?s} {.val {years}}."
+          "No label entries for year{?s} {.val {as.character(years)}}."
         } else {
           "No label entries for {.val {vars}}."
         },

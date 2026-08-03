@@ -54,6 +54,12 @@ test_that("download = FALSE refuses to fetch missing years", {
     read_brfss(2023, download = FALSE, quiet = TRUE),
     class = "brfssdata_not_cached"
   )
+  # Both years missing: pins the {.val} wrapping against cli's crash on
+  # plural markers over plain length>1 vectors.
+  expect_error(
+    read_brfss(2022:2023, download = FALSE, quiet = TRUE),
+    class = "brfssdata_not_cached"
+  )
 })
 
 test_that("a cached year reads offline even when the manifest omits it", {

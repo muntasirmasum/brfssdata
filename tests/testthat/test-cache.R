@@ -122,9 +122,15 @@ test_that("has_curl reflects whether curl is really installed", {
 
 test_that("both downloaders land the file, whichever one is available", {
   # curl is a Suggests. The base R branch would otherwise never run on a
-  # machine that has curl installed, which is every machine that tests
-  # this package.
-  for (curl_available in c(TRUE, FALSE)) {
+  # machine that has curl installed; the curl branch can only run where
+  # curl actually exists (mocking has_curl() to TRUE on a noSuggests
+  # machine would call a package that is not there).
+  branches <- if (requireNamespace("curl", quietly = TRUE)) {
+    c(TRUE, FALSE)
+  } else {
+    FALSE
+  }
+  for (curl_available in branches) {
     dir <- withr::local_tempdir()
     withr::local_options(brfssdata.cache_dir = dir)
     local_mocked_bindings(has_curl = function() curl_available)

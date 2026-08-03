@@ -53,6 +53,14 @@ jobs:
         config: ${{ fromJson(needs.setup.outputs.containers) }}
     container:
       image: ${{ matrix.config.container }}
+    # Local addition to the canonical template: the nosuggests container
+    # has no knitr/rmarkdown, so rebuilding the (knitr) vignette can only
+    # fail there. CRAN machines always install Suggests, so this skips
+    # nothing CRAN would run; the R code and tests still check fully.
+    env:
+      CHECK_ARGS: >-
+        ${{ contains(matrix.config.label, 'nosuggests')
+            && '--ignore-vignettes' || '' }}
 
     steps:
       - uses: r-hub/actions/checkout@v1

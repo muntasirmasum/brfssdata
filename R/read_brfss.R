@@ -153,8 +153,8 @@ ensure_years_cached <- function(
   if (length(missing) > 0 && !download) {
     cli::cli_abort(
       c(
-        "Year{?s} {missing} {?is/are} not in the local cache and
-         {.code download = FALSE} was set.",
+        "Year{?s} {.val {as.character(missing)}} {?is/are} not in the
+         local cache and {.code download = FALSE} was set.",
         "i" = "Cached years: see {.fun brfss_cache_info}.",
         "i" = "Prefetch on a connected machine with
                {.code brfss_download(c({paste(missing, collapse = ', ')}))}."

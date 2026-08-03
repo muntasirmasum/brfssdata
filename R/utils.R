@@ -93,7 +93,7 @@ validate_years <- function(years, download = TRUE, call = rlang::caller_env()) {
   if (length(missing) > 0) {
     cli::cli_abort(
       c(
-        "Year{?s} {missing} {?is/are} not available.",
+        "Year{?s} {.val {as.character(missing)}} {?is/are} not available.",
         "i" = "Published years: {summarize_years(available)}
                ({length(available)} year{?s})."
       ),

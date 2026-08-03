@@ -10,6 +10,12 @@ test_that("validate_years rejects unpublished years", {
   local_brfss_manifest(2020:2023)
   expect_error(validate_years(1999), class = "brfssdata_bad_year")
   expect_error(validate_years(c(2022, 2030)), class = "brfssdata_bad_year")
+  # Two missing years at once: pluralization over a plain length>1
+  # vector crashes cli, so this pins the {.val} wrapping in the message.
+  expect_error(
+    validate_years(c(2029, 2030)),
+    class = "brfssdata_bad_year"
+  )
 })
 
 test_that("validate_years sorts, deduplicates, and passes valid years", {

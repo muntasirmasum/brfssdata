@@ -233,8 +233,10 @@ brfss_design <- function(
     if (length(absent_years) > 0) {
       cli::cli_abort(
         c(
-          "Weight {.val {requested_weight}} is not present in year{?s}
-           {absent_years}.",
+          "Weight {.val {requested_weight}} is not present in every
+           requested year.",
+          "x" = "Missing from year{?s}:
+                 {.val {as.character(absent_years)}}.",
           "i" = "Use {.fun brfss_vars} to check availability, or request
                  only the years that carry it."
         ),
@@ -274,8 +276,9 @@ brfss_design <- function(
     bad_years <- sort(unique(dat$year[bad_wt]))
     cli::cli_abort(
       c(
-        "{sum(bad_wt)} respondent{?s} in year{?s} {bad_years} {?has/have}
-         a missing final weight.",
+        "{sum(bad_wt)} respondent{?s} {?has/have} a missing final
+         weight.",
+        "x" = "Affected year{?s}: {.val {as.character(bad_years)}}.",
         "i" = "A survey design cannot be built over missing weights."
       ),
       class = "brfssdata_bad_design_var"
@@ -298,8 +301,9 @@ brfss_design <- function(
       bad_years <- sort(unique(dat$year[bad]))
       cli::cli_abort(
         c(
-          "{sum(bad)} respondent{?s} in year{?s} {bad_years} {?has/have}
-           a missing {.val {design_col}}.",
+          "{sum(bad)} respondent{?s} {?has/have} a missing
+           {.val {design_col}}.",
+          "x" = "Affected year{?s}: {.val {as.character(bad_years)}}.",
           "i" = "A survey design cannot be built over missing strata or
                  primary sampling units."
         ),
@@ -467,7 +471,8 @@ warn_unequal_state_participation <- function(years) {
   cli::cli_warn(
     c(
       "State participation differs across the pooled years: state
-       FIPS code{?s} {uneven} {?does/do} not appear in every year.",
+       FIPS code{?s} {.val {as.character(uneven)}} {?does/do} not appear
+       in every year.",
       "i" = "Pooled totals average over changing state coverage; filter
              to the common states, or set {.code pool_weights = FALSE}
              and estimate per year, if that matters for your analysis."

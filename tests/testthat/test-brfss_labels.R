@@ -170,6 +170,12 @@ test_that("a years-only lookup that matches nothing says so", {
     class = "brfssdata_empty_result"
   )
   expect_identical(nrow(out), 0L)
+  # Two years: pins the character conversion against cli's crash on
+  # plural markers over numeric vectors.
+  expect_message(
+    brfss_labels(years = c(1996, 1997)),
+    class = "brfssdata_empty_result"
+  )
 })
 
 test_that("semantic label drift warns; identical wording stays silent", {

@@ -295,9 +295,12 @@ test_that("a malformed weight argument is rejected", {
 })
 
 test_that("pooling warns when state participation differs across years", {
+  # Two uneven states, not one: cli pluralization over a plain length>1
+  # vector crashes in this cli version, so the length-2 case is the
+  # regression pin for the {.val} wrapping in the warning.
   local_brfss_cache(
     c(2022, 2023),
-    states = list("2022" = 1:2, "2023" = 1:3)
+    states = list("2022" = 1:2, "2023" = 1:4)
   )
   expect_warning(
     brfss_design(2022:2023, vars = "GENHLTH", quiet = TRUE),
