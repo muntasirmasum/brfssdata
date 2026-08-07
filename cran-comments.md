@@ -11,18 +11,21 @@ standard statistical term for respondent-level records.
 
 ## Test environments
 
-* local macOS (aarch64), R 4.6.1
+* local macOS (aarch64), R 4.6.1: 0 errors, 0 warnings, 0 notes
 * GitHub Actions: ubuntu-latest (R 4.2, release, devel, oldrel-1),
-  windows-latest (release), macos-latest (release)
-* win-builder (devel)
-* R-hub v2: linux, windows, macos, nosuggests
+  windows-latest (release), macos-latest (release): all passing
+* win-builder (devel): 1 note (the DESCRIPTION spelling
+  false-positive described above)
+* R-hub v2 (R-devel): linux, windows, macos: Status OK on all three
 
 ## Notes for reviewers
 
-* All data access is download-on-demand from GitHub release assets;
-  every example that touches the network is gated behind
-  @examplesIf interactive(), and tests mock all downloads, so checks
-  run fully offline.
+* All data access is download-on-demand from GitHub release assets.
+  Examples for the metadata functions run offline against catalog
+  snapshots bundled in inst/extdata (they pass download = FALSE, which
+  never touches the network); examples that would download survey data
+  are gated behind @examplesIf interactive(); and tests mock all
+  downloads. Checks therefore run fully offline.
 * Downloaded data are stored under tools::R_user_dir("brfssdata",
   "cache") in line with CRAN's storage policy: nothing is downloaded
   except on an explicit user request, the location is announced the
