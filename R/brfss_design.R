@@ -33,8 +33,15 @@
 #' modules belong to the combined dataset, where the default `_LLCPWT`
 #' is correct. The `weight` argument overrides the era default for the
 #' final weights that do live in these files, e.g. `_CLLCPWT` for the
-#' child-level modules. A user-supplied weight is used for every
-#' requested year and still divides by the year count under
+#' child-level modules. A user-supplied weight defines its analytic
+#' domain: a module weight exists only for the records its module
+#' applies to (completed child interviews for `_CLLCPWT`, so most rows
+#' carry `NA` there), and the design subsets to the rows the weight
+#' covers, reporting the drop with a `brfssdata_weight_subset_note`
+#' message, which matches CDC's module-analysis guidance. The automatic
+#' era weight gets no such treatment; a missing value there means a
+#' damaged file and stops the build. A user-supplied weight is used for
+#' every requested year and still divides by the year count under
 #' `pool_weights`.
 #'
 #' CDC states that estimates from 2011 onward are not directly comparable
@@ -87,6 +94,16 @@
 #'   Design variables are always included. The default loads every
 #'   column (455 columns by 506,467 rows for 2011 alone) and says so;
 #'   passing only the variables you analyze is much faster and smaller.
+#' @param states Optional vector of reporting jurisdictions (FIPS,
+#'   postal abbreviations, or names; see [brfss_states]), filtered
+#'   inside the query like in [read_brfss()]. Filtering by state
+#'   *before* the design is built is variance-exact here: BRFSS strata
+#'   (`_STSTR`) nest within state, so a state subset keeps whole strata
+#'   and yields the same estimates, standard errors, and degrees of
+#'   freedom as subsetting the full design afterwards. That property is
+#'   specific to whole-stratum subsets; any other domain (an age group,
+#'   one sex) must be analyzed by filtering the returned design object,
+#'   never the data (see the *Survey design in BRFSS* article).
 #' @param weight Optional name of the weight column to use instead of
 #'   the automatic era weight, e.g. `"_CLLCPWT"` for the child-level
 #'   modules; matched case-insensitively. See *Choosing a weight*.
@@ -118,6 +135,7 @@
 brfss_design <- function(
   years,
   vars = NULL,
+  states = NULL,
   weight = NULL,
   allow_break = FALSE,
   pool_weights = TRUE,
@@ -189,6 +207,7 @@ brfss_design <- function(
     } else {
       union(vars, c(weight %||% auto_weights, DESIGN_STRATA, DESIGN_PSU))
     },
+    states = states,
     download = download,
     quiet = quiet
   )
@@ -268,6 +287,39 @@ brfss_design <- function(
         class = "brfssdata_bad_weight"
       )
     }
+    # A user-supplied weight defines its analytic domain: a module
+    # weight such as _CLLCPWT exists only for the records its module
+    # applies to (completed child interviews there), so in the real
+    # files most rows carry NA. Those rows cannot enter this design and
+    # are dropped, which is CDC's own module-analysis guidance
+    # (subset to the module's records). The automatic era weight below
+    # gets no such treatment: it must cover every respondent, and a
+    # missing value there means a damaged file, caught further down.
+    drop <- is.na(dat[[weight]])
+    if (any(drop)) {
+      if (!quiet) {
+        n_total <- nrow(dat)
+        n_drop <- sum(drop)
+        by_year <- table(dat$year[drop])
+        drop_txt <- paste(
+          sprintf("%s: %s", names(by_year), unname(by_year)),
+          collapse = "; "
+        )
+        cli::cli_inform(
+          c(
+            "i" = "{.val {weight}} covers {n_total - n_drop} of {n_total}
+                   rows; dropping the {n_drop} row{?s} where it is
+                   missing ({drop_txt}).",
+            "i" = "A module weight exists only for the records its
+                   module applies to; subsetting to them matches CDC's
+                   module-analysis guidance. Omit {.arg weight} for the
+                   full-sample era weight."
+          ),
+          class = "brfssdata_weight_subset_note"
+        )
+      }
+      dat <- dat[!drop, , drop = FALSE]
+    }
     wt <- dat[[weight]]
   } else if (spans_break) {
     wt <- ifelse(
@@ -293,7 +345,7 @@ brfss_design <- function(
 
   if (pool_weights && length(years) > 1) {
     wt <- wt / length(years)
-    warn_unequal_state_participation(years)
+    warn_unequal_state_participation(years, states = resolve_states(states))
   }
 
   bad_wt <- is.na(wt)
@@ -452,7 +504,9 @@ brfss_design <- function(
 # files rather than the loaded frame, because the design usually
 # carries only the requested analysis variables, not _STATE. Skipped
 # silently when any file lacks _STATE (never true of real BRFSS years).
-warn_unequal_state_participation <- function(years) {
+# With a states filter, only the requested states are compared: a state
+# outside the filter cannot affect the pooled estimate.
+warn_unequal_state_participation <- function(years, states = NULL) {
   paths <- cache_path(year_asset(years))
   paths <- paths[file.exists(paths)]
   if (length(paths) < 2) {
@@ -479,6 +533,9 @@ warn_unequal_state_participation <- function(years) {
       if (anyNA(q$state)) {
         NULL
       } else {
+        if (!is.null(states)) {
+          q <- q[q$state %in% states, , drop = FALSE]
+        }
         lapply(split(q$state, q$year), function(s) sort(unique(s)))
       }
     },

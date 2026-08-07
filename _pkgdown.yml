@@ -28,6 +28,10 @@ navbar:
         href: articles/survey-design.html
       - text: Survey-weighted logistic regression
         href: articles/logistic-regression.html
+      - text: Age-adjusted prevalence
+        href: articles/age-adjustment.html
+      - text: Validating against CDC's published estimates
+        href: articles/validation.html
       - text: Merging BRFSS with external data
         href: articles/external-data.html
       - text: Using the data outside R
@@ -39,16 +43,26 @@ reference:
   contents:
   - read_brfss
   - brfss_years
+  - brfss_year_info
 - title: Survey-weighted analysis
   desc: Design objects with year-appropriate weights, strata, and PSUs.
   contents:
   - brfss_design
-- title: Variables and value labels
-  desc: Search the variable catalog and CDC value-label maps.
+  - brfss_std_pop_2000
+- title: Find and understand variables
+  desc: Search the catalogs, read the codebook, follow renames.
   contents:
   - brfss_vars
+  - brfss_codebook
   - brfss_labels
   - brfss_missing_codes
+  - brfss_crosswalk
+- title: Reference data
+  contents:
+  - brfss_states
+- title: Cite
+  contents:
+  - brfss_citation
 - title: Cache management
   contents:
   - brfss_download

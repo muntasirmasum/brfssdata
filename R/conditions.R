@@ -19,6 +19,10 @@
 #'     of variable names.}
 #'   \item{`brfssdata_bad_var`}{A requested variable does not exist in
 #'     the requested years.}
+#'   \item{`brfssdata_bad_states_arg`}{`states` is not a vector of
+#'     FIPS codes, postal abbreviations, or jurisdiction names.}
+#'   \item{`brfssdata_bad_state`}{A value in `states` matches no BRFSS
+#'     jurisdiction; see [brfss_states].}
 #'   \item{`brfssdata_bad_pattern`}{`pattern` in [brfss_vars()] is not a
 #'     valid regular expression.}
 #'   \item{`brfssdata_bad_weight`}{`weight` in [brfss_design()] is
@@ -43,6 +47,11 @@
 #'   \item{`brfssdata_corrupt_cache`}{A cached file is unreadable
 #'     (typically a corrupted download from before verification); the
 #'     message names the file and the [brfss_cache_clear()] remedy.}
+#'   \item{`brfssdata_type_conflict`}{A requested column is stored as
+#'     text in some requested years' files and as a number in others,
+#'     so combining them would silently corrupt values; usually stale
+#'     cached files mixed with current releases, with the
+#'     [brfss_cache_clear()] remedy named.}
 #' }
 #'
 #' @section Warnings:
@@ -58,6 +67,9 @@
 #'   \item{`brfssdata_label_drift_warning`}{Label wording for a
 #'     converted variable changed meaning (not just formatting) across
 #'     the requested years; the newest wording was applied.}
+#'   \item{`brfssdata_state_coverage_warning`}{A jurisdiction requested
+#'     via `states` is absent from a requested year's file, so
+#'     estimates for that year cover the remaining states only.}
 #' }
 #'
 #' @section Messages:
@@ -77,10 +89,26 @@
 #'     for it).}
 #'   \item{`brfssdata_na_note`}{`na = TRUE` set missing-type codes to
 #'     `NA`; the counts and the [brfss_missing_codes()] audit trail.}
-#'   \item{`brfssdata_empty_result`}{A [brfss_labels()] lookup matched
-#'     nothing.}
+#'   \item{`brfssdata_na_coverage_note`}{`na = TRUE` was requested for
+#'     years the value-label catalog does not cover (before 1998) or
+#'     covers only partially (1998), so codes there passed through
+#'     unchanged.}
+#'   \item{`brfssdata_weight_subset_note`}{A user-supplied `weight` in
+#'     [brfss_design()] is missing on some rows (a module weight covers
+#'     only its module's records); those rows were dropped, per CDC's
+#'     module-analysis guidance.}
+#'   \item{`brfssdata_empty_result`}{A metadata lookup
+#'     ([brfss_labels()], [brfss_crosswalk()], [brfss_year_info()])
+#'     matched nothing.}
 #'   \item{`brfssdata_full_load_note`}{[brfss_design()] is loading every
 #'     column because `vars` was not given.}
+#'   \item{`brfssdata_rename_note`}{A requested variable is empty in
+#'     years a sibling generation from the rename crosswalk covers;
+#'     see [brfss_crosswalk()].}
+#'   \item{`brfssdata_bundled_fallback_note`}{A metadata lookup was
+#'     served from the snapshot bundled with the package (frozen at
+#'     release) because nothing newer was cached and no download was
+#'     possible.}
 #' }
 #'
 #' @name brfssdata-conditions

@@ -21,9 +21,18 @@ Variable names keep CDC's spelling, including the leading underscore on
 calculated variables such as `_LLCPWT` and `_AGE_G`, and values keep
 their original numeric codes. The only column brfssdata adds is `year`.
 What does change on the way in is housekeeping. SAS variable labels move
-out of the data and into the searchable catalog behind `brfss_vars()`,
-and the Windows-1252 bytes older files carry in their character columns
-are re-encoded to UTF-8 so the parquet is valid.
+out of the data and into the searchable catalog behind `brfss_vars()`;
+the Windows-1252 bytes older files carry in their character columns
+are re-encoded to UTF-8 so the parquet is valid; blank SAS character
+fields, which are SAS's missing value for character data, are stored
+as nulls rather than empty strings; and the six variables CDC stored
+as a number in some years and text in others (`SEQNO`, `_RECORD`,
+`MRACEORG`, `WINDDOWN`, `_MSACODE`, `RCVFVCH4`) are written with one
+storage type across every year, values unchanged. Without that last
+step a multi-year read would silently promote the numeric years to
+text and split one code into `1120` and `"1120.0"`; with it, and a
+guard in the package that refuses to combine files whose stored types
+conflict, that failure mode is gone.
 
 The files are hosted as GitHub release assets, one release per survey
 year, at

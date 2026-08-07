@@ -91,4 +91,66 @@ if (wt_total < 2e8 || wt_total > 3e8) {
 }
 message(sprintf("weight total plausible: %.0f", wt_total))
 
+# 7. The documented child-module workflow builds on real data. The
+#    child weight covers only completed child interviews (49,541 rows
+#    in 2023), so the design must subset to them, keep no missing
+#    weights, and say what it dropped.
+child <- withCallingHandlers(
+  brfss_design(2023, vars = "GENHLTH", weight = "_CLLCPWT"),
+  brfssdata_weight_subset_note = function(m) {
+    message("subset note observed")
+    invokeRestart("muffleMessage")
+  }
+)
+n_child <- nrow(child$variables)
+if (n_child < 45000 || n_child > 55000) {
+  fail("2023 _CLLCPWT design has %d rows, expected about 49,541", n_child)
+}
+if (anyNA(child$variables$brfss_wt)) {
+  fail("2023 _CLLCPWT design carries missing weights after subsetting")
+}
+message(sprintf("child-weight design holds: %d rows", n_child))
+
+# 8. Cross-year type consistency on a variable CDC stored as text in
+#    2001 and as a number in 2000 before the canonical-type rebuild:
+#    one type, no ".0" artifacts, no blank strings.
+msa <- read_brfss(c(2000L, 2001L), vars = "_MSACODE", quiet = TRUE)
+if (!is.character(msa$`_MSACODE`)) {
+  fail("_MSACODE across 2000-2001 is not character")
+}
+vals <- msa$`_MSACODE`[!is.na(msa$`_MSACODE`)]
+if (any(grepl("\\.0$", vals))) {
+  fail("_MSACODE carries '.0' promotion artifacts")
+}
+if (any(vals == "")) {
+  fail("_MSACODE carries blank strings instead of NA")
+}
+message("_MSACODE type-consistent across the 2000/2001 boundary")
+
+# 9. The trailing-noun missing bucket really clears. _FRTLT1A code 9 is
+#    "Don't know, refused or missing values"; 2021 carried 51,087 nines
+#    that the whole-token matcher used to leave in place.
+frt <- read_brfss(2021L, vars = "_FRTLT1A", quiet = TRUE, na = TRUE)
+if (any(frt$`_FRTLT1A` %in% 9)) {
+  fail("_FRTLT1A 2021 still carries code 9 under na = TRUE")
+}
+if (!anyNA(frt$`_FRTLT1A`)) {
+  fail("_FRTLT1A 2021 shows no NAs; the na step apparently did nothing")
+}
+message("_FRTLT1A missing bucket cleared under na = TRUE")
+
+# 10. na = TRUE on a pre-catalog year announces its own no-op.
+seen_note <- FALSE
+invisible(withCallingHandlers(
+  read_brfss(1993L, vars = "GENHLTH", na = TRUE),
+  brfssdata_na_coverage_note = function(m) {
+    seen_note <<- TRUE
+    invokeRestart("muffleMessage")
+  }
+))
+if (!seen_note) {
+  fail("1993 na = TRUE emitted no coverage note")
+}
+message("pre-1998 coverage note fires")
+
 message("integration check passed")

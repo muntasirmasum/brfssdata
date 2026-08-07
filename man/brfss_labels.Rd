@@ -38,7 +38,7 @@ those variables are eligible for automatic factor conversion via
 the special codes (typically 77/88/99) so you can recode by hand.
 }
 \examples{
-\dontshow{if (interactive()) withAutoprint(\{ # examplesIf}
-brfss_labels("GENHLTH", years = 2023)
-\dontshow{\}) # examplesIf}
+# download = FALSE reads the cached catalog, or the snapshot bundled
+# with the package, so this runs offline.
+brfss_labels("GENHLTH", years = 2023, download = FALSE)
 }

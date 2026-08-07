@@ -33,7 +33,7 @@ reports, for each match, which years carry the variable. The catalog is
 downloaded once and cached like the data itself.
 }
 \examples{
-\dontshow{if (interactive()) withAutoprint(\{ # examplesIf}
-brfss_vars("smok")
-\dontshow{\}) # examplesIf}
+# download = FALSE reads the cached catalog, or the snapshot bundled
+# with the package, so this runs offline.
+brfss_vars("smok", download = FALSE)
 }

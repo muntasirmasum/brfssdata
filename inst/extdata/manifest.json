@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated": "2026-08-02",
+  "generated": "2026-08-06",
   "note": "Bundled fallback snapshot. The live manifest is published as a release asset (tag data-meta) and is the source of truth for currently hosted years.",
   "years": [1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024],
   "files": {
@@ -13,132 +13,132 @@
       "size": 1151687
     },
     "brfss_1987.parquet": {
-      "sha256": "8b61cce6b501cbe26780655675204f30523fa2e168101b962f928a94ef12d0ed",
-      "size": 1855024
+      "sha256": "16734c1e74bf6a536f03b2011b40506d7fca8f2cb514aee035f1ed8e11a122ad",
+      "size": 1855359
     },
     "brfss_1988.parquet": {
-      "sha256": "67dd89042d5d7fc995ca1b6d2814b4ab0f84cf5a229b01fef875c2303f916786",
-      "size": 2286026
+      "sha256": "238ccb8cd7c37a1e7a410a64d894829b67ccd2f5405b7b785373aba537a39b1d",
+      "size": 2286161
     },
     "brfss_1989.parquet": {
       "sha256": "7ab4922e58906e3440bb98541b663cf2c605efa3d9397e7e5bb3b77e9e47d087",
       "size": 2778571
     },
     "brfss_1990.parquet": {
-      "sha256": "5e7931c7b59afb6b54609baff807bdef8b6729defa96dae1d9da5c671f0540ba",
-      "size": 3664835
+      "sha256": "4ea8e602d0c786d6aeb27ce500254b6a3856f60a75db5e190b90b9ebc7d11e08",
+      "size": 3664185
     },
     "brfss_1991.parquet": {
-      "sha256": "52ec0b1b3ec705fb3f3a3c210fe46e1fdae8427655fbb0d9493a2febe3625af6",
-      "size": 3838083
+      "sha256": "6fe771fb6fd2045cdb7ba842de46c486c6fec96016ef1b73e49ae04c65b7d301",
+      "size": 3837439
     },
     "brfss_1992.parquet": {
-      "sha256": "cc627d444fce4d72b1bcb2fe498173324d5435b2b57cefd8bf529c30509c584a",
-      "size": 4145267
+      "sha256": "8a87a028d0bf02dddd54652f3abd0c8a81799696398cbfedebb21fa61d3a0842",
+      "size": 4144590
     },
     "brfss_1993.parquet": {
-      "sha256": "1307668e29e30305bfc848de1bb1c05240d3011d1fa6edd6e0f1a5cfcbf21a59",
-      "size": 4143037
+      "sha256": "a129bb902d47b95070c9b33e0d31e0c1faa30223b87036fd1afe1b4d392038bf",
+      "size": 4142352
     },
     "brfss_1994.parquet": {
-      "sha256": "200de28d455e4db2d19373882b0730e3c83f79f6c758281a6c9fd2a42a4b7b07",
-      "size": 4873144
+      "sha256": "7683f225cb5a6e1aa8dee13fcd5b18b5f7450492b85ace853215fb0485449b2f",
+      "size": 4871357
     },
     "brfss_1995.parquet": {
-      "sha256": "b5c30c3bf70b4ea1a110f8fed40838a6585b7ef713b9a7c45652d046325f7260",
-      "size": 4840535
+      "sha256": "643da8b2bcf5df15aad7e47cca0f19ba54a4cab3ab2d26e38a2dd123272b105e",
+      "size": 4840114
     },
     "brfss_1996.parquet": {
-      "sha256": "89dd3d432953880d9214f39abd305efcff7462d1de82861038dff3d143ccb12f",
-      "size": 6155333
+      "sha256": "733f0af75506b3e46415a7c21611fa3f444fb3950dddf07bb3de09b7943fe71c",
+      "size": 6155327
     },
     "brfss_1997.parquet": {
-      "sha256": "073131466e553f41a2e7e9547cb83b63286f498630beda21c83e1e58c6eb8ccb",
-      "size": 6242612
+      "sha256": "c3f682b8415f19f2116c20bb8375d39a6a15ec4adecfb60e1a2cb885ab9aefd5",
+      "size": 6242600
     },
     "brfss_1998.parquet": {
-      "sha256": "a517d6113f484abd2d41541015389df2e905f673ef141284da3e5092a820c009",
-      "size": 8220689
+      "sha256": "95ac4af58d63f69cb7bbbd16cb329920929734d769f1579875c9996e91af4443",
+      "size": 8220675
     },
     "brfss_1999.parquet": {
-      "sha256": "5c278559e0f4b3ca7b7f8a6c9812fd2dc50058ab30939f7ba04f2e776b65f054",
-      "size": 8141357
+      "sha256": "7d425f1fb9564aca882873defdf23797a30a9b6d58ac394276b30915a139b977",
+      "size": 8139662
     },
     "brfss_2000.parquet": {
-      "sha256": "984b376d717e3f5a1ed4d9d381407656483ecaef5bafafa94c405fa9b19ebce1",
-      "size": 10408971
+      "sha256": "8c36ee7b42a1cce329af448acd4f1f31bba61f89807708770a4907d9e62638cb",
+      "size": 10459451
     },
     "brfss_2001.parquet": {
-      "sha256": "fa8ce61c9fcbd8161a9f090d09e7fc24e295cd090ec7faa1fec31945bccfbcdf",
-      "size": 11668431
+      "sha256": "61c4c060f786240d6f92a5c05a62095bf1e6dddfcb105a9abad4249655a97a94",
+      "size": 11703815
     },
     "brfss_2002.parquet": {
-      "sha256": "23821b31f2887372fb41384d09818fe7742c417caa6cae7b15fabd7fffbcde21",
-      "size": 15685383
+      "sha256": "e3db6d5c6390ba1563148eaed85aa4b3f93db1b24a1f8e0c9933f6ad9e8872f7",
+      "size": 15717709
     },
     "brfss_2003.parquet": {
-      "sha256": "9ec16e6b7b901f406a066283a79efd9664207017657928a171bf2a80cf0daf3a",
-      "size": 17847096
+      "sha256": "e8b2a0b5bed1ffe1befa4123cceeb667a247d9da8f5bd63b0161effa7e4acbf5",
+      "size": 17889802
     },
     "brfss_2004.parquet": {
-      "sha256": "81f8754a375d255fa9b1ea30936fb1540d90ae25e9c84489a2d72b5a38cb1ea9",
-      "size": 16525144
+      "sha256": "aa17a353e2369a07239425d3016335170c8ae1bac91c4eb6aa40d6a4ba103c2f",
+      "size": 16585695
     },
     "brfss_2005.parquet": {
-      "sha256": "4493bd0d870c2e50919b172b4bf344210e221060212987a171601621f95b18fc",
-      "size": 24007747
+      "sha256": "7bf6b53a92dcbb8482baf9f4a872859995e3bf2a9d811be4e9f8e7cb3c1a6ca8",
+      "size": 24177277
     },
     "brfss_2006.parquet": {
-      "sha256": "ed0dbb9b85f2f155e7b7846dd4bc67f828656f0557ee483153c2e3e5fbc9aae0",
-      "size": 23268020
+      "sha256": "6625408757fefad938bb6deed12fa7c9f8739a975bb251af1a9bb68bc85e4ec7",
+      "size": 23438765
     },
     "brfss_2007.parquet": {
-      "sha256": "5825f600bdbadf05ae98f1fef658203df8e5a4ee89da1f7bed12ba9f93ada04d",
-      "size": 36590178
+      "sha256": "4c268c5f3ab82334e0d78a297ee7e04bfc8d651ac6a8f5bee94e579e5085aa25",
+      "size": 36858183
     },
     "brfss_2008.parquet": {
-      "sha256": "fdb9fe2765f26b4f5035d1f5eababd9d861fa0c97e7df4968d58b085f0197f92",
-      "size": 27279488
+      "sha256": "351b859e3ace0f8840df39f09cb21ce157a53b19272475a7d2d38c987bead1de",
+      "size": 27595379
     },
     "brfss_2009.parquet": {
-      "sha256": "8d01ddbd04fefb0206351372989d17aae5fa86789d98eba3e6c48dcbd95ec121",
-      "size": 36371724
+      "sha256": "3239eee84204de01e6067849689f15bd1a89476fec0cd44dfeb7d3c0bc867b05",
+      "size": 36645448
     },
     "brfss_2010.parquet": {
-      "sha256": "9ca044c2c54b10a56e62ba67cdabb7afe41ce9b2c9aaa5b89016fa970ca82a03",
-      "size": 32064781
+      "sha256": "e5ffba8675ef61eedf5deedea71fe449feaf41057f2b034da0088c8e51062645",
+      "size": 32366322
     },
     "brfss_2011.parquet": {
-      "sha256": "b9d062cbb77060870269216296d0e71c55b35e782b46b5407cc5f169b9973298",
-      "size": 44307352
+      "sha256": "60323d53dfef9800c5f47bb471d8539009e2e2256d0eb2fe27dac9438b75d565",
+      "size": 44366883
     },
     "brfss_2012.parquet": {
-      "sha256": "8a9a5e5aba61eef3bfbbf9a00dc318c5b70840f0dbdbe4e6081d103000a71c66",
-      "size": 31830507
+      "sha256": "855819a6866e7a77e3d29215dab8e850e0a8a3cb8192eca18febda0ff8d04168",
+      "size": 31785555
     },
     "brfss_2013.parquet": {
-      "sha256": "f4342bf4fbd45371ac8674b27c2e3d2511875a8234a707de62d2ba12e209ab99",
-      "size": 41214649
+      "sha256": "aa71bbbb219335d7dd19a07a0f910759f38722d88e8539ba8bab978d1ec8fc62",
+      "size": 41280852
     },
     "brfss_2014.parquet": {
-      "sha256": "80dc59101163638913fa0c924c2c2fb9b9ff5310112a21166c20c77e3561bb46",
-      "size": 25884273
+      "sha256": "bbdd3885bcc054606051539e50b1942d142be4f2ce8c7440617ec9e2b550df5d",
+      "size": 25839699
     },
     "brfss_2015.parquet": {
-      "sha256": "ada723b4cd05b3641dd815e5d3229d2974da882ed43f447e897cc66a1397589a",
-      "size": 33309468
+      "sha256": "f23da3cbed4b7416d0990fb60a87a1fd21954ec3e93232b9836bdd3f878a170d",
+      "size": 33255244
     },
     "brfss_2016.parquet": {
-      "sha256": "9e5d23602ab5cde6f071713210fa03c518396c50dd06e6247de1e40b67077e52",
-      "size": 24834019
+      "sha256": "173d4ee1f1e074c5fdd054508cb7a795f086d3372bf4ce5c7563c7336e49d925",
+      "size": 24831552
     },
     "brfss_2017.parquet": {
-      "sha256": "8f4052ed784cfbff184871ef25da475a7c2e730dbe754237d50a0b90a30c175e",
-      "size": 35338071
+      "sha256": "c621099b3565fb9a266ba6cf63e6ce30f944ea0af50a215f4aa4117dd33ca4b8",
+      "size": 35335920
     },
     "brfss_2018.parquet": {
-      "sha256": "ef9407a18989c9762d05f53f42a66e9114c558e61f44330c7b0bd726cdbaba14",
-      "size": 22463676
+      "sha256": "51b62146af9feec6fce05de51dbf5f72ed5449cedaf661b86294e8d41cbbe001",
+      "size": 22461722
     },
     "brfss_2019.parquet": {
       "sha256": "bdff1093ad27be10dc9e32371bbaaefd510c0d32d203d235e02a217b7e564b55",
@@ -161,8 +161,8 @@
       "size": 29077288
     },
     "brfss_2024.parquet": {
-      "sha256": "7d0c5a76da72a5eaf86bb7bd1b367f3c39f705d881bde5e2747b7e2d0c99d286",
-      "size": 25584634
+      "sha256": "00c40d2c741bc5594b5a146b433249dd02b30c4963c85a9133f35d91fc70829b",
+      "size": 25575620
     },
     "brfss_variables.parquet": {
       "sha256": "1898bb13befb4efac53fd737c92e155c68e40c4e5bf89d2eac3cd6bcb73ce747",
@@ -171,6 +171,14 @@
     "brfss_labels.parquet": {
       "sha256": "e07a330fbf1ec778bc2e7dc8e2627aca55dbf35d012b63e87c9c0d4e572a7b2f",
       "size": 119739
+    },
+    "brfss_crosswalk.parquet": {
+      "sha256": "4e5eb077938abb258b428b1e0e89a2f037ceea00be1332e2750273977ee354c3",
+      "size": 5973
+    },
+    "brfss_year_info.parquet": {
+      "sha256": "19f8997d25f8a1df020a2f6f538a7a92f52638dcab41b1249b8ff41cfe6a13b1",
+      "size": 1867
     }
   }
 }

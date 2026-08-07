@@ -73,6 +73,51 @@ test_that("a cached year reads offline even when the manifest omits it", {
   expect_gt(nrow(dat), 0)
 })
 
+test_that("a column typed text in one year and numeric in another refuses", {
+  # union_by_name would promote the numeric year to VARCHAR, so the
+  # double 9 becomes "9.0" next to the text year's "9" -- two distinct
+  # values for one code with no warning (the real _MSACODE split
+  # between 2000 and 2001 before the canonical-type rebuild). The
+  # hosted files are now type-consistent, so this arises only from
+  # stale cached files, and reading on would corrupt values.
+  local_brfss_cache(
+    c(2022, 2023),
+    extra = list("2022" = "MIXEDVAR", "2023" = "MIXEDVAR"),
+    chr_cols = list("2023" = "MIXEDVAR")
+  )
+  err <- expect_error(
+    read_brfss(2022:2023, vars = "MIXEDVAR", quiet = TRUE),
+    class = "brfssdata_type_conflict"
+  )
+  expect_match(conditionMessage(err), "MIXEDVAR")
+  expect_match(conditionMessage(err), "brfss_cache_clear")
+})
+
+test_that("a single-year read of a retyped column is fine", {
+  local_brfss_cache(
+    c(2022, 2023),
+    extra = list("2022" = "MIXEDVAR", "2023" = "MIXEDVAR"),
+    chr_cols = list("2023" = "MIXEDVAR")
+  )
+  dat <- read_brfss(2023, vars = "MIXEDVAR", quiet = TRUE)
+  expect_type(dat$MIXEDVAR, "character")
+})
+
+test_that("a type conflict outside the selection never blocks the read", {
+  local_brfss_cache(
+    c(2022, 2023),
+    extra = list("2022" = "MIXEDVAR", "2023" = "MIXEDVAR"),
+    chr_cols = list("2023" = "MIXEDVAR")
+  )
+  dat <- read_brfss(2022:2023, vars = "GENHLTH", quiet = TRUE)
+  expect_gt(nrow(dat), 0)
+  # A full-width read does hit the conflicted column, and must refuse.
+  expect_error(
+    read_brfss(2022:2023, quiet = TRUE),
+    class = "brfssdata_type_conflict"
+  )
+})
+
 test_that("no download is attempted when all years are cached", {
   local_brfss_cache(2023)
   local_mocked_bindings(

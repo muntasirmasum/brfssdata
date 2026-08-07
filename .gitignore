@@ -22,3 +22,10 @@ inst/doc
 /doc/
 /Meta/
 vignettes/articles/*.html
+
+# Claude Code session state
+.claude/
+
+# local build artifacts
+/brfssdata_*.tar.gz
+/brfssdata.Rcheck/

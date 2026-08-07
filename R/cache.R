@@ -52,25 +52,52 @@ brfss_cache_info <- function() {
 CACHE_META_FILES <- c(
   "manifest.json",
   "brfss_variables.parquet",
-  "brfss_labels.parquet"
+  "brfss_labels.parquet",
+  "brfss_crosswalk.parquet",
+  "brfss_year_info.parquet"
 )
+
+# A frozen-at-release copy of a metadata asset shipped in inst/extdata,
+# so the metadata functions work on first use with no network. NULL for
+# assets without a snapshot (the year-info table, which carries sizes
+# that change with each data release).
+bundled_asset_path <- function(asset) {
+  path <- system.file("extdata", asset, package = "brfssdata")
+  if (nzchar(path)) path else NULL
+}
+
+# Bundled snapshots are never served silently: they were frozen at the
+# package's release and the hosted copy may since have gained years or
+# corrections. One line, because a codebook lookup can consult three
+# catalogs in a single call.
+note_bundled_asset <- function(what) {
+  cli::cli_inform(
+    c(
+      "!" = "Using the {what} snapshot bundled with the package (frozen
+             at release); {.fun brfss_download} caches the current copy."
+    ),
+    class = "brfssdata_bundled_fallback_note"
+  )
+}
 
 #' Prefetch BRFSS data and metadata into the local cache
 #'
 #' @description
 #' Downloads the requested survey years, and by default also the data
-#' manifest and the variable and label catalogs, so that everything
-#' works offline afterwards: [read_brfss()], [brfss_design()],
-#' [brfss_vars()], [brfss_labels()], and `labels`/`na` conversion all
-#' run from the cache. Use it to populate the cache once on a connected
-#' machine (the directory from [brfss_cache_dir()] can then be copied to
-#' an air-gapped one), or to pre-download years ahead of a workshop.
-#' Files already cached and current are not re-downloaded.
+#' manifest and the metadata catalogs (variables, labels, the rename
+#' crosswalk, and the year inventory), so that everything works offline
+#' afterwards: [read_brfss()], [brfss_design()], [brfss_vars()],
+#' [brfss_labels()], [brfss_crosswalk()], [brfss_year_info()], and
+#' `labels`/`na` conversion all run from the cache. Use it to populate
+#' the cache once on a connected machine (the directory from
+#' [brfss_cache_dir()] can then be copied to an air-gapped one), or to
+#' pre-download years ahead of a workshop. Files already cached and
+#' current are not re-downloaded.
 #'
 #' @param years Optional integer vector of survey years to cache.
 #'   `NULL` fetches only the metadata.
 #' @param catalogs If `TRUE` (the default), also cache the manifest and
-#'   the variable and label catalogs.
+#'   the metadata catalogs.
 #' @param quiet If `TRUE`, suppress download progress and the summary.
 #'
 #' @return Invisibly, the [brfss_cache_info()] tibble after the fetch.
@@ -85,15 +112,32 @@ brfss_download <- function(years = NULL, catalogs = TRUE, quiet = FALSE) {
   }
   if (isTRUE(catalogs)) {
     read_manifest()
+    # fallback = FALSE: a prefetch must cache real files or fail
+    # loudly; serving the bundled snapshot here would report success
+    # while caching nothing.
     ensure_catalog_cached(
       "brfss_variables.parquet",
       what = "variable catalog",
-      quiet = quiet
+      quiet = quiet,
+      fallback = FALSE
     )
     ensure_catalog_cached(
       "brfss_labels.parquet",
       what = "label catalog",
-      quiet = quiet
+      quiet = quiet,
+      fallback = FALSE
+    )
+    ensure_catalog_cached(
+      "brfss_crosswalk.parquet",
+      what = "rename crosswalk",
+      quiet = quiet,
+      fallback = FALSE
+    )
+    ensure_catalog_cached(
+      "brfss_year_info.parquet",
+      what = "year inventory",
+      quiet = quiet,
+      fallback = FALSE
     )
   }
   info <- brfss_cache_info()
@@ -326,12 +370,18 @@ ensure_catalog_cached <- function(
   what,
   download = TRUE,
   quiet = TRUE,
+  fallback = TRUE,
   call = rlang::caller_env()
 ) {
   path <- cache_path(asset)
 
   if (!file.exists(path)) {
+    bundled <- if (fallback) bundled_asset_path(asset) else NULL
     if (!download) {
+      if (!is.null(bundled)) {
+        note_bundled_asset(what)
+        return(bundled)
+      }
       cli::cli_abort(
         c(
           "The {what} is not cached and {.code download = FALSE} was set.",
@@ -347,13 +397,33 @@ ensure_catalog_cached <- function(
     if (is.null(sha)) {
       note_unverified(asset, quiet)
     }
-    download_to_cache(
-      release_url("data-meta", asset),
-      path,
-      quiet = quiet,
-      expected_sha256 = sha,
-      call = call
+    # A failed first fetch falls back to the bundled snapshot when one
+    # ships: a metadata lookup should not die on an offline machine
+    # that has never cached anything. Two deliberate exceptions: a
+    # checksum mismatch always aborts (published bytes disagreeing with
+    # the manifest is the package's headline integrity signal, never
+    # something to paper over), and brfss_download() disables the
+    # fallback entirely (fallback = FALSE), because a prefetch that
+    # quietly cached nothing would defeat its whole contract.
+    fetched <- tryCatch(
+      download_to_cache(
+        release_url("data-meta", asset),
+        path,
+        quiet = quiet,
+        expected_sha256 = sha,
+        call = call
+      ),
+      brfssdata_download_error = function(e) {
+        if (is.null(bundled) || inherits(e, "brfssdata_checksum_error")) {
+          stop(e)
+        }
+        NULL
+      }
     )
+    if (is.null(fetched)) {
+      note_bundled_asset(what)
+      return(bundled)
+    }
     catalog_checked(asset)
     return(path)
   }

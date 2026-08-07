@@ -174,10 +174,79 @@ match_vars_ci <- function(vars, columns) {
   ifelse(!exact & !is.na(ci), columns[ci], vars)
 }
 
+# Resolve the states argument to _STATE FIPS codes. Accepts integer
+# FIPS, two-letter postal abbreviations, and full jurisdiction names,
+# mixed freely and matched case-insensitively against brfss_states.
+resolve_states <- function(states, call = rlang::caller_env()) {
+  if (is.null(states)) {
+    return(NULL)
+  }
+  if (
+    length(states) == 0 ||
+      anyNA(states) ||
+      !(is.numeric(states) || is.character(states))
+  ) {
+    cli::cli_abort(
+      c(
+        "{.arg states} must be a vector of state FIPS codes, postal
+         abbreviations, or names, e.g. {.code c(48, \"CA\", \"Maine\")}.",
+        "x" = "Got {.obj_type_friendly {states}}."
+      ),
+      class = "brfssdata_bad_states_arg",
+      call = call
+    )
+  }
+  if (is.numeric(states)) {
+    if (any(states != trunc(states))) {
+      cli::cli_abort(
+        "Numeric {.arg states} must be whole FIPS codes.",
+        class = "brfssdata_bad_states_arg",
+        call = call
+      )
+    }
+    fips <- as.integer(states)
+    unknown <- setdiff(fips, brfss_states$fips)
+  } else {
+    # c(48, "CA", "Maine") reaches here as character: R coerced the 48
+    # to "48" before this function ever ran, so digit-only entries are
+    # FIPS codes, not names.
+    key <- toupper(trimws(states))
+    idx <- match(key, toupper(brfss_states$abbr))
+    idx <- ifelse(is.na(idx), match(key, toupper(brfss_states$name)), idx)
+    numeric_like <- grepl("^[0-9]+$", key)
+    idx <- ifelse(
+      is.na(idx) & numeric_like,
+      match(suppressWarnings(as.integer(key)), brfss_states$fips),
+      idx
+    )
+    unknown <- states[is.na(idx)]
+    fips <- brfss_states$fips[idx[!is.na(idx)]]
+  }
+  if (length(unknown) > 0) {
+    cli::cli_abort(
+      c(
+        "Unknown state{?s} {.val {as.character(unknown)}}.",
+        "i" = "See {.code brfss_states} for the FIPS codes, postal
+               abbreviations, and names of every BRFSS jurisdiction."
+      ),
+      class = "brfssdata_bad_state",
+      call = call
+    )
+  }
+  sort(unique(fips))
+}
+
 # Query one or more local parquet files, optionally selecting columns.
 # union_by_name handles the fact that different survey years carry
-# different variable sets: absent columns come back as NA.
-query_parquet <- function(paths, vars = NULL, call = rlang::caller_env()) {
+# different variable sets: absent columns come back as NA. states, when
+# given, is a vector of already-resolved _STATE FIPS codes pushed down
+# as a WHERE clause, so filtered rows never reach R.
+query_parquet <- function(
+  paths,
+  vars = NULL,
+  states = NULL,
+  call = rlang::caller_env()
+) {
   con <- duckdb_connect()
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
 
@@ -217,8 +286,101 @@ query_parquet <- function(paths, vars = NULL, call = rlang::caller_env()) {
     select_sql <- "*"
   }
 
-  out <- run(sprintf("SELECT %s FROM %s", select_sql, from_sql))
+  check_type_consistency(con, paths, files_sql, vars, call = call)
+
+  where_sql <- if (is.null(states)) {
+    ""
+  } else {
+    sprintf(
+      ' WHERE "_STATE" IN (%s)',
+      paste(as.integer(states), collapse = ", ")
+    )
+  }
+  out <- run(sprintf("SELECT %s FROM %s%s", select_sql, from_sql, where_sql))
   tibble::as_tibble(out)
+}
+
+# Refuse to combine files that store a selected column as a string in
+# some years and a number in others. union_by_name would promote the
+# numeric years to VARCHAR, so the double 1120 becomes "1120.0" in one
+# year and "1120" in another -- two distinct values for the same code,
+# splitting group_by()/filter() with no warning, and defeating the
+# missing-code matcher ("9.0" never matches code 9). The hosted files
+# are re-typed to one canonical type per variable at build time
+# (data-raw/02_build_parquet.R), so this fires only when stale cached
+# files from before that fix are mixed with current ones, or on an
+# upstream pipeline regression. Numeric-width promotions (INT32 to
+# DOUBLE) are value-preserving and pass. Footer-only, so the check is
+# cheap; vars is NULL when every column was requested.
+check_type_consistency <- function(con, paths, files_sql, vars, call) {
+  if (length(paths) < 2) {
+    return(invisible())
+  }
+  schema <- tryCatch(
+    DBI::dbGetQuery(
+      con,
+      sprintf(
+        "SELECT file_name, name, type FROM parquet_schema(%s)
+         WHERE type IS NOT NULL",
+        files_sql
+      )
+    ),
+    error = function(e) NULL
+  )
+  if (is.null(schema)) {
+    # A file the schema probe cannot read will fail the main query too,
+    # where abort_corrupt_or_rethrow() names the culprit properly.
+    return(invisible())
+  }
+  if (!is.null(vars)) {
+    schema <- schema[schema$name %in% vars, , drop = FALSE]
+  }
+  schema$string <- schema$type %in% c("BYTE_ARRAY", "FIXED_LEN_BYTE_ARRAY")
+  mixed <- vapply(
+    split(schema$string, schema$name),
+    function(s) any(s) && !all(s),
+    logical(1)
+  )
+  bad <- names(mixed)[mixed]
+  if (length(bad) == 0) {
+    return(invisible())
+  }
+  years <- sort(cached_file_year(basename(paths)))
+  years <- years[!is.na(years)]
+  detail <- vapply(
+    bad,
+    function(v) {
+      rows <- schema[schema$name == v, , drop = FALSE]
+      yr <- cached_file_year(basename(rows$file_name))
+      as_text <- sort(yr[rows$string])
+      as_num <- sort(yr[!rows$string])
+      sprintf(
+        "%s: %s as text; %s as numeric",
+        v,
+        summarize_years(as_text),
+        summarize_years(as_num)
+      )
+    },
+    character(1)
+  )
+  names(detail) <- rep("x", length(detail))
+  n_bad <- length(bad)
+  cli::cli_abort(
+    c(
+      "{cli::qty(n_bad)}Column{?s} {.val {bad}} {?is/are} stored with
+       different types across the requested years' files.",
+      detail,
+      "i" = "Combining them would silently corrupt values (a numeric
+             year's 1120 becomes {.val 1120.0} next to a text year's
+             {.val 1120}).",
+      "i" = "This usually means stale cached files are mixed with
+             current releases. Run {.code brfss_cache_clear(years =
+             c({paste(years, collapse = ', ')}))} and retry; the files
+             re-download with checksum verification."
+    ),
+    class = "brfssdata_type_conflict",
+    call = call
+  )
 }
 
 # A DuckDB failure over local parquet is usually a corrupted cached

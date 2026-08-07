@@ -55,8 +55,17 @@ dat <- read_brfss(2019:2023, vars = c("GENHLTH", "PHYSHLTH", "_LLCPWT"))
 # The same, with safe categoricals converted to labeled factors
 dat <- read_brfss(2023, vars = c("GENHLTH", "SEXVAR"), labels = TRUE)
 
+# One state's rows only, filtered inside the query
+dat <- read_brfss(2023, vars = "GENHLTH", states = "TX")
+
 # The value-label codebook itself (1998 onward)
 brfss_labels("GENHLTH", years = 2023)
+
+# Everything the catalogs know about a variable, as a card
+brfss_codebook("GENHLTH", years = 2023)
+
+# CDC renames variables across years; find the whole family
+brfss_crosswalk("_DRNKWK1")
 
 # A survey-design object with era-correct weights, ready for srvyr.
 # Codes CDC uses for "don't know" and "refused" are NA by default here,
@@ -133,10 +142,15 @@ the public domain. Suggested citation for the data:
 > and Prevention, \[appropriate year\].
 
 The hosted parquet files are derived from CDC's published SAS Transport
-files with no rows dropped, no columns dropped, and no values recoded;
-the only transformations are re-encoding the Windows-1252 text older
-files carry to UTF-8 and adding an integer `year` column. The processing
-pipeline lives in
+files with no rows dropped, no columns dropped, and no values recoded.
+Three transformations are applied: the Windows-1252 text older files
+carry is re-encoded to UTF-8, blank SAS character fields (SAS's missing
+value for character data) are stored as nulls rather than empty
+strings, and an integer `year` column is added. The handful of
+variables CDC stored as a number in some years and text in others are
+written with one storage type across all years, values unchanged, so
+multi-year reads cannot split one code into `1120` and `"1120.0"`. The
+processing pipeline lives in
 [`data-raw/`](https://github.com/muntasirmasum/brfssdata/tree/main/data-raw);
 every artifact is checksummed, and the package verifies those checksums
 when it downloads.

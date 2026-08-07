@@ -32,18 +32,22 @@ not-asked/missing placeholder. These are exactly the codes that
 this function is the audit trail for that behavior, and the join
 table for recoding by hand.
 
-Matching is deliberately conservative: a label counts as missing only
-when every part of it (split on \code{/}, \verb{,}, and the word "or") is a
-known missing-answer phrase. Substantive answers that merely contain
-one of the words, such as "Doctor refused when asked", never match.
-Code 88/888 ("None") is an answer of zero, not missing, and is never
-matched; recode it to 0 yourself before averaging a count variable
-such as \code{PHYSHLTH}.
+Matching is deliberately conservative. A label counts as missing when
+every part of it (split on \code{/}, \verb{,}, and the word "or") is a known
+missing-answer phrase, or when the only parts beyond those phrases
+start with the word "missing" and at least one part names the answer
+itself (don't know / not sure / refused) -- the shape of CDC's
+calculated-variable buckets such as "Don't know, refused or missing
+values" on \verb{_FRTLT1A}. A short audited allowlist covers CDC's
+"component question" wordings on the \code{RACE2} family. Substantive
+answers that merely contain one of the words, such as "Doctor refused
+when asked" or a bare "Missing Fruit Responses" exclusion flag, never
+match. Code 88/888 ("None") is an answer of zero, not missing, and is
+never matched; recode it to 0 yourself before averaging a count
+variable such as \code{PHYSHLTH}.
 }
 \examples{
-\dontshow{if (interactive()) withAutoprint(\{ # examplesIf}
-brfss_missing_codes("GENHLTH", years = 2023)
-\dontshow{\}) # examplesIf}
+brfss_missing_codes("GENHLTH", years = 2023, download = FALSE)
 }
 \seealso{
 \code{\link[=brfss_labels]{brfss_labels()}} for the full catalog.

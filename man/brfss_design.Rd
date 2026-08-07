@@ -7,6 +7,7 @@
 brfss_design(
   years,
   vars = NULL,
+  states = NULL,
   weight = NULL,
   allow_break = FALSE,
   pool_weights = TRUE,
@@ -25,6 +26,17 @@ into the design, matched case-insensitively like in \code{\link[=read_brfss]{rea
 Design variables are always included. The default loads every
 column (455 columns by 506,467 rows for 2011 alone) and says so;
 passing only the variables you analyze is much faster and smaller.}
+
+\item{states}{Optional vector of reporting jurisdictions (FIPS,
+postal abbreviations, or names; see \link{brfss_states}), filtered
+inside the query like in \code{\link[=read_brfss]{read_brfss()}}. Filtering by state
+\emph{before} the design is built is variance-exact here: BRFSS strata
+(\verb{_STSTR}) nest within state, so a state subset keeps whole strata
+and yields the same estimates, standard errors, and degrees of
+freedom as subsetting the full design afterwards. That property is
+specific to whole-stratum subsets; any other domain (an age group,
+one sex) must be analyzed by filtering the returned design object,
+never the data (see the \emph{Survey design in BRFSS} article).}
 
 \item{weight}{Optional name of the weight column to use instead of
 the automatic era weight, e.g. \code{"_CLLCPWT"} for the child-level
@@ -104,8 +116,15 @@ Sampling Weights and Preparing Module Data for Analysis") says which
 modules belong to the combined dataset, where the default \verb{_LLCPWT}
 is correct. The \code{weight} argument overrides the era default for the
 final weights that do live in these files, e.g. \verb{_CLLCPWT} for the
-child-level modules. A user-supplied weight is used for every
-requested year and still divides by the year count under
+child-level modules. A user-supplied weight defines its analytic
+domain: a module weight exists only for the records its module
+applies to (completed child interviews for \verb{_CLLCPWT}, so most rows
+carry \code{NA} there), and the design subsets to the rows the weight
+covers, reporting the drop with a \code{brfssdata_weight_subset_note}
+message, which matches CDC's module-analysis guidance. The automatic
+era weight gets no such treatment; a missing value there means a
+damaged file and stops the build. A user-supplied weight is used for
+every requested year and still divides by the year count under
 \code{pool_weights}.
 
 CDC states that estimates from 2011 onward are not directly comparable

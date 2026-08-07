@@ -10,6 +10,10 @@ mock_asset_downloads <- function(env = parent.frame()) {
         write_fixture_catalog(dirname(dest))
       } else if (grepl("brfss_labels[.]parquet$", dest)) {
         write_fixture_labels(dirname(dest))
+      } else if (grepl("brfss_crosswalk[.]parquet$", dest)) {
+        write_fixture_crosswalk(dirname(dest))
+      } else if (grepl("brfss_year_info[.]parquet$", dest)) {
+        write_fixture_year_info(dirname(dest))
       } else {
         stop("unexpected asset in test: ", dest)
       }
@@ -29,6 +33,8 @@ test_that("brfss_download caches years and catalogs", {
       "brfss_2023.parquet",
       "brfss_variables.parquet",
       "brfss_labels.parquet",
+      "brfss_crosswalk.parquet",
+      "brfss_year_info.parquet",
       "manifest.json"
     ) %in%
       info$file

@@ -89,12 +89,17 @@ test_that("design objects can carry labels without touching design vars", {
   expect_type(des$variables$brfss_wt, "double")
 })
 
-test_that("uncached labels with download = FALSE error cleanly", {
+test_that("uncached labels with download = FALSE serve the snapshot", {
+  # Since the bundled metadata snapshots ship in inst/extdata, an
+  # uncached offline lookup answers from the frozen copy with a note
+  # instead of erroring (the note is the guarantee it never happens
+  # silently).
   local_brfss_cache(2023, label_catalog = FALSE)
-  expect_error(
-    brfss_labels(download = FALSE),
-    class = "brfssdata_not_cached"
+  expect_message(
+    out <- brfss_labels("GENHLTH", years = 2023, download = FALSE),
+    class = "brfssdata_bundled_fallback_note"
   )
+  expect_gt(nrow(out), 0)
 })
 
 test_that("a map that labels two codes the same keeps its numeric codes", {
@@ -108,12 +113,21 @@ test_that("a map that labels two codes the same keeps its numeric codes", {
   expect_s3_class(dat$GENHLTH, "factor")
 })
 
-test_that("labels = TRUE respects download = FALSE", {
+test_that("labels = TRUE with download = FALSE uses the snapshot, with a note", {
   local_brfss_cache(2023, label_catalog = FALSE)
-  expect_error(
-    read_brfss(2023, quiet = TRUE, labels = TRUE, download = FALSE),
-    class = "brfssdata_not_cached"
+  expect_message(
+    dat <- read_brfss(
+      2023,
+      vars = "GENHLTH",
+      quiet = TRUE,
+      labels = TRUE,
+      download = FALSE
+    ),
+    class = "brfssdata_bundled_fallback_note"
   )
+  # The bundled snapshot is the real catalog: fixture GENHLTH codes are
+  # CDC's, so the conversion still lands.
+  expect_s3_class(dat$GENHLTH, "factor")
 })
 
 test_that("labels = 'both' keeps codes in the level text", {

@@ -35,12 +35,14 @@ test_that("no-match searches return an empty tibble, not an error", {
   expect_identical(nrow(out2), 0L)
 })
 
-test_that("uncached catalog with download = FALSE errors cleanly", {
+test_that("uncached catalog with download = FALSE serves the snapshot", {
   local_brfss_manifest(2020)
-  expect_error(
-    brfss_vars("smok", download = FALSE),
-    class = "brfssdata_not_cached"
+  expect_message(
+    out <- brfss_vars("smok", download = FALSE),
+    class = "brfssdata_bundled_fallback_note"
   )
+  # The bundled snapshot is the real variable catalog.
+  expect_gt(nrow(out), 0)
 })
 
 test_that("an invalid regular expression is rejected with its cause", {

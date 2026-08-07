@@ -11,7 +11,7 @@ brfss_download(years = NULL, catalogs = TRUE, quiet = FALSE)
 \code{NULL} fetches only the metadata.}
 
 \item{catalogs}{If \code{TRUE} (the default), also cache the manifest and
-the variable and label catalogs.}
+the metadata catalogs.}
 
 \item{quiet}{If \code{TRUE}, suppress download progress and the summary.}
 }
@@ -20,13 +20,15 @@ Invisibly, the \code{\link[=brfss_cache_info]{brfss_cache_info()}} tibble after 
 }
 \description{
 Downloads the requested survey years, and by default also the data
-manifest and the variable and label catalogs, so that everything
-works offline afterwards: \code{\link[=read_brfss]{read_brfss()}}, \code{\link[=brfss_design]{brfss_design()}},
-\code{\link[=brfss_vars]{brfss_vars()}}, \code{\link[=brfss_labels]{brfss_labels()}}, and \code{labels}/\code{na} conversion all
-run from the cache. Use it to populate the cache once on a connected
-machine (the directory from \code{\link[=brfss_cache_dir]{brfss_cache_dir()}} can then be copied to
-an air-gapped one), or to pre-download years ahead of a workshop.
-Files already cached and current are not re-downloaded.
+manifest and the metadata catalogs (variables, labels, the rename
+crosswalk, and the year inventory), so that everything works offline
+afterwards: \code{\link[=read_brfss]{read_brfss()}}, \code{\link[=brfss_design]{brfss_design()}}, \code{\link[=brfss_vars]{brfss_vars()}},
+\code{\link[=brfss_labels]{brfss_labels()}}, \code{\link[=brfss_crosswalk]{brfss_crosswalk()}}, \code{\link[=brfss_year_info]{brfss_year_info()}}, and
+\code{labels}/\code{na} conversion all run from the cache. Use it to populate
+the cache once on a connected machine (the directory from
+\code{\link[=brfss_cache_dir]{brfss_cache_dir()}} can then be copied to an air-gapped one), or to
+pre-download years ahead of a workshop. Files already cached and
+current are not re-downloaded.
 }
 \examples{
 \dontshow{if (interactive()) withAutoprint(\{ # examplesIf}

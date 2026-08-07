@@ -18,6 +18,15 @@
 #'   case-insensitively (`"genhlth"` finds `GENHLTH`), and returned
 #'   columns always carry CDC's canonical spelling. Use [brfss_vars()]
 #'   to search names across years.
+#' @param states Optional vector restricting rows to those reporting
+#'   jurisdictions: state FIPS codes, postal abbreviations, or names,
+#'   mixed freely and matched case-insensitively (`c(48, "CA",
+#'   "maine")`). See [brfss_states] for the full list. The filter is
+#'   pushed into the DuckDB query, so other states' rows never reach R,
+#'   and the `_STATE` column is always returned so the filter stays
+#'   visible. A requested state absent from a requested year's file
+#'   (states do occasionally miss a year) raises a classed warning
+#'   rather than returning silently fewer rows.
 #' @param download If `FALSE`, only cached years are used and missing
 #'   years raise an error instead of being downloaded.
 #' @param quiet If `TRUE`, suppress download progress output.
@@ -42,7 +51,10 @@
 #'   estimates over raw codes are almost never what an analyst wants.)
 #'   Code 88/888 ("None") means zero, is never touched, and needs
 #'   recoding to 0 by hand before averaging count variables. Labels
-#'   cover 1998 on, so earlier years pass through unchanged.
+#'   cover 1998 on, so earlier years pass through unchanged, and a
+#'   request touching years the catalog does not cover (or, like 1998,
+#'   covers only partially) says so with a
+#'   `brfssdata_na_coverage_note` message rather than staying silent.
 #'
 #' @return A tibble with one row per respondent and a `year` column.
 #'
@@ -56,6 +68,7 @@
 read_brfss <- function(
   years,
   vars = NULL,
+  states = NULL,
   download = TRUE,
   quiet = FALSE,
   labels = FALSE,
@@ -80,11 +93,24 @@ read_brfss <- function(
       class = "brfssdata_bad_na_arg"
     )
   }
+  states <- resolve_states(states)
   # Validated eagerly: passed lazily, an invalid labels value would only
   # surface if some variable actually converted.
   labels_mode <- if (isFALSE(labels)) NULL else labels_how(labels)
   paths <- ensure_years_cached(years, download = download, quiet = quiet)
-  dat <- query_parquet(paths, vars = vars)
+  dat <- query_parquet(
+    paths,
+    # The filter column always rides along so the subset stays visible.
+    vars = if (is.null(vars) || is.null(states)) vars else union(vars, "_STATE"),
+    states = states
+  )
+  warn_state_coverage(dat, years, states)
+  # No rename note under a states filter: a module a filtered state
+  # did not field would look identical to a rename (all-NA in a year a
+  # sibling covers), and a confidently wrong note is worse than none.
+  if (is.null(states)) {
+    note_renames(dat, vars, years, quiet = quiet)
+  }
   if (isTRUE(na)) {
     dat <- apply_missing_codes(
       dat,
@@ -106,6 +132,102 @@ read_brfss <- function(
     )
   }
   dat
+}
+
+# A requested state can be genuinely absent from a year (Kentucky and
+# Pennsylvania collected no 2023 data), and a states filter that
+# silently returns fewer rows than the request implies would be read as
+# "smaller sample", not "missing state". Warn, naming year and state.
+warn_state_coverage <- function(dat, years, states) {
+  if (is.null(states) || !"_STATE" %in% names(dat)) {
+    return(invisible())
+  }
+  gaps <- character(0)
+  for (y in years) {
+    present <- unique(dat[["_STATE"]][dat$year == y])
+    absent <- setdiff(states, present)
+    if (length(absent) > 0) {
+      labels <- brfss_states$abbr[match(absent, brfss_states$fips)]
+      labels[is.na(labels)] <- as.character(absent[is.na(labels)])
+      gaps <- c(gaps, sprintf("%d: %s", y, paste(labels, collapse = ", ")))
+    }
+  }
+  if (length(gaps) == 0) {
+    return(invisible())
+  }
+  gaps_txt <- paste(gaps, collapse = "; ")
+  cli::cli_warn(
+    c(
+      "Requested states are absent from some requested years:
+       {gaps_txt}.",
+      "i" = "States occasionally collect no data in a year (Kentucky
+             and Pennsylvania in 2023, for example); estimates for
+             affected years cover the remaining requested states only."
+    ),
+    class = "brfssdata_state_coverage_warning"
+  )
+}
+
+# When a requested variable is entirely NA in a requested year AND a
+# sibling generation from the rename crosswalk covers that year, the
+# user is almost certainly stepping into CDC's trailing-digit rename
+# (_DRNKWK1 -> _DRNKWK2 -> _DRNKWK3). Say so. Consults only a cached or
+# bundled crosswalk -- never the network -- because the read path's
+# offline contract must hold.
+note_renames <- function(dat, vars, years, quiet = FALSE) {
+  if (is.null(vars) || isTRUE(quiet)) {
+    return(invisible())
+  }
+  xwalk <- crosswalk_catalog_offline()
+  if (is.null(xwalk) || nrow(xwalk) == 0) {
+    return(invisible())
+  }
+  requested <- setdiff(intersect(names(dat), xwalk$variable), "year")
+  bullets <- character(0)
+  for (v in requested) {
+    concept <- xwalk$concept[xwalk$variable == v][[1]]
+    fam <- xwalk[xwalk$concept == concept, , drop = FALSE]
+    empty_years <- integer(0)
+    for (y in years) {
+      rows <- dat$year == y
+      if (any(rows) && all(is.na(dat[[v]][rows]))) {
+        empty_years <- c(empty_years, y)
+      }
+    }
+    if (length(empty_years) == 0) {
+      next
+    }
+    sib <- fam[fam$variable != v & fam$year %in% empty_years, , drop = FALSE]
+    if (nrow(sib) == 0) {
+      next
+    }
+    sib_txt <- vapply(
+      split(sib$year, sib$variable),
+      summarize_years,
+      character(1)
+    )
+    bullets <- c(
+      bullets,
+      sprintf(
+        "%s has no data for %s; the rename crosswalk pairs it with %s.
+         See brfss_crosswalk(\"%s\") for the family, its review status,
+         and any comparability notes; combining generations is your
+         decision.",
+        v,
+        summarize_years(empty_years),
+        paste(
+          sprintf("%s (covers %s)", names(sib_txt), sib_txt),
+          collapse = "; "
+        ),
+        v
+      )
+    )
+  }
+  if (length(bullets) == 0) {
+    return(invisible())
+  }
+  names(bullets) <- rep("!", length(bullets))
+  cli::cli_inform(bullets, class = "brfssdata_rename_note")
 }
 
 ensure_years_cached <- function(

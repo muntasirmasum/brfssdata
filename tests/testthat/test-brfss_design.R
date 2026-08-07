@@ -245,6 +245,57 @@ test_that("a user-supplied weight overrides the era default", {
   expect_false("_LLCPWT" %in% names(dat))
 })
 
+test_that("a domain weight subsets to its covered rows with a note", {
+  # The fixture _CLLCPWT is NA outside its first ten rows, the shape of
+  # the real child weight (NULL on 383,782 of 433,323 rows in 2023).
+  # Before the subsetting behavior, the documented
+  # brfss_design(weight = "_CLLCPWT") call always aborted on real data
+  # with brfssdata_bad_design_var; the fixture's complete _CLLCPWT
+  # masked that for five tests.
+  local_brfss_cache(2023, alt_weights = 2023)
+  expect_message(
+    des <- brfss_design(2023, vars = "GENHLTH", weight = "_CLLCPWT"),
+    class = "brfssdata_weight_subset_note"
+  )
+  dat <- des$variables
+  expect_identical(nrow(dat), 10L)
+  expect_false(anyNA(dat$brfss_wt))
+  expect_identical(dat$brfss_wt, dat$`_CLLCPWT`)
+})
+
+test_that("quiet = TRUE suppresses the domain-weight subset note", {
+  local_brfss_cache(2023, alt_weights = 2023)
+  expect_no_message(
+    brfss_design(2023, vars = "GENHLTH", weight = "_CLLCPWT", quiet = TRUE),
+    class = "brfssdata_weight_subset_note"
+  )
+})
+
+test_that("the automatic era weight still aborts on missing values", {
+  # The subsetting treatment is for user-supplied domain weights only:
+  # a missing era weight means a damaged file and must stay loud. The
+  # "missing weights abort rather than silently degrade" test above
+  # pins the same contract from the file side.
+  local_brfss_cache(2023, alt_weights = 2023)
+  local_mocked_bindings(
+    read_brfss = function(...) {
+      out <- tibble::tibble(
+        year = rep(2023L, 4L),
+        GENHLTH = c(1, 2, 1, 2),
+        `_LLCPWT` = c(100, NA, 250, 300),
+        `_STSTR` = c(1, 1, 2, 2),
+        `_PSU` = c(1, 2, 3, 4)
+      )
+      names(out) <- c("year", "GENHLTH", "_LLCPWT", "_STSTR", "_PSU")
+      out
+    }
+  )
+  expect_error(
+    brfss_design(2023, vars = "GENHLTH", quiet = TRUE),
+    class = "brfssdata_bad_design_var"
+  )
+})
+
 test_that("a user-supplied weight matches case-insensitively", {
   local_brfss_cache(2023, alt_weights = 2023)
   des <- brfss_design(2023, vars = "GENHLTH", weight = "_cllcpwt", quiet = TRUE)

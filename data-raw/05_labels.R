@@ -48,7 +48,12 @@ parse_value_blocks <- function(path) {
   out <- lapply(blocks, function(b) {
     name <- sub(block_re, "\\1", b, perl = TRUE)
     if (startsWith(name, "$")) {
-      return(NULL) # character formats: BRFSS data are numeric
+      # Character ($) formats are skipped for now: every year carries a
+      # handful of character columns (MRACE 2001-2012, RCSRACE, ...),
+      # but cataloging their labels needs character codes, i.e. a
+      # catalog schema change (code is INTEGER today). Tracked in
+      # data-raw/README.md.
+      return(NULL)
     }
     body <- sub(block_re, "\\2", b, perl = TRUE)
     m <- regmatches(body, gregexpr(entry_re, body, perl = TRUE))[[1]]

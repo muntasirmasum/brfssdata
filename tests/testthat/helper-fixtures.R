@@ -10,7 +10,9 @@ write_fixture_year <- function(
   extra = NULL,
   psu_size = 1,
   alt_weights = FALSE,
-  states = 1
+  states = 1,
+  add_cols = NULL,
+  chr_cols = NULL
 ) {
   # The column name for the era weight comes from the package constants;
   # tests/testthat/test-constants.R anchors those against a hand-written
@@ -53,13 +55,34 @@ write_fixture_year <- function(
   df$PHYSHLTH[1:3] <- c(77, 88, 99)
   if (alt_weights) {
     # Both differ from the main weight on every row, like the real
-    # files: _CLLCPWT as a legitimate final-weight override, _LLCPWT2
-    # as an intermediate pipeline weight that should warn.
-    df[["_CLLCPWT"]] <- df[[wt_col]] * 3 + 7
+    # files. _CLLCPWT is a legitimate final-weight override, and like
+    # the real child weight it exists only for its module's records: NA
+    # outside a deterministic first block of rows (in the 2023 file it
+    # is NULL on 383,782 of 433,323 rows). _LLCPWT2 is an intermediate
+    # pipeline weight that should warn, and in the real files it is
+    # complete, so it stays complete here.
+    covered <- seq_len(n) <= ceiling(n / 3)
+    df[["_CLLCPWT"]] <- ifelse(covered, df[[wt_col]] * 3 + 7, NA_real_)
     df[["_LLCPWT2"]] <- df[[wt_col]] * 5 + 11
   }
   if (!is.null(extra)) {
     df[[extra]] <- as.numeric(sample(0:1, n, replace = TRUE))
+  }
+  # Named list of extra columns with explicit values, recycled to n;
+  # for tests that need specific codes present (a 100000 code, a 9
+  # missing bucket) rather than the 0/1 draw `extra` gives.
+  if (!is.null(add_cols)) {
+    for (nm in names(add_cols)) {
+      df[[nm]] <- rep(as.numeric(add_cols[[nm]]), length.out = n)
+    }
+  }
+  # Columns to store as text, for mixed-type fixtures: name a column
+  # here in one year but not another and the two files disagree on the
+  # stored type, the shape check_type_consistency() refuses.
+  if (!is.null(chr_cols)) {
+    for (nm in chr_cols) {
+      df[[nm]] <- as.character(df[[nm]])
+    }
   }
   write_fixture_parquet(df, file.path(dir, sprintf("brfss_%d.parquet", year)))
 }
@@ -73,6 +96,42 @@ write_fixture_parquet <- function(df, path) {
     sprintf("COPY fixture TO '%s' (FORMAT parquet)", gsub("'", "''", path))
   )
   path
+}
+
+# A two-generation rename family: OLDGEN covers 2022, NEWGEN covers
+# 2023, so requesting OLDGEN across both years should trip the rename
+# note exactly once.
+write_fixture_crosswalk <- function(dir) {
+  xwalk <- data.frame(
+    concept = c("mixgen", "mixgen"),
+    variable = c("OLDGEN", "NEWGEN"),
+    year = c(2022L, 2023L),
+    generation = c(1L, 2L),
+    status = c("verified", "verified"),
+    comparable = c(NA, TRUE),
+    note = c("", ""),
+    stringsAsFactors = FALSE
+  )
+  write_fixture_parquet(xwalk, file.path(dir, "brfss_crosswalk.parquet"))
+}
+
+# The year inventory behind brfss_year_info(), shaped like the hosted
+# asset (cached is computed locally, so it is not a column here).
+write_fixture_year_info <- function(dir, years = c(2022L, 2023L)) {
+  years <- sort(as.integer(years))
+  info <- data.frame(
+    year = years,
+    respondents = rep(30L, length(years)),
+    variables = rep(6L, length(years)),
+    states = rep(1L, length(years)),
+    size = rep(1000, length(years)),
+    codebook_url = sprintf(
+      "https://www.cdc.gov/brfss/annual_data/annual_%d.html",
+      years
+    ),
+    stringsAsFactors = FALSE
+  )
+  write_fixture_parquet(info, file.path(dir, "brfss_year_info.parquet"))
 }
 
 # A small variable catalog exercising NA labels and label drift.
@@ -185,9 +244,13 @@ local_brfss_cache <- function(
   extra = list(),
   catalog = FALSE,
   label_catalog = TRUE,
+  crosswalk = TRUE,
+  year_info = TRUE,
   psu_size = 1,
   alt_weights = integer(0),
   states = list(),
+  add_cols = list(),
+  chr_cols = list(),
   schema = 2,
   env = parent.frame()
 ) {
@@ -203,7 +266,9 @@ local_brfss_cache <- function(
       extra = extra[[as.character(y)]],
       psu_size = psu_size,
       alt_weights = y %in% alt_weights,
-      states = states[[as.character(y)]] %||% 1
+      states = states[[as.character(y)]] %||% 1,
+      add_cols = add_cols[[as.character(y)]],
+      chr_cols = chr_cols[[as.character(y)]]
     )
   }
   if (catalog) {
@@ -211,9 +276,21 @@ local_brfss_cache <- function(
   }
   # The label catalog ships by default because brfss_design(na = TRUE),
   # the default, consults it; tests of the catalog-not-cached paths opt
-  # out with label_catalog = FALSE.
+  # out with label_catalog = FALSE. Fixture years from 1998 on get
+  # GENHLTH/_STATE rows so the coverage note stays quiet for them, like
+  # the real catalog; earlier fixture years get none, also like the
+  # real catalog.
   if (label_catalog) {
-    write_fixture_labels(dir)
+    write_fixture_labels(dir, extra_years = years)
+  }
+  # The crosswalk and year inventory ship by default too, so the read
+  # path's rename note and brfss_download() resolve against fixtures,
+  # never against the bundled snapshots or the network.
+  if (crosswalk) {
+    write_fixture_crosswalk(dir)
+  }
+  if (year_info) {
+    write_fixture_year_info(dir, years = if (length(years) > 0) years else 2023L)
   }
   write_fixture_manifest(dir, years, schema = schema)
   dir
@@ -234,8 +311,16 @@ local_brfss_manifest <- function(years, schema = 2, env = parent.frame()) {
 # CDC's don't-know and refused codes, matching the fixture data),
 # PHYSHLTH mixed (incomplete), DRIFTVAR with a code set that changes
 # across years, DUPLABEL a complete map that gives two codes the same
-# label.
-write_fixture_labels <- function(dir) {
+# label, FRUITVAR a calculated-variable missing bucket with a trailing
+# noun, BIGCODE a map whose code is at R's scientific-notation
+# threshold. extra_years mirrors the real catalog's coverage: fixture
+# years from 1998 on get GENHLTH/_STATE rows; earlier years get none.
+write_fixture_labels <- function(dir, extra_years = integer(0)) {
+  label_years <- sort(unique(c(
+    2022L,
+    2023L,
+    as.integer(extra_years[extra_years >= 1998])
+  )))
   genhlth_labels <- c(
     "Excellent",
     "Very good",
@@ -246,10 +331,10 @@ write_fixture_labels <- function(dir) {
     "Refused"
   )
   genhlth <- data.frame(
-    year = rep(c(2022L, 2023L), each = 7),
+    year = rep(label_years, each = 7),
     variable = "GENHLTH",
-    code = rep(c(1:5, 7L, 9L), 2),
-    label = rep(genhlth_labels, 2),
+    code = rep(c(1:5, 7L, 9L), length(label_years)),
+    label = rep(genhlth_labels, length(label_years)),
     complete = TRUE,
     stringsAsFactors = FALSE
   )
@@ -264,10 +349,10 @@ write_fixture_labels <- function(dir) {
   # _STATE has a complete map in every real year; LABEL_EXCLUDE must
   # keep it numeric on every path so `_STATE == 6` keeps working.
   state <- data.frame(
-    year = rep(c(2022L, 2023L), each = 2),
+    year = rep(label_years, each = 2),
     variable = "_STATE",
-    code = rep(c(1L, 2L), 2),
-    label = rep(c("Alabama", "Alaska"), 2),
+    code = rep(c(1L, 2L), length(label_years)),
+    label = rep(c("Alabama", "Alaska"), length(label_years)),
     complete = TRUE,
     stringsAsFactors = FALSE
   )
@@ -315,8 +400,44 @@ write_fixture_labels <- function(dir) {
     complete = TRUE,
     stringsAsFactors = FALSE
   )
+  # The calculated-variable shape from the real files: the missing
+  # bucket's label carries a trailing noun ("... missing values", the
+  # _FRTLT1A wording, acute-apostrophe mojibake included), which the
+  # whole-token rule alone would reject.
+  fruitvar <- data.frame(
+    year = 2023L,
+    variable = "FRUITVAR",
+    code = c(1L, 2L, 9L),
+    label = c(
+      "Consumed fruit one or more times per day",
+      "Consumed fruit less than one time per day",
+      "Don´t know, refused or missing values"
+    ),
+    complete = TRUE,
+    stringsAsFactors = FALSE
+  )
+  # A code at R's scientific-notation threshold: as.character(1e5) is
+  # "1e+05", so any string-based code matching silently misses it.
+  bigcode <- data.frame(
+    year = 2023L,
+    variable = "BIGCODE",
+    code = c(1L, 100000L),
+    label = c("Yes", "Refused"),
+    complete = TRUE,
+    stringsAsFactors = FALSE
+  )
   write_fixture_parquet(
-    rbind(genhlth, physhlth, state, trapvar, semdrift, driftvar, duplabel),
+    rbind(
+      genhlth,
+      physhlth,
+      state,
+      trapvar,
+      semdrift,
+      driftvar,
+      duplabel,
+      fruitvar,
+      bigcode
+    ),
     file.path(dir, "brfss_labels.parquet")
   )
 }

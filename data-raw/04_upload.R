@@ -103,13 +103,15 @@ upload_verified <- function(path, tag, force = FALSE) {
     }
   }
   # The releases endpoint is eventually consistent and has been observed
-  # serving stale reads well past ten seconds after an upload; back off
-  # for up to a minute before declaring failure.
-  for (i in 1:10) {
+  # serving stale reads for MINUTES after an upload of a brand-new
+  # asset (the 2026-08 re-release hit this twice with a one-minute
+  # backoff, both times for uploads that had in fact succeeded). Back
+  # off for up to about five minutes before declaring failure.
+  for (i in 1:20) {
     if (basename(path) %in% release_assets(tag)) {
       return(invisible(path))
     }
-    Sys.sleep(i)
+    Sys.sleep(min(i * 2, 20))
   }
   stop(
     "upload of ",
@@ -121,7 +123,13 @@ upload_verified <- function(path, tag, force = FALSE) {
   )
 }
 
-publish_year <- function(year) {
+# force = TRUE deliberately republishes a year whose bytes changed (a
+# rebuild with corrected types, for example): upload_verified()'s
+# changed-content guard is what force overrides, and the sidecar always
+# rides along so the published pair stays consistent. Re-releases must
+# finish with publish_meta(), which re-hashes everything; until it runs,
+# users' manifests still advertise the previous hashes.
+publish_year <- function(year, force = FALSE) {
   parquet <- file.path(out_dir, sprintf("brfss_%d.parquet", year))
   stopifnot(file.exists(parquet))
   tag <- sprintf("data-%d", year)
@@ -140,8 +148,8 @@ publish_year <- function(year) {
     )
     Sys.sleep(2) # give the release API a moment before uploading
   }
-  upload_verified(parquet, tag)
-  upload_verified(sha256_file(parquet), tag)
+  upload_verified(parquet, tag, force = force)
+  upload_verified(sha256_file(parquet), tag, force = force)
   message("published ", tag)
 }
 
@@ -188,11 +196,31 @@ publish_meta <- function(years) {
   }
   catalogs <- file.path(
     out_dir,
-    c("brfss_variables.parquet", "brfss_labels.parquet")
+    c(
+      "brfss_variables.parquet",
+      "brfss_labels.parquet",
+      "brfss_crosswalk.parquet",
+      "brfss_year_info.parquet"
+    )
   )
   for (catalog in catalogs[file.exists(catalogs)]) {
     upload_verified(catalog, tag, force = TRUE)
     upload_verified(sha256_file(catalog), tag, force = TRUE)
+  }
+
+  # Refresh the bundled metadata snapshots from the exact bytes being
+  # published, so an offline first use serves the same content the
+  # release does. The year inventory is deliberately not bundled: its
+  # size column describes hosted bytes that change with each release.
+  for (snapshot in c(
+    "brfss_variables.parquet",
+    "brfss_labels.parquet",
+    "brfss_crosswalk.parquet"
+  )) {
+    src <- file.path(out_dir, snapshot)
+    if (file.exists(src)) {
+      file.copy(src, file.path("inst/extdata", snapshot), overwrite = TRUE)
+    }
   }
 
   # Manifest schema v2: a per-asset sha256/size map that the package
@@ -252,9 +280,15 @@ publish_meta <- function(years) {
   message("published manifest: ", paste(range(years), collapse = "-"))
 }
 
-# Usage (after 02, 03, and 05 have built everything). publish_meta()
-# rewrites the manifest from exactly the years passed and aborts if that
-# would delist a hosted year, so pass the FULL hosted range:
+# Usage (after 02, 03, 05, 06, 07, and 09 have built and validated
+# everything). publish_meta() rewrites the manifest from exactly the
+# years passed and aborts if that would delist a hosted year, so pass
+# the FULL hosted range:
 # years <- 1985:2024
 # purrr::walk(years, publish_year)
 # publish_meta(years)
+#
+# Re-releasing years whose bytes changed (a corrected rebuild):
+# changed <- c(...)                     # from the sha256 diff
+# purrr::walk(changed, publish_year, force = TRUE)
+# publish_meta(1985:2024)               # always last, always full range

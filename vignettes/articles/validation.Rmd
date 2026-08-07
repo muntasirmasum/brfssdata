@@ -1,0 +1,120 @@
+---
+title: "Validating against CDC's published estimates"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+A data package asks to be trusted twice: that the bytes it serves are
+the bytes it published, and that estimates computed from them reproduce
+what the data's owner reports. The first is mechanical and automatic
+here. The second is checkable in a few lines, and this article shows
+how, because the strongest validation is the one you run yourself.
+
+## The bytes
+
+Every hosted file has a published sha256, twice over. The data manifest
+carries a per-asset hash that `read_brfss()` verifies on every
+download, and each release asset also has a plain `.sha256` sidecar
+next to it, so the manifest can be checked against an independent
+channel. A weekly integration job downloads real years fresh, verifies
+the sidecars, re-asserts the recorded row counts, and computes the
+known-answer estimate below; the package does not ship until that
+passes.
+
+## Reproducing a published prevalence
+
+CDC publishes design-based BRFSS estimates in the Prevalence & Trends
+tool (<https://www.cdc.gov/brfss/brfssprevalence/>). For 2023, Health
+Status, the published share of adults reporting fair or poor general
+health is 19.4 percent. The same figure from this package:
+
+```{r known-answer}
+library(brfssdata)
+library(srvyr)
+
+des <- brfss_design(2023, vars = "GENHLTH", quiet = TRUE)
+
+des |>
+  summarize(fair_poor = survey_mean(GENHLTH >= 4, na.rm = TRUE, vartype = "ci"))
+```
+
+Two details make this line match the published figure. The design
+carries the era-correct weight, strata, and PSUs, and `na = TRUE` (the
+default here) has set the don't-know and refused codes to `NA`, so
+`GENHLTH >= 4` divides fair-or-poor by substantive answers, which is
+the denominator CDC uses. Run the same check on any measure you are
+about to build a paper on; if you cannot reproduce the published
+number, resolve that before going further.
+
+## Reliability screening
+
+CDC suppresses BRFSS estimates built on fewer than 50 respondents or
+with a relative standard error above 30 percent, and reviewers
+increasingly expect the same screen. Both inputs come straight from a
+srvyr summary, with `unweighted()` supplying the denominator that
+suppression rules actually mean (respondents, not weighted counts):
+
+```{r reliability}
+library(dplyr)
+
+screened <- brfss_design(
+  2023,
+  vars = c("GENHLTH", "_AGE_G"),
+  states = "VT",
+  quiet = TRUE
+) |>
+  group_by(`_AGE_G`) |>
+  summarize(
+    fair_poor = survey_mean(GENHLTH >= 4, na.rm = TRUE, vartype = c("se", "cv")),
+    n_unweighted = unweighted(sum(!is.na(GENHLTH)))
+  ) |>
+  mutate(
+    suppress = n_unweighted < 50 | fair_poor_cv > 0.30
+  )
+
+screened
+```
+
+Anything flagged gets suppressed or footnoted, not reported as if it
+were solid. The package deliberately leaves this as your code rather
+than a function: the right denominator depends on the estimate (the
+respondents actually contributing to it, after subsetting and missing
+handling), and a convenience flagger fed the wrong `n` would lend false
+authority exactly where caution is needed.
+
+## Intervals near zero
+
+Wald intervals misbehave for proportions near 0 or 1, where much BRFSS
+subgroup work lives. The survey package provides the Korn-Graubard
+interval, which is what NCHS presentation standards call for:
+
+```{r korn-graubard}
+library(survey)
+
+svyciprop(~I(GENHLTH == 5), des, method = "beta")
+```
+
+Compare that with the symmetric interval from `survey_mean()` for the
+same quantity; for prevalences under about five percent, or any
+estimate whose Wald interval crosses zero, report the Korn-Graubard
+one.
+
+## What to report
+
+A reproducible BRFSS result states the weighted estimate with its
+confidence interval and method, the unweighted number of respondents
+behind it, the suppression rule applied, a one-sentence design
+statement (final weight, strata, PSU, and the lonely-PSU handling,
+which this package sets to `"adjust"`), and the per-year data citation,
+which `brfss_citation()` writes:
+
+```{r citation}
+brfss_citation(2023)
+```

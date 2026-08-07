@@ -7,6 +7,7 @@
 read_brfss(
   years,
   vars = NULL,
+  states = NULL,
   download = TRUE,
   quiet = FALSE,
   labels = FALSE,
@@ -22,6 +23,15 @@ The default returns every variable. Names are matched
 case-insensitively (\code{"genhlth"} finds \code{GENHLTH}), and returned
 columns always carry CDC's canonical spelling. Use \code{\link[=brfss_vars]{brfss_vars()}}
 to search names across years.}
+
+\item{states}{Optional vector restricting rows to those reporting
+jurisdictions: state FIPS codes, postal abbreviations, or names,
+mixed freely and matched case-insensitively (\code{c(48, "CA", "maine")}). See \link{brfss_states} for the full list. The filter is
+pushed into the DuckDB query, so other states' rows never reach R,
+and the \verb{_STATE} column is always returned so the filter stays
+visible. A requested state absent from a requested year's file
+(states do occasionally miss a year) raises a classed warning
+rather than returning silently fewer rows.}
 
 \item{download}{If \code{FALSE}, only cached years are used and missing
 years raise an error instead of being downloaded.}
@@ -50,7 +60,10 @@ as CDC published it. (\code{\link[=brfss_design]{brfss_design()}} defaults to \c
 estimates over raw codes are almost never what an analyst wants.)
 Code 88/888 ("None") means zero, is never touched, and needs
 recoding to 0 by hand before averaging count variables. Labels
-cover 1998 on, so earlier years pass through unchanged.}
+cover 1998 on, so earlier years pass through unchanged, and a
+request touching years the catalog does not cover (or, like 1998,
+covers only partially) says so with a
+\code{brfssdata_na_coverage_note} message rather than staying silent.}
 }
 \value{
 A tibble with one row per respondent and a \code{year} column.

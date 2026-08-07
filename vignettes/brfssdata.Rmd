@@ -180,9 +180,15 @@ drinks |>
 ```
 
 Reading both versions and coalescing them is the usual fix, but only
-after checking that the definitions are close enough to justify it. That
-check is your job, not the package's; brfssdata will hand you both
-columns and stay out of the way.
+after checking that the definitions are close enough to justify it. The
+package now tells you when you are standing in this trap: a request
+whose variable is empty in years a sibling generation covers gets a
+`brfssdata_rename_note` message pointing at `brfss_crosswalk()`, which
+lists the whole family (`_DRNKWK1` through `_DRNKWK3` here) along with
+its review status and, for reviewed pairs, whether consecutive
+generations stayed comparable and what changed. The decision to
+coalesce remains yours; the package hands you both columns and the
+family, and stays out of the recode.
 
 ## Finding variables
 
@@ -356,7 +362,9 @@ brfss_design(2023, vars = "GENHLTH") |>
 The weight is chosen to match the survey era: `_FINALWT` for years before
 2011 and `_LLCPWT` from 2011 on (a `weight` argument selects another
 final weight, such as the child weight `_CLLCPWT`, when CDC's
-documentation calls for it; see `?brfss_design` for why the
+documentation calls for it; a module weight like that exists only for
+its module's records, so the design subsets to the rows it covers and
+says how many were dropped; see `?brfss_design` for that and for why the
 intermediate pipeline weights like `_LLCPWT2` warn). The design is built on three added
 columns, `brfss_wt`, `brfss_psu`, and `brfss_strata`, because CDC's names
 are not syntactic and cannot enter a model formula; the original CDC

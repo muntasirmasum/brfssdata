@@ -21,8 +21,10 @@
 #'   appears in, e.g. `"2011-2013, 2020"`). Searches that match nothing
 #'   return a zero-row tibble.
 #'
-#' @examplesIf interactive()
-#' brfss_vars("smok")
+#' @examples
+#' # download = FALSE reads the cached catalog, or the snapshot bundled
+#' # with the package, so this runs offline.
+#' brfss_vars("smok", download = FALSE)
 #' @export
 brfss_vars <- function(
   pattern = NULL,

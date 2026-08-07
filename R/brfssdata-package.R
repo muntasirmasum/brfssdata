@@ -7,5 +7,6 @@
 NULL
 
 # Columns created inside brfss_design() and referenced via srvyr's
-# data-masking interface.
-utils::globalVariables(c("brfss_psu", "brfss_strata", "brfss_wt"))
+# data-masking interface, plus the lazy-loaded package dataset that
+# resolve_states() and warn_state_coverage() consult.
+utils::globalVariables(c("brfss_psu", "brfss_strata", "brfss_wt", "brfss_states"))

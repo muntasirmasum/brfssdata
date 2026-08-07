@@ -49,9 +49,38 @@ test_that("substantive labels containing the keywords never match", {
     "No missing values and in accepted range",
     "Multiracial but preferred race not asked",
     "None",
-    "fair or poor"
+    "fair or poor",
+    # The rule-B guards: a "missing ..." flag with no don't-know/refused
+    # token must stay substantive, and a word merely starting with the
+    # letters must not ride the prefix rule.
+    "Missing Fruit Responses",
+    "Not Included - Missing Fruit Responses",
+    "Included - Not Missing Fruit Responses",
+    "No missing fruit responses",
+    "Mississippi",
+    "Missouri"
   )
   expect_false(any(is_missing_label(labels)))
+})
+
+test_that("calculated-variable buckets with trailing nouns match", {
+  # The real CDC wordings (acute-apostrophe and mojibake variants
+  # included) that the whole-token rule alone rejected, leaving 51,087
+  # code-9 rows uncleared in _FRTLT1A 2021 alone under na = TRUE.
+  labels <- c(
+    "Don´t know, refused or missing values",
+    "DonÂ´t know, refused or missing insurance response",
+    "Don´t know, refused or missing insurance response",
+    "Don´t know, refused or missing work limited",
+    "Don´t know, refused or missing usual activities limited",
+    "Don´t know, refused or missing social activities limited",
+    "Do not know/Refused/Missing (_BMI2 = 9999)",
+    # The audited allowlist: CDC's "component question" wordings on the
+    # RACE2 family.
+    "Do not know/Not sure/Refused component question",
+    "Do not know/Not sure/Refused Missing component question"
+  )
+  expect_true(all(is_missing_label(labels)))
 })
 
 test_that("every observed spelling of the missing-type labels matches", {
@@ -149,6 +178,85 @@ test_that("brfss_design clears missing codes by default; read does not", {
   expect_true(any(raw$variables$GENHLTH %in% c(7, 9)))
   expect_identical(formals(read_brfss)$na, FALSE)
   expect_identical(formals(brfss_design)$na, TRUE)
+})
+
+test_that("a trailing-noun bucket is cleared end to end", {
+  local_brfss_cache(
+    2023,
+    add_cols = list("2023" = list(FRUITVAR = c(1, 2, 9)))
+  )
+  dat <- read_brfss(2023, vars = "FRUITVAR", quiet = TRUE, na = TRUE)
+  expect_false(any(dat$FRUITVAR %in% 9, na.rm = TRUE))
+  expect_true(anyNA(dat$FRUITVAR))
+  out <- brfss_missing_codes("FRUITVAR", years = 2023)
+  expect_identical(out$code, 9L)
+})
+
+test_that("codes at the scientific-notation threshold are cleared", {
+  # as.character(1e5) is "1e+05" while as.character(100000L) is
+  # "100000", so the old paste()-based match silently skipped any round
+  # code at or above 1e5. No such code ships today (777777/999999
+  # format fixed); this pins the numeric match against the day one
+  # does.
+  local_brfss_cache(
+    2023,
+    add_cols = list("2023" = list(BIGCODE = c(1, 100000)))
+  )
+  dat <- read_brfss(2023, vars = "BIGCODE", quiet = TRUE, na = TRUE)
+  expect_false(any(dat$BIGCODE %in% 100000, na.rm = TRUE))
+  expect_true(anyNA(dat$BIGCODE))
+})
+
+test_that("labels = TRUE converts codes at the notation threshold", {
+  local_brfss_cache(
+    2023,
+    add_cols = list("2023" = list(BIGCODE = c(1, 100000)))
+  )
+  dat <- read_brfss(2023, vars = "BIGCODE", quiet = TRUE, labels = TRUE)
+  expect_s3_class(dat$BIGCODE, "factor")
+  expect_identical(levels(dat$BIGCODE), c("Yes", "Refused"))
+  # The 100000 rows must land on "Refused", not NA: integer levels
+  # would stringify as "100000" while the double data stringifies as
+  # "1e+05".
+  expect_false(anyNA(dat$BIGCODE))
+})
+
+test_that("na = TRUE says so when years have no catalog at all", {
+  local_brfss_cache(1993)
+  expect_message(
+    dat <- read_brfss(1993, na = TRUE),
+    class = "brfssdata_na_coverage_note"
+  )
+  # and the values really do pass through unchanged
+  raw <- read_brfss(1993, quiet = TRUE)
+  expect_identical(dat$GENHLTH, raw$GENHLTH)
+})
+
+test_that("na = TRUE says so when a year's catalog is mostly gaps", {
+  # 1998's real catalog covers under a quarter of the file; the fixture
+  # mirrors that with one catalogued column (GENHLTH) out of three
+  # loaded (GENHLTH, PHYSHLTH, MYSTVAR).
+  local_brfss_cache(1998, extra = list("1998" = "MYSTVAR"))
+  expect_message(
+    read_brfss(1998, na = TRUE),
+    class = "brfssdata_na_coverage_note"
+  )
+})
+
+test_that("fully covered years emit no coverage note", {
+  local_brfss_cache(2023)
+  expect_no_message(
+    read_brfss(2023, vars = "GENHLTH", na = TRUE),
+    class = "brfssdata_na_coverage_note"
+  )
+})
+
+test_that("quiet = TRUE suppresses the coverage note", {
+  local_brfss_cache(1993)
+  expect_no_message(
+    read_brfss(1993, quiet = TRUE, na = TRUE),
+    class = "brfssdata_na_coverage_note"
+  )
 })
 
 test_that("a malformed na argument is rejected", {

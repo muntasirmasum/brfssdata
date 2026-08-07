@@ -26,8 +26,10 @@
 #'   says so with a `brfssdata_empty_result` message (regardless of
 #'   `quiet`, which governs download output only).
 #'
-#' @examplesIf interactive()
-#' brfss_labels("GENHLTH", years = 2023)
+#' @examples
+#' # download = FALSE reads the cached catalog, or the snapshot bundled
+#' # with the package, so this runs offline.
+#' brfss_labels("GENHLTH", years = 2023, download = FALSE)
 #' @export
 brfss_labels <- function(
   vars = NULL,
@@ -205,7 +207,16 @@ apply_labels <- function(
       label = latest$label,
       both = sprintf("[%s] %s", as.character(latest$code), latest$label)
     )
-    dat[[v]] <- factor(vals, levels = latest$code, labels = level_labels)
+    # Levels are cast to the data's own type before factor() runs both
+    # sides through as.character(): the parquet data column is double
+    # ("1e+05" for 100000) while the catalog code is integer ("100000"),
+    # so integer levels would silently turn any round code at or above
+    # 1e5 into NA.
+    dat[[v]] <- factor(
+      vals,
+      levels = as.numeric(latest$code),
+      labels = level_labels
+    )
   }
   if (length(drifted) > 0) {
     cli::cli_warn(

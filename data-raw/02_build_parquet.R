@@ -5,6 +5,69 @@ raw_dir <- "data-raw/raw"
 out_dir <- "data-raw/parquet"
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
+# CDC changed these variables' storage type across years (numeric SAS
+# variable in some files, character in others). One canonical type per
+# variable, applied to every year, so that a multi-year
+# read_parquet(union_by_name) never promotes DOUBLE to VARCHAR -- that
+# promotion turns the double 1120 into "1120.0" next to a text year's
+# "1120", two distinct values for one code, and defeats numeric
+# missing-code matching ("9.0" never matches 9). The choice per
+# variable follows the semantics: identifiers and codes with leading
+# zeros or digit-string structure stay character; plain numeric codes
+# stay double.
+canonical_types <- c(
+  SEQNO = "character", # record identifier; character in 1999 and 2016+
+  `_RECORD` = "double", # numeric record code; double in 16 of 17 years
+  MRACEORG = "character", # positional multi-race digit string ("15")
+  # WINDDOWN must stay character: the 1990 and 1994 files carry stray
+  # single-byte values ("]", "W", "\") CDC published as-is, which a
+  # double cannot represent without recoding them away.
+  WINDDOWN = "character",
+  `_MSACODE` = "character", # MSA geographic code; character 1998 on
+  RCVFVCH4 = "character" # MMYYYY with leading zeros ("092010")
+)
+
+# Coerce a column to its canonical type, refusing any value the
+# round-trip could distort: a double becomes character only when every
+# value is whole (rendered with sprintf, never scientific, never with a
+# trailing ".0"), and a character becomes double only when every
+# non-missing value is a plain decimal number.
+canonicalize_column <- function(x, type, year, name) {
+  if (type == "character" && is.numeric(x)) {
+    ok <- is.na(x) | x == trunc(x)
+    if (!all(ok)) {
+      stop(sprintf(
+        "%d: %s carries non-integer values; refusing character cast",
+        year,
+        name
+      ))
+    }
+    return(ifelse(is.na(x), NA_character_, sprintf("%.0f", x)))
+  }
+  if (type == "double" && is.character(x)) {
+    ok <- is.na(x) | grepl("^-?[0-9]+(\\.[0-9]+)?$", x)
+    if (!all(ok)) {
+      stop(sprintf(
+        "%d: %s carries non-numeric text; refusing double cast",
+        year,
+        name
+      ))
+    }
+    # A leading zero ("0012") would survive as.numeric() but lose its
+    # zeros, silently changing the published representation; such a
+    # variable belongs in the character column of canonical_types.
+    if (any(grepl("^0[0-9]", x[!is.na(x)]))) {
+      stop(sprintf(
+        "%d: %s carries leading-zero values; refusing double cast",
+        year,
+        name
+      ))
+    }
+    return(as.numeric(x))
+  }
+  x
+}
+
 # Known (records, variables) from CDC year pages, asserted when present.
 cdc_targets <- list(
   `2013` = c(491773L, 359L),
@@ -58,11 +121,23 @@ build_year <- function(year, overwrite = FALSE) {
       if (is.character(x)) {
         # Legacy files carry Windows-1252 bytes that break UTF-8 parquet.
         x <- iconv(x, "CP1252", "UTF-8", sub = "byte")
+        # A blank SAS character field is SAS's missing value for
+        # character data; store it as a null, not as "". Done before
+        # any canonical cast so a blank never blocks a double cast.
+        x[!is.na(x) & trimws(x) == ""] <- NA_character_
       }
       x
     }),
     check.names = FALSE
   )
+  for (nm in intersect(names(canonical_types), names(dat))) {
+    dat[[nm]] <- canonicalize_column(
+      dat[[nm]],
+      canonical_types[[nm]],
+      year,
+      nm
+    )
+  }
   dat$year <- as.integer(year)
 
   target <- cdc_targets[[as.character(year)]]

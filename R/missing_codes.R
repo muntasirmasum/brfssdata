@@ -8,13 +8,19 @@
 #' this function is the audit trail for that behavior, and the join
 #' table for recoding by hand.
 #'
-#' Matching is deliberately conservative: a label counts as missing only
-#' when every part of it (split on `/`, `,`, and the word "or") is a
-#' known missing-answer phrase. Substantive answers that merely contain
-#' one of the words, such as "Doctor refused when asked", never match.
-#' Code 88/888 ("None") is an answer of zero, not missing, and is never
-#' matched; recode it to 0 yourself before averaging a count variable
-#' such as `PHYSHLTH`.
+#' Matching is deliberately conservative. A label counts as missing when
+#' every part of it (split on `/`, `,`, and the word "or") is a known
+#' missing-answer phrase, or when the only parts beyond those phrases
+#' start with the word "missing" and at least one part names the answer
+#' itself (don't know / not sure / refused) -- the shape of CDC's
+#' calculated-variable buckets such as "Don't know, refused or missing
+#' values" on `_FRTLT1A`. A short audited allowlist covers CDC's
+#' "component question" wordings on the `RACE2` family. Substantive
+#' answers that merely contain one of the words, such as "Doctor refused
+#' when asked" or a bare "Missing Fruit Responses" exclusion flag, never
+#' match. Code 88/888 ("None") is an answer of zero, not missing, and is
+#' never matched; recode it to 0 yourself before averaging a count
+#' variable such as `PHYSHLTH`.
 #'
 #' @inheritParams brfss_labels
 #'
@@ -22,8 +28,8 @@
 #'   `label`, one row per code the missing-value rules match. Labels
 #'   cover 1998 on, so earlier years never appear.
 #'
-#' @examplesIf interactive()
-#' brfss_missing_codes("GENHLTH", years = 2023)
+#' @examples
+#' brfss_missing_codes("GENHLTH", years = 2023, download = FALSE)
 #' @seealso [brfss_labels()] for the full catalog.
 #' @export
 brfss_missing_codes <- function(
@@ -74,21 +80,73 @@ MISSING_LABEL_TOKENS <- c(
   "not asked"
 )
 
-# A label marks a missing-type answer iff it has at least one token and
-# every "/"-, ","-, or " or "-separated token is on the whitelist.
-# Whole-token matching keeps substantive answers safe: "Doctor refused
-# when asked", "No, I've refused treatment", and "zero or missing" all
-# carry a token outside the whitelist and never match.
+# Tokens that name the respondent-side missing answer itself. Rule B
+# below requires at least one, so a label made only of "missing ..."
+# flags (the _FRUITEX-style exclusion indicators) never matches on its
+# own.
+MISSING_CORE_TOKENS <- c(
+  "dont know",
+  "do not know",
+  "dk",
+  "not sure",
+  "ns",
+  "refused"
+)
+
+# Exact normalized labels that are genuine don't-know/refused buckets
+# but fit neither token rule: CDC's "component question" footnotes on
+# RACE2, _RACEG2, and _RACEGR2 code 9 (2002-2004 era). Audited by hand
+# against the CDC codebooks before being added.
+MISSING_LABEL_ALLOWLIST <- c(
+  "do not know/not sure/refused component question",
+  "do not know/not sure/refused missing component question"
+)
+
+# A label marks a missing-type answer iff one of:
+#
+# Rule A: it has at least one "/"-, ","-, or " or "-separated token and
+# every token is on the whitelist. Whole-token matching keeps
+# substantive answers safe: "Doctor refused when asked", "No, I've
+# refused treatment", and "zero or missing" all carry a token outside
+# the whitelist and never match.
+#
+# Rule B: CDC's calculated-variable formats append a trailing noun to
+# the missing bucket ("Don't know, refused or missing values",
+# "... or missing insurance response", "... Missing (_BMI2 = 9999)").
+# A token starting with the word "missing" is accepted when every other
+# token is whitelisted AND at least one token names the answer itself
+# (MISSING_CORE_TOKENS), so a bare "Missing Fruit Responses" exclusion
+# flag never matches on its own.
+#
+# Allowlist: the exact normalized label is one of the audited
+# MISSING_LABEL_ALLOWLIST strings.
+#
+# The rule extension was validated against all 2,502 distinct catalog
+# labels (1998-2024): relative to Rule A alone it adds exactly 9 label
+# strings covering 18 variable/code combinations (all code 9: _BMI2CAT,
+# _FRTLT1, _FRTLT1A, _VEGLT1, _VEGLT1A, _HLTHPLN, _HLTHPL1, _HLTHPL2,
+# _LMTACT1-3, _LMTSCL1, _LMTWRK1-3, RACE2, _RACEG2, _RACEGR2) and
+# removes none.
 is_missing_label <- function(labels) {
+  normalized <- normalize_label(labels)
   out <- vapply(
-    strsplit(normalize_label(labels), "\\s*(/|,|\\bor\\b)\\s*"),
+    strsplit(normalized, "\\s*(/|,|\\bor\\b)\\s*"),
     function(tokens) {
       tokens <- trimws(tokens)
       tokens <- tokens[!is.na(tokens) & nzchar(tokens)]
-      length(tokens) > 0 && all(tokens %in% MISSING_LABEL_TOKENS)
+      if (length(tokens) == 0) {
+        return(FALSE)
+      }
+      known <- tokens %in% MISSING_LABEL_TOKENS
+      if (all(known)) {
+        return(TRUE)
+      }
+      all(known | grepl("^missing\\b", tokens)) &&
+        any(tokens %in% MISSING_CORE_TOKENS)
     },
     logical(1)
   )
+  out <- out | (!is.na(normalized) & normalized %in% MISSING_LABEL_ALLOWLIST)
   out[is.na(labels)] <- FALSE
   out
 }
@@ -107,6 +165,15 @@ apply_missing_codes <- function(
   call = rlang::caller_env()
 ) {
   catalog <- labels_catalog(download = download, quiet = quiet, call = call)
+  # Captured before the missing-label filter: coverage is about whether
+  # the catalog knows a year and its variables at all, not about how
+  # many of its labels are missing-type.
+  catalog_years <- unique(catalog$year)
+  covered_years <- intersect(years, catalog_years)
+  covered_vars_by_year <- lapply(covered_years, function(y) {
+    unique(catalog$variable[catalog$year == y])
+  })
+  names(covered_vars_by_year) <- as.character(covered_years)
   catalog <- catalog[
     catalog$year %in% years & is_missing_label(catalog$label),
     ,
@@ -118,8 +185,15 @@ apply_missing_codes <- function(
   touched <- character(0)
   for (v in vars) {
     sub <- catalog[catalog$variable == v, , drop = FALSE]
-    hit <- !is.na(dat[[v]]) &
-      paste(dat$year, dat[[v]]) %in% paste(sub$year, sub$code)
+    # Matched with %in% per year, never through paste()/as.character():
+    # a double 100000 renders as "1e+05" while the integer catalog code
+    # renders as "100000", so string matching would silently skip any
+    # round code at or above 1e5.
+    hit <- rep(FALSE, nrow(dat))
+    for (y in unique(sub$year)) {
+      codes <- sub$code[sub$year == y]
+      hit <- hit | (dat$year == y & !is.na(dat[[v]]) & dat[[v]] %in% codes)
+    }
     if (any(hit)) {
       dat[[v]][hit] <- NA
       cleared <- cleared + sum(hit)
@@ -137,5 +211,75 @@ apply_missing_codes <- function(
       class = "brfssdata_na_note"
     )
   }
+  if (!quiet) {
+    note_na_coverage(dat, years, catalog_years, covered_vars_by_year, exclude)
+  }
   dat
+}
+
+# na = TRUE is only as good as the catalog behind it. The catalog has no
+# entries before 1998, and 1998 itself covers under a quarter of that
+# file's variables, so a request touching those years would otherwise be
+# a silent no-op: the user asked for missing codes to be cleared and
+# nothing says they were not. Computed over the columns actually loaded,
+# so a selection of fully covered variables stays quiet.
+note_na_coverage <- function(
+  dat,
+  years,
+  catalog_years,
+  covered_vars_by_year,
+  exclude
+) {
+  data_cols <- setdiff(names(dat), union(exclude, "year"))
+  # With no eligible column loaded (a design-variables-only read), the
+  # catalog's coverage is moot: na = TRUE could not have touched
+  # anything either way, so there is nothing to announce.
+  if (length(data_cols) == 0) {
+    return(invisible())
+  }
+  uncovered <- setdiff(years, catalog_years)
+  partial <- character(0)
+  if (length(data_cols) > 0) {
+    for (y in intersect(years, catalog_years)) {
+      n_covered <- sum(data_cols %in% covered_vars_by_year[[as.character(y)]])
+      # Below half is a coverage cliff worth a note (1998 sits at ~23%
+      # over a full file); modern years land well above 0.8 and stay
+      # quiet.
+      if (n_covered / length(data_cols) < 0.5) {
+        partial <- c(
+          partial,
+          sprintf("%d (%d of %d)", y, n_covered, length(data_cols))
+        )
+      }
+    }
+  }
+  if (length(uncovered) == 0 && length(partial) == 0) {
+    return(invisible())
+  }
+  uncovered_txt <- summarize_years(uncovered)
+  partial_txt <- paste(partial, collapse = "; ")
+  n_uncovered <- length(uncovered)
+  n_partial <- length(partial)
+  cli::cli_inform(
+    c(
+      if (n_uncovered > 0) {
+        c(
+          "!" = "{.code na = TRUE} had no value-label catalog to consult
+                 for {cli::qty(n_uncovered)}year{?s} {uncovered_txt};
+                 codes there pass through unchanged (labels cover 1998
+                 on)."
+        )
+      },
+      if (n_partial > 0) {
+        c(
+          "!" = "The catalog only partially covers the loaded variables
+                 in {cli::qty(n_partial)}year{?s} {partial_txt}; codes in
+                 the uncatalogued variables pass through unchanged."
+        )
+      },
+      "i" = "See {.fun brfss_labels} for coverage and
+             {.fun brfss_missing_codes} for what was cleared."
+    ),
+    class = "brfssdata_na_coverage_note"
+  )
 }
