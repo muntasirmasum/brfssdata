@@ -45,6 +45,8 @@
 <li><a class="dropdown-item" href="../articles/datasets.html">The datasets</a></li>
     <li><a class="dropdown-item" href="../articles/survey-design.html">Survey design in BRFSS</a></li>
     <li><a class="dropdown-item" href="../articles/logistic-regression.html">Survey-weighted logistic regression</a></li>
+    <li><a class="dropdown-item" href="../articles/age-adjustment.html">Age-adjusted prevalence</a></li>
+    <li><a class="dropdown-item" href="../articles/validation.html">Validating against CDC's published estimates</a></li>
     <li><a class="dropdown-item" href="../articles/external-data.html">Merging BRFSS with external data</a></li>
     <li><a class="dropdown-item" href="../articles/outside-r.html">Using the data outside R</a></li>
   </ul>
@@ -181,7 +183,7 @@ looked up directly. Backticks are accepted everywhere a column name can
 appear, model formulas included, so a model fits straight on CDC’s
 names.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">svyglm</span><span class="op">(</span><span class="va">fairpoor</span> <span class="op">~</span> <span class="va">`_EDUCAG`</span>, design <span class="op">=</span> <span class="va">des</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">quasibinomial</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/survey/man/svyglm.html" class="external-link">svyglm</a></span><span class="op">(</span><span class="va">fairpoor</span> <span class="op">~</span> <span class="va">`_EDUCAG`</span>, design <span class="op">=</span> <span class="va">des</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">quasibinomial</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>If you would rather work in syntactic names throughout,
 <code>janitor::clean_names()</code> converts a whole tibble in one
 step.</p>
@@ -252,6 +254,13 @@ at each rename. Asking for the first two across 2021 to 2023 shows where
 one gives way to the other.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">drinks</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_brfss.html">read_brfss</a></span><span class="op">(</span><span class="fl">2021</span><span class="op">:</span><span class="fl">2023</span>, vars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"_DRNKWK1"</span>, <span class="st">"_DRNKWK2"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> _DRNKWK1 has no data for 2022-2023; the rename crosswalk pairs it with</span></span>
+<span><span class="co">#&gt;   _DRNKWK2 (covers 2022-2023). See brfss_crosswalk("_DRNKWK1") for the family,</span></span>
+<span><span class="co">#&gt;   its review status, and any comparability notes; combining generations is your</span></span>
+<span><span class="co">#&gt;   decision.</span></span>
+<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> _DRNKWK2 has no data for 2021; the rename crosswalk pairs it with _DRNKWK1</span></span>
+<span><span class="co">#&gt;   (covers 2021). See brfss_crosswalk("_DRNKWK2") for the family, its review</span></span>
+<span><span class="co">#&gt;   status, and any comparability notes; combining generations is your decision.</span></span>
 <span></span>
 <span><span class="va">drinks</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span></span>
@@ -268,9 +277,16 @@ one gives way to the other.</p>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>022 <span style="text-decoration: underline;">445</span>132       0  <span style="text-decoration: underline;">445</span>132</span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>  <span style="text-decoration: underline;">2</span>023 <span style="text-decoration: underline;">433</span>323       0  <span style="text-decoration: underline;">433</span>323</span></span></code></pre></div>
 <p>Reading both versions and coalescing them is the usual fix, but only
-after checking that the definitions are close enough to justify it. That
-check is your job, not the package’s; brfssdata will hand you both
-columns and stay out of the way.</p>
+after checking that the definitions are close enough to justify it. The
+package now tells you when you are standing in this trap: a request
+whose variable is empty in years a sibling generation covers gets a
+<code>brfssdata_rename_note</code> message pointing at
+<code><a href="../reference/brfss_crosswalk.html">brfss_crosswalk()</a></code>, which lists the whole family
+(<code>_DRNKWK1</code> through <code>_DRNKWK3</code> here) along with
+its review status and, for reviewed pairs, whether consecutive
+generations stayed comparable and what changed. The decision to coalesce
+remains yours; the package hands you both columns and the family, and
+stays out of the recode.</p>
 </div>
 <div class="section level2">
 <h2 id="finding-variables">Finding variables<a class="anchor" aria-label="anchor" href="#finding-variables"></a>
@@ -447,7 +463,7 @@ it.</p>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> brfss_2023.parquet       <span style="text-decoration: underline;">2</span>023 29<span style="text-decoration: underline;">077</span>288</span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> brfss_labels.parquet       <span style="color: #BB0000;">NA</span>   <span style="text-decoration: underline;">119</span>739</span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> brfss_variables.parquet    <span style="color: #BB0000;">NA</span>    <span style="text-decoration: underline;">63</span>889</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> manifest.json              <span style="color: #BB0000;">NA</span>     <span style="text-decoration: underline;">6</span>275</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> manifest.json              <span style="color: #BB0000;">NA</span>     <span style="text-decoration: underline;">6</span>561</span></span></code></pre></div>
 <p>Because reads come from the cache, a year you have already downloaded
 is available with no network at all. Setting
 <code>download = FALSE</code> makes that explicit: cached years are read
@@ -507,10 +523,12 @@ straight to analysis.</p>
 for years before 2011 and <code>_LLCPWT</code> from 2011 on (a
 <code>weight</code> argument selects another final weight, such as the
 child weight <code>_CLLCPWT</code>, when CDC’s documentation calls for
-it; see <code><a href="../reference/brfss_design.html">?brfss_design</a></code> for why the intermediate pipeline
-weights like <code>_LLCPWT2</code> warn). The design is built on three
-added columns, <code>brfss_wt</code>, <code>brfss_psu</code>, and
-<code>brfss_strata</code>, because CDC’s names are not syntactic and
+it; a module weight like that exists only for its module’s records, so
+the design subsets to the rows it covers and says how many were dropped;
+see <code><a href="../reference/brfss_design.html">?brfss_design</a></code> for that and for why the intermediate
+pipeline weights like <code>_LLCPWT2</code> warn). The design is built
+on three added columns, <code>brfss_wt</code>, <code>brfss_psu</code>,
+and <code>brfss_strata</code>, because CDC’s names are not syntactic and
 cannot enter a model formula; the original CDC columns are kept
 alongside them, unchanged. The don’t-know and refused codes arrive as
 <code>NA</code> here by default (<code>na = TRUE</code>), which is why
@@ -557,7 +575,7 @@ and the call proceeds with a warning.</p>
 <p>Two articles carry this further. <a href="https://muntasirmasum.github.io/brfssdata/articles/survey-design.html">Survey
 design in BRFSS</a> works through weights, strata, single-PSU handling,
 subpopulation analysis, and multi-year pooling in detail. <a href="https://muntasirmasum.github.io/brfssdata/articles/logistic-regression.html">Survey-weighted
-logistic regression</a> fits a full model with <code>svyglm()</code>,
+logistic regression</a> fits a full model with <code><a href="https://rdrr.io/pkg/survey/man/svyglm.html" class="external-link">svyglm()</a></code>,
 walking from recoding and weighted prevalence through design-based
 confidence intervals on the odds ratios.</p>
 </div>

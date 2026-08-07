@@ -29,6 +29,16 @@ react to exactly the situation they mean to and nothing else, e.g.
 
   A requested variable does not exist in the requested years.
 
+- `brfssdata_bad_states_arg`:
+
+  `states` is not a vector of FIPS codes, postal abbreviations, or
+  jurisdiction names.
+
+- `brfssdata_bad_state`:
+
+  A value in `states` matches no BRFSS jurisdiction; see
+  [brfss_states](https://muntasirmasum.github.io/brfssdata/reference/brfss_states.md).
+
 - `brfssdata_bad_pattern`:
 
   `pattern` in
@@ -84,6 +94,15 @@ react to exactly the situation they mean to and nothing else, e.g.
   [`brfss_cache_clear()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_cache_dir.md)
   remedy.
 
+- `brfssdata_type_conflict`:
+
+  A requested column is stored as text in some requested years' files
+  and as a number in others, so combining them would silently corrupt
+  values; usually stale cached files mixed with current releases, with
+  the
+  [`brfss_cache_clear()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_cache_dir.md)
+  remedy named.
+
 ## Warnings
 
 - `brfssdata_break_warning`:
@@ -107,6 +126,12 @@ react to exactly the situation they mean to and nothing else, e.g.
   Label wording for a converted variable changed meaning (not just
   formatting) across the requested years; the newest wording was
   applied.
+
+- `brfssdata_state_coverage_warning`:
+
+  A jurisdiction requested via `states` is absent from a requested
+  year's file, so estimates for that year cover the remaining states
+  only.
 
 ## Messages
 
@@ -143,13 +168,40 @@ react to exactly the situation they mean to and nothing else, e.g.
   [`brfss_missing_codes()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_missing_codes.md)
   audit trail.
 
+- `brfssdata_na_coverage_note`:
+
+  `na = TRUE` was requested for years the value-label catalog does not
+  cover (before 1998) or covers only partially (1998), so codes there
+  passed through unchanged.
+
+- `brfssdata_weight_subset_note`:
+
+  A user-supplied `weight` in
+  [`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
+  is missing on some rows (a module weight covers only its module's
+  records); those rows were dropped, per CDC's module-analysis guidance.
+
 - `brfssdata_empty_result`:
 
-  A
-  [`brfss_labels()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_labels.md)
-  lookup matched nothing.
+  A metadata lookup
+  ([`brfss_labels()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_labels.md),
+  [`brfss_crosswalk()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_crosswalk.md),
+  [`brfss_year_info()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_year_info.md))
+  matched nothing.
 
 - `brfssdata_full_load_note`:
 
   [`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
   is loading every column because `vars` was not given.
+
+- `brfssdata_rename_note`:
+
+  A requested variable is empty in years a sibling generation from the
+  rename crosswalk covers; see
+  [`brfss_crosswalk()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_crosswalk.md).
+
+- `brfssdata_bundled_fallback_note`:
+
+  A metadata lookup was served from the snapshot bundled with the
+  package (frozen at release) because nothing newer was cached and no
+  download was possible.

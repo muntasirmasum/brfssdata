@@ -40,6 +40,8 @@ the exact codes and the na entry under Arguments for details."><meta property="o
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/datasets.html">The datasets</a></li>
     <li><a class="dropdown-item" href="../articles/survey-design.html">Survey design in BRFSS</a></li>
     <li><a class="dropdown-item" href="../articles/logistic-regression.html">Survey-weighted logistic regression</a></li>
+    <li><a class="dropdown-item" href="../articles/age-adjustment.html">Age-adjusted prevalence</a></li>
+    <li><a class="dropdown-item" href="../articles/validation.html">Validating against CDC's published estimates</a></li>
     <li><a class="dropdown-item" href="../articles/external-data.html">Merging BRFSS with external data</a></li>
     <li><a class="dropdown-item" href="../articles/outside-r.html">Using the data outside R</a></li>
   </ul></li>
@@ -77,6 +79,7 @@ the exact codes and the <code>na</code> entry under Arguments for details.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">brfss_design</span><span class="op">(</span></span>
 <span>  <span class="va">years</span>,</span>
 <span>  vars <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  states <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  weight <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  allow_break <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  pool_weights <span class="op">=</span> <span class="cn">TRUE</span>,</span>
@@ -102,6 +105,19 @@ into the design, matched case-insensitively like in <code><a href="read_brfss.ht
 Design variables are always included. The default loads every
 column (455 columns by 506,467 rows for 2011 alone) and says so;
 passing only the variables you analyze is much faster and smaller.</p></dd>
+
+
+<dt id="arg-states">states<a class="anchor" aria-label="anchor" href="#arg-states"></a></dt>
+<dd><p>Optional vector of reporting jurisdictions (FIPS,
+postal abbreviations, or names; see <a href="brfss_states.html">brfss_states</a>), filtered
+inside the query like in <code><a href="read_brfss.html">read_brfss()</a></code>. Filtering by state
+<em>before</em> the design is built is variance-exact here: BRFSS strata
+(<code>_STSTR</code>) nest within state, so a state subset keeps whole strata
+and yields the same estimates, standard errors, and degrees of
+freedom as subsetting the full design afterwards. That property is
+specific to whole-stratum subsets; any other domain (an age group,
+one sex) must be analyzed by filtering the returned design object,
+never the data (see the <em>Survey design in BRFSS</em> article).</p></dd>
 
 
 <dt id="arg-weight">weight<a class="anchor" aria-label="anchor" href="#arg-weight"></a></dt>
@@ -185,8 +201,15 @@ Sampling Weights and Preparing Module Data for Analysis") says which
 modules belong to the combined dataset, where the default <code>_LLCPWT</code>
 is correct. The <code>weight</code> argument overrides the era default for the
 final weights that do live in these files, e.g. <code>_CLLCPWT</code> for the
-child-level modules. A user-supplied weight is used for every
-requested year and still divides by the year count under
+child-level modules. A user-supplied weight defines its analytic
+domain: a module weight exists only for the records its module
+applies to (completed child interviews for <code>_CLLCPWT</code>, so most rows
+carry <code>NA</code> there), and the design subsets to the rows the weight
+covers, reporting the drop with a <code>brfssdata_weight_subset_note</code>
+message, which matches CDC's module-analysis guidance. The automatic
+era weight gets no such treatment; a missing value there means a
+damaged file and stops the build. A user-supplied weight is used for
+every requested year and still divides by the year count under
 <code>pool_weights</code>.</p>
 <p>CDC states that estimates from 2011 onward are not directly comparable
 to earlier years, because 2011 added cell-phone-only respondents and

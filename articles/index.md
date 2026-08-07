@@ -2,6 +2,8 @@
 
 ### All vignettes
 
+- [Age-adjusted
+  prevalence](https://muntasirmasum.github.io/brfssdata/articles/age-adjustment.md):
 - [Getting started with
   brfssdata](https://muntasirmasum.github.io/brfssdata/articles/brfssdata.md):
 - [The
@@ -14,3 +16,5 @@
   R](https://muntasirmasum.github.io/brfssdata/articles/outside-r.md):
 - [Survey design in
   BRFSS](https://muntasirmasum.github.io/brfssdata/articles/survey-design.md):
+- [Validating against CDC's published
+  estimates](https://muntasirmasum.github.io/brfssdata/articles/validation.md):

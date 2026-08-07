@@ -50,7 +50,17 @@ governs download output only).
 ## Examples
 
 ``` r
-if (FALSE) { # interactive()
-brfss_labels("GENHLTH", years = 2023)
-}
+# download = FALSE reads the cached catalog, or the snapshot bundled
+# with the package, so this runs offline.
+brfss_labels("GENHLTH", years = 2023, download = FALSE)
+#> # A tibble: 7 × 5
+#>    year variable  code label              complete
+#>   <int> <chr>    <int> <chr>              <lgl>   
+#> 1  2023 GENHLTH      4 Fair               TRUE    
+#> 2  2023 GENHLTH      3 Good               TRUE    
+#> 3  2023 GENHLTH      9 Refused            TRUE    
+#> 4  2023 GENHLTH      7 Dont know/Not Sure TRUE    
+#> 5  2023 GENHLTH      1 Excellent          TRUE    
+#> 6  2023 GENHLTH      2 Very good          TRUE    
+#> 7  2023 GENHLTH      5 Poor               TRUE    
 ```

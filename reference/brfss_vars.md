@@ -43,7 +43,21 @@ tibble.
 ## Examples
 
 ``` r
-if (FALSE) { # interactive()
-brfss_vars("smok")
-}
+# download = FALSE reads the cached catalog, or the snapshot bundled
+# with the package, so this runs offline.
+brfss_vars("smok", download = FALSE)
+#> # A tibble: 96 × 3
+#>    variable label                                    years    
+#>    <chr>    <chr>                                    <chr>    
+#>  1 ALLOWADS PLACEMENT OF BILLBOARD ADS ABOUT SMOKING 1998     
+#>  2 ATKNSMOK START SMOKING AFTER ATTK?                2002     
+#>  3 ATKSMOK  SMOKE MORE AFTER ATTK?                   2002     
+#>  4 BEGSMOKE AGE STARTED SMOKING REGULARLY            1991-1992
+#>  5 BIDINOW  NOW SMOKE INDIAN CIGARETTES              2001-2003
+#>  6 BIDISMK  EVER SMOKED INDIAN CIGARETTE             2001-2003
+#>  7 CANCER   THINK SMOKELESS USE CAUSE MOUTH CANCER   1986     
+#>  8 CIGAR    EVER SMOKED A CIGAR                      1998     
+#>  9 CIGAR2   EVER SMOKED CIGAR                        2001-2003
+#> 10 CIGARNOW CURRENTLY SMOKE CIGARS                   2001-2003
+#> # ℹ 86 more rows
 ```

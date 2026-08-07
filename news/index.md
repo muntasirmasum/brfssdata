@@ -4,6 +4,89 @@
 
 Initial CRAN release.
 
+### Correctness
+
+- The missing-code matcher now recognizes CDC’s calculated-variable
+  buckets whose labels carry a trailing noun (“Don’t know, refused or
+  missing values” and kin, plus the RACE2 family’s “component question”
+  wordings). Before this, `na = TRUE` (the
+  [`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
+  default) silently left genuine code-9 don’t-know/refused answers in 18
+  variable/code combinations, including `_FRTLT1A` (51,087 uncleared
+  rows in 2021 alone), `_HLTHPLN`, `_VEGLT1A`, and the `_LMT*` family,
+  overstating those denominators by several points. The extension was
+  validated against every distinct catalog label: it adds exactly those
+  buckets and loses none, and “Doctor refused when asked”-style
+  substantive answers still never match.
+- Six variables that CDC stored as a number in some years and text in
+  others (`SEQNO`, `_RECORD`, `MRACEORG`, `WINDDOWN`, `_MSACODE`,
+  `RCVFVCH4`) are now written with one type across every hosted year,
+  values unchanged. Multi-year reads previously promoted the numeric
+  years to text, so the same MSA appeared as both `"1120"` and
+  `"1120.0"` in one column, silently splitting groups and defeating
+  missing-code matching.
+  [`read_brfss()`](https://muntasirmasum.github.io/brfssdata/reference/read_brfss.md)
+  additionally refuses to combine files whose stored types conflict
+  (`brfssdata_type_conflict`), so a stale cache mixed with current
+  releases can never reproduce the bug silently;
+  [`brfss_cache_clear()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_cache_dir.md)
+  is the named remedy.
+- A user-supplied `weight` in
+  [`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
+  now subsets to the rows the weight covers, with a
+  `brfssdata_weight_subset_note` message. The documented child-module
+  call, `brfss_design(2023, weight = "_CLLCPWT")`, previously always
+  failed on real data, because a module weight is missing outside its
+  module’s records (383,782 of 433,323 rows in 2023) and the design
+  constructor refused missing weights. The automatic era weight still
+  aborts on missing values, which there indicate a damaged file.
+- `na = TRUE` says so (`brfssdata_na_coverage_note`) when requested
+  years have no value-label catalog at all (1985-1997) or mostly lack it
+  (1998 covers under a quarter of that file’s variables), instead of
+  silently changing nothing.
+- Blank SAS character fields are stored as missing values, not `""`, and
+  code matching is proof against R’s scientific notation, so a future
+  round code at or above 100,000 cannot be skipped.
+
+### Discovery and metadata
+
+- [`brfss_crosswalk()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_crosswalk.md)
+  reports CDC’s trailing-digit rename families (`_DRNKWK1` to
+  `_DRNKWK3`). A `status` column records how far human review of each
+  family has gone (mechanically proposed families ship as
+  `"candidate"`), and `comparable`/`note` record the reviewed verdict
+  per generation pair. When a requested variable is empty in years a
+  sibling generation covers,
+  [`read_brfss()`](https://muntasirmasum.github.io/brfssdata/reference/read_brfss.md)
+  says so (`brfssdata_rename_note`); combining generations stays the
+  analyst’s decision.
+- [`read_brfss()`](https://muntasirmasum.github.io/brfssdata/reference/read_brfss.md)
+  and
+  [`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
+  gain `states =` (FIPS, postal abbreviation, or name), pushed into the
+  DuckDB query so other states’ rows never reach R. For states this
+  pre-filtering is variance-exact, because BRFSS strata nest within
+  state. A requested state absent from a year warns
+  (`brfssdata_state_coverage_warning`).
+- [`brfss_codebook()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_codebook.md)
+  renders a per-variable card: label history, value labels with
+  missing-type codes flagged, year availability, and the rename family.
+  [`brfss_year_info()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_year_info.md)
+  lists respondents, variables, states, hosted size, and CDC’s
+  documentation page per year.
+  [`brfss_citation()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_citation.md)
+  returns per-year `bibentry` citations.
+- New package data: `brfss_states` (FIPS, names, abbreviations, Census
+  regions for all 56 BRFSS jurisdictions) and `brfss_std_pop_2000` (the
+  2000 projected U.S. standard population, all-ages and `_AGE_G`-
+  matched adult groupings, for
+  [`survey::svystandardize()`](https://rdrr.io/pkg/survey/man/svystandardize.html)).
+- The variable, label, and crosswalk catalogs ship as bundled snapshots,
+  so metadata functions work on first use with no network; a snapshot is
+  never served silently (`brfssdata_bundled_fallback_note`).
+
+### Access
+
 - [`read_brfss()`](https://muntasirmasum.github.io/brfssdata/reference/read_brfss.md)
   returns respondent-level BRFSS microdata for any of the 40 published
   survey years (1985-2024) as a tibble. Each year is downloaded once

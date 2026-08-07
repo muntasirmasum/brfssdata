@@ -22,6 +22,8 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/datasets.html">The datasets</a></li>
     <li><a class="dropdown-item" href="../articles/survey-design.html">Survey design in BRFSS</a></li>
     <li><a class="dropdown-item" href="../articles/logistic-regression.html">Survey-weighted logistic regression</a></li>
+    <li><a class="dropdown-item" href="../articles/age-adjustment.html">Age-adjusted prevalence</a></li>
+    <li><a class="dropdown-item" href="../articles/validation.html">Validating against CDC's published estimates</a></li>
     <li><a class="dropdown-item" href="../articles/external-data.html">Merging BRFSS with external data</a></li>
     <li><a class="dropdown-item" href="../articles/outside-r.html">Using the data outside R</a></li>
   </ul></li>
@@ -43,6 +45,28 @@
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.0" id="brfssdata-010">brfssdata 0.1.0<a class="anchor" aria-label="anchor" href="#brfssdata-010"></a></h2>
 <p>Initial CRAN release.</p>
+<div class="section level3">
+<h3 id="correctness-0-1-0">Correctness<a class="anchor" aria-label="anchor" href="#correctness-0-1-0"></a></h3>
+<ul><li>The missing-code matcher now recognizes CDC’s calculated-variable buckets whose labels carry a trailing noun (“Don’t know, refused or missing values” and kin, plus the RACE2 family’s “component question” wordings). Before this, <code>na = TRUE</code> (the <code><a href="../reference/brfss_design.html">brfss_design()</a></code> default) silently left genuine code-9 don’t-know/refused answers in 18 variable/code combinations, including <code>_FRTLT1A</code> (51,087 uncleared rows in 2021 alone), <code>_HLTHPLN</code>, <code>_VEGLT1A</code>, and the <code>_LMT*</code> family, overstating those denominators by several points. The extension was validated against every distinct catalog label: it adds exactly those buckets and loses none, and “Doctor refused when asked”-style substantive answers still never match.</li>
+<li>Six variables that CDC stored as a number in some years and text in others (<code>SEQNO</code>, <code>_RECORD</code>, <code>MRACEORG</code>, <code>WINDDOWN</code>, <code>_MSACODE</code>, <code>RCVFVCH4</code>) are now written with one type across every hosted year, values unchanged. Multi-year reads previously promoted the numeric years to text, so the same MSA appeared as both <code>"1120"</code> and <code>"1120.0"</code> in one column, silently splitting groups and defeating missing-code matching. <code><a href="../reference/read_brfss.html">read_brfss()</a></code> additionally refuses to combine files whose stored types conflict (<code>brfssdata_type_conflict</code>), so a stale cache mixed with current releases can never reproduce the bug silently; <code><a href="../reference/brfss_cache_dir.html">brfss_cache_clear()</a></code> is the named remedy.</li>
+<li>A user-supplied <code>weight</code> in <code><a href="../reference/brfss_design.html">brfss_design()</a></code> now subsets to the rows the weight covers, with a <code>brfssdata_weight_subset_note</code> message. The documented child-module call, <code>brfss_design(2023, weight = "_CLLCPWT")</code>, previously always failed on real data, because a module weight is missing outside its module’s records (383,782 of 433,323 rows in 2023) and the design constructor refused missing weights. The automatic era weight still aborts on missing values, which there indicate a damaged file.</li>
+<li>
+<code>na = TRUE</code> says so (<code>brfssdata_na_coverage_note</code>) when requested years have no value-label catalog at all (1985-1997) or mostly lack it (1998 covers under a quarter of that file’s variables), instead of silently changing nothing.</li>
+<li>Blank SAS character fields are stored as missing values, not <code>""</code>, and code matching is proof against R’s scientific notation, so a future round code at or above 100,000 cannot be skipped.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="discovery-and-metadata-0-1-0">Discovery and metadata<a class="anchor" aria-label="anchor" href="#discovery-and-metadata-0-1-0"></a></h3>
+<ul><li>
+<code><a href="../reference/brfss_crosswalk.html">brfss_crosswalk()</a></code> reports CDC’s trailing-digit rename families (<code>_DRNKWK1</code> to <code>_DRNKWK3</code>). A <code>status</code> column records how far human review of each family has gone (mechanically proposed families ship as <code>"candidate"</code>), and <code>comparable</code>/<code>note</code> record the reviewed verdict per generation pair. When a requested variable is empty in years a sibling generation covers, <code><a href="../reference/read_brfss.html">read_brfss()</a></code> says so (<code>brfssdata_rename_note</code>); combining generations stays the analyst’s decision.</li>
+<li>
+<code><a href="../reference/read_brfss.html">read_brfss()</a></code> and <code><a href="../reference/brfss_design.html">brfss_design()</a></code> gain <code>states =</code> (FIPS, postal abbreviation, or name), pushed into the DuckDB query so other states’ rows never reach R. For states this pre-filtering is variance-exact, because BRFSS strata nest within state. A requested state absent from a year warns (<code>brfssdata_state_coverage_warning</code>).</li>
+<li>
+<code><a href="../reference/brfss_codebook.html">brfss_codebook()</a></code> renders a per-variable card: label history, value labels with missing-type codes flagged, year availability, and the rename family. <code><a href="../reference/brfss_year_info.html">brfss_year_info()</a></code> lists respondents, variables, states, hosted size, and CDC’s documentation page per year. <code><a href="../reference/brfss_citation.html">brfss_citation()</a></code> returns per-year <code>bibentry</code> citations.</li>
+<li>New package data: <code>brfss_states</code> (FIPS, names, abbreviations, Census regions for all 56 BRFSS jurisdictions) and <code>brfss_std_pop_2000</code> (the 2000 projected U.S. standard population, all-ages and <code>_AGE_G</code>- matched adult groupings, for <code><a href="https://rdrr.io/pkg/survey/man/svystandardize.html" class="external-link">survey::svystandardize()</a></code>).</li>
+<li>The variable, label, and crosswalk catalogs ship as bundled snapshots, so metadata functions work on first use with no network; a snapshot is never served silently (<code>brfssdata_bundled_fallback_note</code>).</li>
+</ul></div>
+<div class="section level3">
+<h3 id="access-0-1-0">Access<a class="anchor" aria-label="anchor" href="#access-0-1-0"></a></h3>
 <ul><li>
 <code><a href="../reference/read_brfss.html">read_brfss()</a></code> returns respondent-level BRFSS microdata for any of the 40 published survey years (1985-2024) as a tibble. Each year is downloaded once from the package’s data releases, verified against a published sha256 checksum, and cached under <code><a href="https://rdrr.io/r/tools/userdir.html" class="external-link">tools::R_user_dir()</a></code>; queries run locally through DuckDB, so selecting a handful of variables from a 300-plus column survey stays fast and repeat use works offline.</li>
 <li>
@@ -56,7 +80,9 @@
 <code><a href="../reference/brfss_download.html">brfss_download()</a></code> prefetches years and the metadata catalogs for offline use; <code><a href="../reference/brfss_cache_dir.html">brfss_cache_dir()</a></code>, <code><a href="../reference/brfss_cache_dir.html">brfss_cache_info()</a></code>, and <code><a href="../reference/brfss_cache_dir.html">brfss_cache_clear()</a></code> manage the cache. A cached file that fails integrity checks is re-downloaded automatically or named in a classed error with its remedy.</li>
 <li>Every error, warning, and message carries a documented condition class; see <code>?brfssdata-conditions</code>.</li>
 </ul></div>
-  </main></div>
+</div>
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside></div>
 
 
     <footer><div class="pkgdown-footer-left">

@@ -11,9 +11,18 @@ calculated variables such as `_LLCPWT` and `_AGE_G`, and values keep
 their original numeric codes. The only column brfssdata adds is `year`.
 What does change on the way in is housekeeping. SAS variable labels move
 out of the data and into the searchable catalog behind
-[`brfss_vars()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_vars.md),
-and the Windows-1252 bytes older files carry in their character columns
-are re-encoded to UTF-8 so the parquet is valid.
+[`brfss_vars()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_vars.md);
+the Windows-1252 bytes older files carry in their character columns are
+re-encoded to UTF-8 so the parquet is valid; blank SAS character fields,
+which are SAS’s missing value for character data, are stored as nulls
+rather than empty strings; and the six variables CDC stored as a number
+in some years and text in others (`SEQNO`, `_RECORD`, `MRACEORG`,
+`WINDDOWN`, `_MSACODE`, `RCVFVCH4`) are written with one storage type
+across every year, values unchanged. Without that last step a multi-year
+read would silently promote the numeric years to text and split one code
+into `1120` and `"1120.0"`; with it, and a guard in the package that
+refuses to combine files whose stored types conflict, that failure mode
+is gone.
 
 The files are hosted as GitHub release assets, one release per survey
 year, at
@@ -69,22 +78,22 @@ knitr::kable(catalog, align = "rrrrl")
 | 1997 |     135,582 |     269 |       6.0 | \_FINALWT |
 | 1998 |     149,342 |     327 |       7.8 | \_FINALWT |
 | 1999 |     159,989 |     282 |       7.8 | \_FINALWT |
-| 2000 |     184,450 |     290 |       9.9 | \_FINALWT |
-| 2001 |     212,510 |     292 |      11.1 | \_FINALWT |
+| 2000 |     184,450 |     290 |      10.0 | \_FINALWT |
+| 2001 |     212,510 |     292 |      11.2 | \_FINALWT |
 | 2002 |     247,964 |     311 |      15.0 | \_FINALWT |
-| 2003 |     264,684 |     295 |      17.0 | \_FINALWT |
+| 2003 |     264,684 |     295 |      17.1 | \_FINALWT |
 | 2004 |     303,822 |     294 |      15.8 | \_FINALWT |
-| 2005 |     356,112 |     326 |      22.9 | \_FINALWT |
-| 2006 |     355,710 |     303 |      22.2 | \_FINALWT |
-| 2007 |     430,912 |     363 |      34.9 | \_FINALWT |
-| 2008 |     414,509 |     292 |      26.0 | \_FINALWT |
-| 2009 |     432,607 |     406 |      34.7 | \_FINALWT |
-| 2010 |     451,075 |     398 |      30.6 | \_FINALWT |
+| 2005 |     356,112 |     326 |      23.1 | \_FINALWT |
+| 2006 |     355,710 |     303 |      22.4 | \_FINALWT |
+| 2007 |     430,912 |     363 |      35.2 | \_FINALWT |
+| 2008 |     414,509 |     292 |      26.3 | \_FINALWT |
+| 2009 |     432,607 |     406 |      34.9 | \_FINALWT |
+| 2010 |     451,075 |     398 |      30.9 | \_FINALWT |
 | 2011 |     506,467 |     455 |      42.3 | \_LLCPWT  |
-| 2012 |     475,687 |     360 |      30.4 | \_LLCPWT  |
-| 2013 |     491,773 |     337 |      39.3 | \_LLCPWT  |
-| 2014 |     464,664 |     280 |      24.7 | \_LLCPWT  |
-| 2015 |     441,456 |     331 |      31.8 | \_LLCPWT  |
+| 2012 |     475,687 |     360 |      30.3 | \_LLCPWT  |
+| 2013 |     491,773 |     337 |      39.4 | \_LLCPWT  |
+| 2014 |     464,664 |     280 |      24.6 | \_LLCPWT  |
+| 2015 |     441,456 |     331 |      31.7 | \_LLCPWT  |
 | 2016 |     486,303 |     276 |      23.7 | \_LLCPWT  |
 | 2017 |     450,016 |     359 |      33.7 | \_LLCPWT  |
 | 2018 |     437,436 |     276 |      21.4 | \_LLCPWT  |

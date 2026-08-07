@@ -36,6 +36,8 @@ column always identifies the survey year of each row."><meta property="og:image"
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/datasets.html">The datasets</a></li>
     <li><a class="dropdown-item" href="../articles/survey-design.html">Survey design in BRFSS</a></li>
     <li><a class="dropdown-item" href="../articles/logistic-regression.html">Survey-weighted logistic regression</a></li>
+    <li><a class="dropdown-item" href="../articles/age-adjustment.html">Age-adjusted prevalence</a></li>
+    <li><a class="dropdown-item" href="../articles/validation.html">Validating against CDC's published estimates</a></li>
     <li><a class="dropdown-item" href="../articles/external-data.html">Merging BRFSS with external data</a></li>
     <li><a class="dropdown-item" href="../articles/outside-r.html">Using the data outside R</a></li>
   </ul></li>
@@ -71,6 +73,7 @@ column always identifies the survey year of each row.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">read_brfss</span><span class="op">(</span></span>
 <span>  <span class="va">years</span>,</span>
 <span>  vars <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  states <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  download <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  quiet <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  labels <span class="op">=</span> <span class="cn">FALSE</span>,</span>
@@ -93,6 +96,17 @@ The default returns every variable. Names are matched
 case-insensitively (<code>"genhlth"</code> finds <code>GENHLTH</code>), and returned
 columns always carry CDC's canonical spelling. Use <code><a href="brfss_vars.html">brfss_vars()</a></code>
 to search names across years.</p></dd>
+
+
+<dt id="arg-states">states<a class="anchor" aria-label="anchor" href="#arg-states"></a></dt>
+<dd><p>Optional vector restricting rows to those reporting
+jurisdictions: state FIPS codes, postal abbreviations, or names,
+mixed freely and matched case-insensitively (<code>c(48, "CA", "maine")</code>). See <a href="brfss_states.html">brfss_states</a> for the full list. The filter is
+pushed into the DuckDB query, so other states' rows never reach R,
+and the <code>_STATE</code> column is always returned so the filter stays
+visible. A requested state absent from a requested year's file
+(states do occasionally miss a year) raises a classed warning
+rather than returning silently fewer rows.</p></dd>
 
 
 <dt id="arg-download">download<a class="anchor" aria-label="anchor" href="#arg-download"></a></dt>
@@ -129,7 +143,10 @@ as CDC published it. (<code><a href="brfss_design.html">brfss_design()</a></code
 estimates over raw codes are almost never what an analyst wants.)
 Code 88/888 ("None") means zero, is never touched, and needs
 recoding to 0 by hand before averaging count variables. Labels
-cover 1998 on, so earlier years pass through unchanged.</p></dd>
+cover 1998 on, so earlier years pass through unchanged, and a
+request touching years the catalog does not cover (or, like 1998,
+covers only partially) says so with a
+<code>brfssdata_na_coverage_note</code> message rather than staying silent.</p></dd>
 
 </dl></div>
     <div class="section level2">

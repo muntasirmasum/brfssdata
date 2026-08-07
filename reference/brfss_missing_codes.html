@@ -5,25 +5,37 @@ not-asked/missing placeholder. These are exactly the codes that
 na = TRUE in read_brfss() and brfss_design() sets to NA, so
 this function is the audit trail for that behavior, and the join
 table for recoding by hand.
-Matching is deliberately conservative: a label counts as missing only
-when every part of it (split on /, ,, and the word &quot;or&quot;) is a
-known missing-answer phrase. Substantive answers that merely contain
-one of the words, such as &quot;Doctor refused when asked&quot;, never match.
-Code 88/888 (&quot;None&quot;) is an answer of zero, not missing, and is never
-matched; recode it to 0 yourself before averaging a count variable
-such as PHYSHLTH."><meta property="og:description" content="Returns the rows of the value-label catalog whose label marks a
+Matching is deliberately conservative. A label counts as missing when
+every part of it (split on /, ,, and the word &quot;or&quot;) is a known
+missing-answer phrase, or when the only parts beyond those phrases
+start with the word &quot;missing&quot; and at least one part names the answer
+itself (don't know / not sure / refused) – the shape of CDC's
+calculated-variable buckets such as &quot;Don't know, refused or missing
+values&quot; on _FRTLT1A. A short audited allowlist covers CDC's
+&quot;component question&quot; wordings on the RACE2 family. Substantive
+answers that merely contain one of the words, such as &quot;Doctor refused
+when asked&quot; or a bare &quot;Missing Fruit Responses&quot; exclusion flag, never
+match. Code 88/888 (&quot;None&quot;) is an answer of zero, not missing, and is
+never matched; recode it to 0 yourself before averaging a count
+variable such as PHYSHLTH."><meta property="og:description" content="Returns the rows of the value-label catalog whose label marks a
 missing-type answer: don't know / not sure, refused, or a
 not-asked/missing placeholder. These are exactly the codes that
 na = TRUE in read_brfss() and brfss_design() sets to NA, so
 this function is the audit trail for that behavior, and the join
 table for recoding by hand.
-Matching is deliberately conservative: a label counts as missing only
-when every part of it (split on /, ,, and the word &quot;or&quot;) is a
-known missing-answer phrase. Substantive answers that merely contain
-one of the words, such as &quot;Doctor refused when asked&quot;, never match.
-Code 88/888 (&quot;None&quot;) is an answer of zero, not missing, and is never
-matched; recode it to 0 yourself before averaging a count variable
-such as PHYSHLTH."><meta property="og:image" content="https://muntasirmasum.github.io/brfssdata/logo.svg"></head><body>
+Matching is deliberately conservative. A label counts as missing when
+every part of it (split on /, ,, and the word &quot;or&quot;) is a known
+missing-answer phrase, or when the only parts beyond those phrases
+start with the word &quot;missing&quot; and at least one part names the answer
+itself (don't know / not sure / refused) – the shape of CDC's
+calculated-variable buckets such as &quot;Don't know, refused or missing
+values&quot; on _FRTLT1A. A short audited allowlist covers CDC's
+&quot;component question&quot; wordings on the RACE2 family. Substantive
+answers that merely contain one of the words, such as &quot;Doctor refused
+when asked&quot; or a bare &quot;Missing Fruit Responses&quot; exclusion flag, never
+match. Code 88/888 (&quot;None&quot;) is an answer of zero, not missing, and is
+never matched; recode it to 0 yourself before averaging a count
+variable such as PHYSHLTH."><meta property="og:image" content="https://muntasirmasum.github.io/brfssdata/logo.svg"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -46,6 +58,8 @@ such as PHYSHLTH."><meta property="og:image" content="https://muntasirmasum.gith
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/datasets.html">The datasets</a></li>
     <li><a class="dropdown-item" href="../articles/survey-design.html">Survey design in BRFSS</a></li>
     <li><a class="dropdown-item" href="../articles/logistic-regression.html">Survey-weighted logistic regression</a></li>
+    <li><a class="dropdown-item" href="../articles/age-adjustment.html">Age-adjusted prevalence</a></li>
+    <li><a class="dropdown-item" href="../articles/validation.html">Validating against CDC's published estimates</a></li>
     <li><a class="dropdown-item" href="../articles/external-data.html">Merging BRFSS with external data</a></li>
     <li><a class="dropdown-item" href="../articles/outside-r.html">Using the data outside R</a></li>
   </ul></li>
@@ -72,13 +86,19 @@ not-asked/missing placeholder. These are exactly the codes that
 <code>na = TRUE</code> in <code><a href="read_brfss.html">read_brfss()</a></code> and <code><a href="brfss_design.html">brfss_design()</a></code> sets to <code>NA</code>, so
 this function is the audit trail for that behavior, and the join
 table for recoding by hand.</p>
-<p>Matching is deliberately conservative: a label counts as missing only
-when every part of it (split on <code>/</code>, <code>,</code>, and the word "or") is a
-known missing-answer phrase. Substantive answers that merely contain
-one of the words, such as "Doctor refused when asked", never match.
-Code 88/888 ("None") is an answer of zero, not missing, and is never
-matched; recode it to 0 yourself before averaging a count variable
-such as <code>PHYSHLTH</code>.</p>
+<p>Matching is deliberately conservative. A label counts as missing when
+every part of it (split on <code>/</code>, <code>,</code>, and the word "or") is a known
+missing-answer phrase, or when the only parts beyond those phrases
+start with the word "missing" and at least one part names the answer
+itself (don't know / not sure / refused) – the shape of CDC's
+calculated-variable buckets such as "Don't know, refused or missing
+values" on <code>_FRTLT1A</code>. A short audited allowlist covers CDC's
+"component question" wordings on the <code>RACE2</code> family. Substantive
+answers that merely contain one of the words, such as "Doctor refused
+when asked" or a bare "Missing Fruit Responses" exclusion flag, never
+match. Code 88/888 ("None") is an answer of zero, not missing, and is
+never matched; recode it to 0 yourself before averaging a count
+variable such as <code>PHYSHLTH</code>.</p>
     </div>
 
     <div class="section level2">
@@ -123,9 +143,12 @@ cover 1998 on, so earlier years never appear.</p>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># interactive()</span></span></span>
-<span class="r-in"><span><span class="fu">brfss_missing_codes</span><span class="op">(</span><span class="st">"GENHLTH"</span>, years <span class="op">=</span> <span class="fl">2023</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">}</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu">brfss_missing_codes</span><span class="op">(</span><span class="st">"GENHLTH"</span>, years <span class="op">=</span> <span class="fl">2023</span>, download <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 2 × 4</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    year variable  code label             </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>             </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      9 Refused           </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      7 Dont know/Not Sure</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

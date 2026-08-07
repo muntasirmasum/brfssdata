@@ -227,9 +227,15 @@ downloads. CDC’s annual “Complex Sampling Weights and Preparing Module
 Data for Analysis” document says which modules belong to the combined
 dataset, where the default `_LLCPWT` is correct, and the `weight`
 argument covers the final weights that do live in these files, such as
-the child weight (`weight = "_CLLCPWT"`). The missing-code handling is
-also on by default here (`na = TRUE`): the don’t-know and refused codes
-arrive as `NA`, so denominators cover substantive answers, with
+the child weight (`weight = "_CLLCPWT"`). A module weight exists only
+for the records its module applies to (completed child interviews, about
+50,000 of 2023’s 433,323 rows), so the design subsets to the rows the
+requested weight covers and reports what it dropped, which is CDC’s own
+module-analysis guidance; the automatic era weight, by contrast, must
+cover everyone, and a missing value there stops the build. The
+missing-code handling is also on by default here (`na = TRUE`): the
+don’t-know and refused codes arrive as `NA`, so denominators cover
+substantive answers, with
 [`brfss_missing_codes()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_missing_codes.md)
 as the audit trail and `na = FALSE` as the way back to the raw codes.
 

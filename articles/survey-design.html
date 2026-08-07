@@ -45,6 +45,8 @@
 <li><a class="dropdown-item" href="../articles/datasets.html">The datasets</a></li>
     <li><a class="dropdown-item" href="../articles/survey-design.html">Survey design in BRFSS</a></li>
     <li><a class="dropdown-item" href="../articles/logistic-regression.html">Survey-weighted logistic regression</a></li>
+    <li><a class="dropdown-item" href="../articles/age-adjustment.html">Age-adjusted prevalence</a></li>
+    <li><a class="dropdown-item" href="../articles/validation.html">Validating against CDC's published estimates</a></li>
     <li><a class="dropdown-item" href="../articles/external-data.html">Merging BRFSS with external data</a></li>
     <li><a class="dropdown-item" href="../articles/outside-r.html">Using the data outside R</a></li>
   </ul>
@@ -284,10 +286,16 @@ Preparing Module Data for Analysis” document says which modules belong
 to the combined dataset, where the default <code>_LLCPWT</code> is
 correct, and the <code>weight</code> argument covers the final weights
 that do live in these files, such as the child weight
-(<code>weight = "_CLLCPWT"</code>). The missing-code handling is also on
-by default here (<code>na = TRUE</code>): the don’t-know and refused
-codes arrive as <code>NA</code>, so denominators cover substantive
-answers, with <code><a href="../reference/brfss_missing_codes.html">brfss_missing_codes()</a></code> as the audit trail and
+(<code>weight = "_CLLCPWT"</code>). A module weight exists only for the
+records its module applies to (completed child interviews, about 50,000
+of 2023’s 433,323 rows), so the design subsets to the rows the requested
+weight covers and reports what it dropped, which is CDC’s own
+module-analysis guidance; the automatic era weight, by contrast, must
+cover everyone, and a missing value there stops the build. The
+missing-code handling is also on by default here
+(<code>na = TRUE</code>): the don’t-know and refused codes arrive as
+<code>NA</code>, so denominators cover substantive answers, with
+<code><a href="../reference/brfss_missing_codes.html">brfss_missing_codes()</a></code> as the audit trail and
 <code>na = FALSE</code> as the way back to the raw codes.</p>
 <p>The design is then built on syntactic copies of the design variables.
 <code>_PSU</code> and <code>_STSTR</code> are not legal R names, so

@@ -20,6 +20,7 @@ for the exact codes and the `na` entry under Arguments for details.
 brfss_design(
   years,
   vars = NULL,
+  states = NULL,
   weight = NULL,
   allow_break = FALSE,
   pool_weights = TRUE,
@@ -46,6 +47,21 @@ brfss_design(
   Design variables are always included. The default loads every column
   (455 columns by 506,467 rows for 2011 alone) and says so; passing only
   the variables you analyze is much faster and smaller.
+
+- states:
+
+  Optional vector of reporting jurisdictions (FIPS, postal
+  abbreviations, or names; see
+  [brfss_states](https://muntasirmasum.github.io/brfssdata/reference/brfss_states.md)),
+  filtered inside the query like in
+  [`read_brfss()`](https://muntasirmasum.github.io/brfssdata/reference/read_brfss.md).
+  Filtering by state *before* the design is built is variance-exact
+  here: BRFSS strata (`_STSTR`) nest within state, so a state subset
+  keeps whole strata and yields the same estimates, standard errors, and
+  degrees of freedom as subsetting the full design afterwards. That
+  property is specific to whole-stratum subsets; any other domain (an
+  age group, one sex) must be analyzed by filtering the returned design
+  object, never the data (see the *Survey design in BRFSS* article).
 
 - weight:
 
@@ -129,8 +145,15 @@ Preparing Module Data for Analysis") says which modules belong to the
 combined dataset, where the default `_LLCPWT` is correct. The `weight`
 argument overrides the era default for the final weights that do live in
 these files, e.g. `_CLLCPWT` for the child-level modules. A
-user-supplied weight is used for every requested year and still divides
-by the year count under `pool_weights`.
+user-supplied weight defines its analytic domain: a module weight exists
+only for the records its module applies to (completed child interviews
+for `_CLLCPWT`, so most rows carry `NA` there), and the design subsets
+to the rows the weight covers, reporting the drop with a
+`brfssdata_weight_subset_note` message, which matches CDC's
+module-analysis guidance. The automatic era weight gets no such
+treatment; a missing value there means a damaged file and stops the
+build. A user-supplied weight is used for every requested year and still
+divides by the year count under `pool_weights`.
 
 CDC states that estimates from 2011 onward are not directly comparable
 to earlier years, because 2011 added cell-phone-only respondents and

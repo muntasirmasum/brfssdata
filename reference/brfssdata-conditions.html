@@ -30,6 +30,8 @@ suppressWarnings(..., classes = "brfssdata_break_warning").'><meta property="og:
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/datasets.html">The datasets</a></li>
     <li><a class="dropdown-item" href="../articles/survey-design.html">Survey design in BRFSS</a></li>
     <li><a class="dropdown-item" href="../articles/logistic-regression.html">Survey-weighted logistic regression</a></li>
+    <li><a class="dropdown-item" href="../articles/age-adjustment.html">Age-adjusted prevalence</a></li>
+    <li><a class="dropdown-item" href="../articles/validation.html">Validating against CDC's published estimates</a></li>
     <li><a class="dropdown-item" href="../articles/external-data.html">Merging BRFSS with external data</a></li>
     <li><a class="dropdown-item" href="../articles/outside-r.html">Using the data outside R</a></li>
   </ul></li>
@@ -82,6 +84,14 @@ of variable names.</p></dd>
 <dd><p>A requested variable does not exist in
 the requested years.</p></dd>
 
+<dt><code>brfssdata_bad_states_arg</code></dt>
+<dd><p><code>states</code> is not a vector of
+FIPS codes, postal abbreviations, or jurisdiction names.</p></dd>
+
+<dt><code>brfssdata_bad_state</code></dt>
+<dd><p>A value in <code>states</code> matches no BRFSS
+jurisdiction; see <a href="brfss_states.html">brfss_states</a>.</p></dd>
+
 <dt><code>brfssdata_bad_pattern</code></dt>
 <dd><p><code>pattern</code> in <code><a href="brfss_vars.html">brfss_vars()</a></code> is not a
 valid regular expression.</p></dd>
@@ -128,6 +138,13 @@ the manifest's sha256 after a retry; nothing was cached.</p></dd>
 (typically a corrupted download from before verification); the
 message names the file and the <code><a href="brfss_cache_dir.html">brfss_cache_clear()</a></code> remedy.</p></dd>
 
+<dt><code>brfssdata_type_conflict</code></dt>
+<dd><p>A requested column is stored as
+text in some requested years' files and as a number in others,
+so combining them would silently corrupt values; usually stale
+cached files mixed with current releases, with the
+<code><a href="brfss_cache_dir.html">brfss_cache_clear()</a></code> remedy named.</p></dd>
+
 
 </dl></div>
     <div class="section level2">
@@ -152,6 +169,11 @@ state participation, so totals mix coverage.</p></dd>
 <dd><p>Label wording for a
 converted variable changed meaning (not just formatting) across
 the requested years; the newest wording was applied.</p></dd>
+
+<dt><code>brfssdata_state_coverage_warning</code></dt>
+<dd><p>A jurisdiction requested
+via <code>states</code> is absent from a requested year's file, so
+estimates for that year cover the remaining states only.</p></dd>
 
 
 </dl></div>
@@ -186,13 +208,37 @@ for it).</p></dd>
 <dd><p><code>na = TRUE</code> set missing-type codes to
 <code>NA</code>; the counts and the <code><a href="brfss_missing_codes.html">brfss_missing_codes()</a></code> audit trail.</p></dd>
 
+<dt><code>brfssdata_na_coverage_note</code></dt>
+<dd><p><code>na = TRUE</code> was requested for
+years the value-label catalog does not cover (before 1998) or
+covers only partially (1998), so codes there passed through
+unchanged.</p></dd>
+
+<dt><code>brfssdata_weight_subset_note</code></dt>
+<dd><p>A user-supplied <code>weight</code> in
+<code><a href="brfss_design.html">brfss_design()</a></code> is missing on some rows (a module weight covers
+only its module's records); those rows were dropped, per CDC's
+module-analysis guidance.</p></dd>
+
 <dt><code>brfssdata_empty_result</code></dt>
-<dd><p>A <code><a href="brfss_labels.html">brfss_labels()</a></code> lookup matched
-nothing.</p></dd>
+<dd><p>A metadata lookup
+(<code><a href="brfss_labels.html">brfss_labels()</a></code>, <code><a href="brfss_crosswalk.html">brfss_crosswalk()</a></code>, <code><a href="brfss_year_info.html">brfss_year_info()</a></code>)
+matched nothing.</p></dd>
 
 <dt><code>brfssdata_full_load_note</code></dt>
 <dd><p><code><a href="brfss_design.html">brfss_design()</a></code> is loading every
 column because <code>vars</code> was not given.</p></dd>
+
+<dt><code>brfssdata_rename_note</code></dt>
+<dd><p>A requested variable is empty in
+years a sibling generation from the rename crosswalk covers;
+see <code><a href="brfss_crosswalk.html">brfss_crosswalk()</a></code>.</p></dd>
+
+<dt><code>brfssdata_bundled_fallback_note</code></dt>
+<dd><p>A metadata lookup was
+served from the snapshot bundled with the package (frozen at
+release) because nothing newer was cached and no download was
+possible.</p></dd>
 
 
 </dl></div>

@@ -48,6 +48,8 @@
 <li><a class="dropdown-item" href="articles/datasets.html">The datasets</a></li>
     <li><a class="dropdown-item" href="articles/survey-design.html">Survey design in BRFSS</a></li>
     <li><a class="dropdown-item" href="articles/logistic-regression.html">Survey-weighted logistic regression</a></li>
+    <li><a class="dropdown-item" href="articles/age-adjustment.html">Age-adjusted prevalence</a></li>
+    <li><a class="dropdown-item" href="articles/validation.html">Validating against CDC's published estimates</a></li>
     <li><a class="dropdown-item" href="articles/external-data.html">Merging BRFSS with external data</a></li>
     <li><a class="dropdown-item" href="articles/outside-r.html">Using the data outside R</a></li>
   </ul>
@@ -104,8 +106,17 @@
 <span><span class="co"># The same, with safe categoricals converted to labeled factors</span></span>
 <span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_brfss.html">read_brfss</a></span><span class="op">(</span><span class="fl">2023</span>, vars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"GENHLTH"</span>, <span class="st">"SEXVAR"</span><span class="op">)</span>, labels <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># One state's rows only, filtered inside the query</span></span>
+<span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_brfss.html">read_brfss</a></span><span class="op">(</span><span class="fl">2023</span>, vars <span class="op">=</span> <span class="st">"GENHLTH"</span>, states <span class="op">=</span> <span class="st">"TX"</span><span class="op">)</span></span>
+<span></span>
 <span><span class="co"># The value-label codebook itself (1998 onward)</span></span>
 <span><span class="fu"><a href="reference/brfss_labels.html">brfss_labels</a></span><span class="op">(</span><span class="st">"GENHLTH"</span>, years <span class="op">=</span> <span class="fl">2023</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Everything the catalogs know about a variable, as a card</span></span>
+<span><span class="fu"><a href="reference/brfss_codebook.html">brfss_codebook</a></span><span class="op">(</span><span class="st">"GENHLTH"</span>, years <span class="op">=</span> <span class="fl">2023</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># CDC renames variables across years; find the whole family</span></span>
+<span><span class="fu"><a href="reference/brfss_crosswalk.html">brfss_crosswalk</a></span><span class="op">(</span><span class="st">"_DRNKWK1"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># A survey-design object with era-correct weights, ready for srvyr.</span></span>
 <span><span class="co"># Codes CDC uses for "don't know" and "refused" are NA by default here,</span></span>
@@ -152,7 +163,7 @@
 <blockquote>
 <p>Centers for Disease Control and Prevention (CDC). Behavioral Risk Factor Surveillance System Survey Data. Atlanta, Georgia: U.S. Department of Health and Human Services, Centers for Disease Control and Prevention, [appropriate year].</p>
 </blockquote>
-<p>The hosted parquet files are derived from CDC’s published SAS Transport files with no rows dropped, no columns dropped, and no values recoded; the only transformations are re-encoding the Windows-1252 text older files carry to UTF-8 and adding an integer <code>year</code> column. The processing pipeline lives in <a href="https://github.com/muntasirmasum/brfssdata/tree/main/data-raw" class="external-link"><code>data-raw/</code></a>; every artifact is checksummed, and the package verifies those checksums when it downloads.</p>
+<p>The hosted parquet files are derived from CDC’s published SAS Transport files with no rows dropped, no columns dropped, and no values recoded. Three transformations are applied: the Windows-1252 text older files carry is re-encoded to UTF-8, blank SAS character fields (SAS’s missing value for character data) are stored as nulls rather than empty strings, and an integer <code>year</code> column is added. The handful of variables CDC stored as a number in some years and text in others are written with one storage type across all years, values unchanged, so multi-year reads cannot split one code into <code>1120</code> and <code>"1120.0"</code>. The processing pipeline lives in <a href="https://github.com/muntasirmasum/brfssdata/tree/main/data-raw" class="external-link"><code>data-raw/</code></a>; every artifact is checksummed, and the package verifies those checksums when it downloads.</p>
 </div>
 <div class="section level2">
 <h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a>

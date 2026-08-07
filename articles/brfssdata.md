@@ -201,6 +201,13 @@ first two across 2021 to 2023 shows where one gives way to the other.
 ``` r
 
 drinks <- read_brfss(2021:2023, vars = c("_DRNKWK1", "_DRNKWK2"))
+#> ! _DRNKWK1 has no data for 2022-2023; the rename crosswalk pairs it with
+#>   _DRNKWK2 (covers 2022-2023). See brfss_crosswalk("_DRNKWK1") for the family,
+#>   its review status, and any comparability notes; combining generations is your
+#>   decision.
+#> ! _DRNKWK2 has no data for 2021; the rename crosswalk pairs it with _DRNKWK1
+#>   (covers 2021). See brfss_crosswalk("_DRNKWK2") for the family, its review
+#>   status, and any comparability notes; combining generations is your decision.
 
 drinks |>
   summarise(
@@ -219,9 +226,16 @@ drinks |>
 ```
 
 Reading both versions and coalescing them is the usual fix, but only
-after checking that the definitions are close enough to justify it. That
-check is your job, not the package’s; brfssdata will hand you both
-columns and stay out of the way.
+after checking that the definitions are close enough to justify it. The
+package now tells you when you are standing in this trap: a request
+whose variable is empty in years a sibling generation covers gets a
+`brfssdata_rename_note` message pointing at
+[`brfss_crosswalk()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_crosswalk.md),
+which lists the whole family (`_DRNKWK1` through `_DRNKWK3` here) along
+with its review status and, for reviewed pairs, whether consecutive
+generations stayed comparable and what changed. The decision to coalesce
+remains yours; the package hands you both columns and the family, and
+stays out of the recode.
 
 ## Finding variables
 
@@ -431,7 +445,7 @@ brfss_cache_info()
 #> 3 brfss_2023.parquet       2023 29077288
 #> 4 brfss_labels.parquet       NA   119739
 #> 5 brfss_variables.parquet    NA    63889
-#> 6 manifest.json              NA     6275
+#> 6 manifest.json              NA     6561
 ```
 
 Because reads come from the cache, a year you have already downloaded is
@@ -508,14 +522,16 @@ brfss_design(2023, vars = "GENHLTH") |>
 The weight is chosen to match the survey era: `_FINALWT` for years
 before 2011 and `_LLCPWT` from 2011 on (a `weight` argument selects
 another final weight, such as the child weight `_CLLCPWT`, when CDC’s
-documentation calls for it; see
+documentation calls for it; a module weight like that exists only for
+its module’s records, so the design subsets to the rows it covers and
+says how many were dropped; see
 [`?brfss_design`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
-for why the intermediate pipeline weights like `_LLCPWT2` warn). The
-design is built on three added columns, `brfss_wt`, `brfss_psu`, and
-`brfss_strata`, because CDC’s names are not syntactic and cannot enter a
-model formula; the original CDC columns are kept alongside them,
-unchanged. The don’t-know and refused codes arrive as `NA` here by
-default (`na = TRUE`), which is why the filter above is on
+for that and for why the intermediate pipeline weights like `_LLCPWT2`
+warn). The design is built on three added columns, `brfss_wt`,
+`brfss_psu`, and `brfss_strata`, because CDC’s names are not syntactic
+and cannot enter a model formula; the original CDC columns are kept
+alongside them, unchanged. The don’t-know and refused codes arrive as
+`NA` here by default (`na = TRUE`), which is why the filter above is on
 [`is.na()`](https://rdrr.io/r/base/NA.html) and not on code ranges; pass
 `na = FALSE` for the raw codes.
 
@@ -570,8 +586,10 @@ BRFSS](https://muntasirmasum.github.io/brfssdata/articles/survey-design.html)
 works through weights, strata, single-PSU handling, subpopulation
 analysis, and multi-year pooling in detail. [Survey-weighted logistic
 regression](https://muntasirmasum.github.io/brfssdata/articles/logistic-regression.html)
-fits a full model with `svyglm()`, walking from recoding and weighted
-prevalence through design-based confidence intervals on the odds ratios.
+fits a full model with
+[`svyglm()`](https://rdrr.io/pkg/survey/man/svyglm.html), walking from
+recoding and weighted prevalence through design-based confidence
+intervals on the odds ratios.
 
 ## Using the data outside R
 

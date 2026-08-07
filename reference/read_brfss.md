@@ -17,6 +17,7 @@ column always identifies the survey year of each row.
 read_brfss(
   years,
   vars = NULL,
+  states = NULL,
   download = TRUE,
   quiet = FALSE,
   labels = FALSE,
@@ -40,6 +41,18 @@ read_brfss(
   canonical spelling. Use
   [`brfss_vars()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_vars.md)
   to search names across years.
+
+- states:
+
+  Optional vector restricting rows to those reporting jurisdictions:
+  state FIPS codes, postal abbreviations, or names, mixed freely and
+  matched case-insensitively (`c(48, "CA", "maine")`). See
+  [brfss_states](https://muntasirmasum.github.io/brfssdata/reference/brfss_states.md)
+  for the full list. The filter is pushed into the DuckDB query, so
+  other states' rows never reach R, and the `_STATE` column is always
+  returned so the filter stays visible. A requested state absent from a
+  requested year's file (states do occasionally miss a year) raises a
+  classed warning rather than returning silently fewer rows.
 
 - download:
 
@@ -81,7 +94,9 @@ read_brfss(
   what an analyst wants.) Code 88/888 ("None") means zero, is never
   touched, and needs recoding to 0 by hand before averaging count
   variables. Labels cover 1998 on, so earlier years pass through
-  unchanged.
+  unchanged, and a request touching years the catalog does not cover
+  (or, like 1998, covers only partially) says so with a
+  `brfssdata_na_coverage_note` message rather than staying silent.
 
 ## Value
 
