@@ -41,15 +41,48 @@ ranges, similar label wording) and reviewed by hand against CDC's
 codebooks over time. \code{status} records how far that review has gone
 for each family: \code{"verified"} means a person checked it,
 \code{"candidate"} means the rules proposed it and review is pending, so
-treat a candidate family as a strong hint, not a fact. For verified
-pairs, \code{comparable} records the outcome: \code{TRUE} when the definitions
-match the previous generation, \code{FALSE} when they do not (with \code{note}
-saying what changed); it stays \code{NA} while unreviewed. A rename is
+treat a candidate family as a strong hint, not a fact. A rename is
 \emph{never} a promise of comparability -- CDC renamed the variable for a
 reason -- so combining generations is always your decision;
 \code{\link[=read_brfss]{read_brfss()}} points here (a \code{brfssdata_rename_note} message) when
 a requested variable is empty in years a sibling generation covers.
 }
+\section{Reading the crosswalk}{
+
+\code{generation} is the variable's position in the rename chain, in
+order of first appearance: \code{ACEHURT} (2009-2012) is generation 1 of
+the concept \code{acehurt}, its successor \code{ACEHURT1} (2019-2024) is
+generation 2.
+
+\code{comparable} always sits on the \emph{later} generation's rows and
+answers one question: does this generation still measure the same
+thing as the generation immediately before it, closely enough to
+pool across the rename? \code{TRUE} means yes (the \code{note} gives the
+basis); \code{FALSE} means the definition changed (the \code{note} says what
+moved). On a family's first generation \code{comparable} is \code{NA} by
+construction -- there is nothing earlier to compare against -- while
+\code{NA} on a later generation of a candidate family means unreviewed.
+
+Verdicts are per link and do not chain through a \code{FALSE}. In the
+falls-injury family, \code{FALLINJ2 -> FALLINJ3} is \code{FALSE} (the injury
+definition in the question changed) while \code{FALLINJ3 -> FALLINJ4} is
+\code{TRUE}: the later two generations pool, all three do not.
+
+When every link you span is \code{TRUE}, the pooling pattern is to
+coalesce the generations into one analysis column and keep the
+originals:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{dat <- read_brfss(2009:2024, vars = c("ACEHURT", "ACEHURT1"))
+dat$acehurt <- dplyr::coalesce(dat$ACEHURT, dat$ACEHURT1)
+}\if{html}{\out{</div>}}
+
+\code{comparable} describes the \emph{question's definition}, not the survey's
+weighting: a family spanning 2010/2011 can be \code{TRUE} as a measure
+while estimates across that boundary remain non-comparable because
+of the weighting redesign, which is why \code{\link[=brfss_design]{brfss_design()}} keeps its
+separate \code{allow_break} guard.
+}
+
 \examples{
 # The whole family, from any member's name. download = FALSE reads
 # the cached copy, or the snapshot bundled with the package, so this
