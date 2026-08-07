@@ -78,12 +78,12 @@ brfss_crosswalk("_DRNKWK1", download = FALSE)
 #> ! Using the rename crosswalk snapshot bundled with the package (frozen at
 #>   release); `brfss_download()` caches the current copy.
 #> # A tibble: 6 × 7
-#>   concept variable  year generation status    comparable note 
-#>   <chr>   <chr>    <int>      <int> <chr>     <lgl>      <chr>
-#> 1 drnkwk  _DRNKWK1  2019          1 candidate NA         ""   
-#> 2 drnkwk  _DRNKWK1  2020          1 candidate NA         ""   
-#> 3 drnkwk  _DRNKWK1  2021          1 candidate NA         ""   
-#> 4 drnkwk  _DRNKWK2  2022          2 candidate NA         ""   
-#> 5 drnkwk  _DRNKWK2  2023          2 candidate NA         ""   
-#> 6 drnkwk  _DRNKWK3  2024          3 candidate NA         ""   
+#>   concept variable  year generation status   comparable note                    
+#>   <chr>   <chr>    <int>      <int> <chr>    <lgl>      <chr>                   
+#> 1 drnkwk  _DRNKWK1  2019          1 verified NA         ""                      
+#> 2 drnkwk  _DRNKWK1  2020          1 verified NA         ""                      
+#> 3 drnkwk  _DRNKWK1  2021          1 verified NA         ""                      
+#> 4 drnkwk  _DRNKWK2  2022          2 verified TRUE       "The input question dro…
+#> 5 drnkwk  _DRNKWK2  2023          2 verified TRUE       "The input question dro…
+#> 6 drnkwk  _DRNKWK3  2024          3 verified TRUE       "Renamed with AVEDRNK3-…
 ```

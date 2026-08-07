@@ -64,5 +64,5 @@ brfss_cache_info()
 #> 3 brfss_2023.parquet       2023 29077288
 #> 4 brfss_labels.parquet       NA   119739
 #> 5 brfss_variables.parquet    NA    63889
-#> 6 manifest.json              NA     6275
+#> 6 manifest.json              NA     6561
 ```
