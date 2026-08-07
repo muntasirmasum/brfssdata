@@ -13,12 +13,9 @@ ranges, similar label wording) and reviewed by hand against CDC's
 codebooks over time. `status` records how far that review has gone for
 each family: `"verified"` means a person checked it, `"candidate"` means
 the rules proposed it and review is pending, so treat a candidate family
-as a strong hint, not a fact. For verified pairs, `comparable` records
-the outcome: `TRUE` when the definitions match the previous generation,
-`FALSE` when they do not (with `note` saying what changed); it stays
-`NA` while unreviewed. A rename is *never* a promise of comparability –
-CDC renamed the variable for a reason – so combining generations is
-always your decision;
+as a strong hint, not a fact. A rename is *never* a promise of
+comparability – CDC renamed the variable for a reason – so combining
+generations is always your decision;
 [`read_brfss()`](https://muntasirmasum.github.io/brfssdata/reference/read_brfss.md)
 points here (a `brfssdata_rename_note` message) when a requested
 variable is empty in years a sibling generation covers.
@@ -60,6 +57,39 @@ A tibble with columns `concept` (family identifier), `variable`, `year`,
 `comparable`, and `note`, one row per variable-year. A lookup that
 matches nothing returns zero rows with a `brfssdata_empty_result`
 message.
+
+## Reading the crosswalk
+
+`generation` is the variable's position in the rename chain, in order of
+first appearance: `ACEHURT` (2009-2012) is generation 1 of the concept
+`acehurt`, its successor `ACEHURT1` (2019-2024) is generation 2.
+
+`comparable` always sits on the *later* generation's rows and answers
+one question: does this generation still measure the same thing as the
+generation immediately before it, closely enough to pool across the
+rename? `TRUE` means yes (the `note` gives the basis); `FALSE` means the
+definition changed (the `note` says what moved). On a family's first
+generation `comparable` is `NA` by construction – there is nothing
+earlier to compare against – while `NA` on a later generation of a
+candidate family means unreviewed.
+
+Verdicts are per link and do not chain through a `FALSE`. In the
+falls-injury family, `FALLINJ2 -> FALLINJ3` is `FALSE` (the injury
+definition in the question changed) while `FALLINJ3 -> FALLINJ4` is
+`TRUE`: the later two generations pool, all three do not.
+
+When every link you span is `TRUE`, the pooling pattern is to coalesce
+the generations into one analysis column and keep the originals:
+
+    dat <- read_brfss(2009:2024, vars = c("ACEHURT", "ACEHURT1"))
+    dat$acehurt <- dplyr::coalesce(dat$ACEHURT, dat$ACEHURT1)
+
+`comparable` describes the *question's definition*, not the survey's
+weighting: a family spanning 2010/2011 can be `TRUE` as a measure while
+estimates across that boundary remain non-comparable because of the
+weighting redesign, which is why
+[`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
+keeps its separate `allow_break` guard.
 
 ## See also
 

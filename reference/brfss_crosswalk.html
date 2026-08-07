@@ -11,10 +11,7 @@ ranges, similar label wording) and reviewed by hand against CDC's
 codebooks over time. status records how far that review has gone
 for each family: &quot;verified&quot; means a person checked it,
 &quot;candidate&quot; means the rules proposed it and review is pending, so
-treat a candidate family as a strong hint, not a fact. For verified
-pairs, comparable records the outcome: TRUE when the definitions
-match the previous generation, FALSE when they do not (with note
-saying what changed); it stays NA while unreviewed. A rename is
+treat a candidate family as a strong hint, not a fact. A rename is
 never a promise of comparability – CDC renamed the variable for a
 reason – so combining generations is always your decision;
 read_brfss() points here (a brfssdata_rename_note message) when
@@ -30,10 +27,7 @@ ranges, similar label wording) and reviewed by hand against CDC's
 codebooks over time. status records how far that review has gone
 for each family: &quot;verified&quot; means a person checked it,
 &quot;candidate&quot; means the rules proposed it and review is pending, so
-treat a candidate family as a strong hint, not a fact. For verified
-pairs, comparable records the outcome: TRUE when the definitions
-match the previous generation, FALSE when they do not (with note
-saying what changed); it stays NA while unreviewed. A rename is
+treat a candidate family as a strong hint, not a fact. A rename is
 never a promise of comparability – CDC renamed the variable for a
 reason – so combining generations is always your decision;
 read_brfss() points here (a brfssdata_rename_note message) when
@@ -94,10 +88,7 @@ ranges, similar label wording) and reviewed by hand against CDC's
 codebooks over time. <code>status</code> records how far that review has gone
 for each family: <code>"verified"</code> means a person checked it,
 <code>"candidate"</code> means the rules proposed it and review is pending, so
-treat a candidate family as a strong hint, not a fact. For verified
-pairs, <code>comparable</code> records the outcome: <code>TRUE</code> when the definitions
-match the previous generation, <code>FALSE</code> when they do not (with <code>note</code>
-saying what changed); it stays <code>NA</code> while unreviewed. A rename is
+treat a candidate family as a strong hint, not a fact. A rename is
 <em>never</em> a promise of comparability – CDC renamed the variable for a
 reason – so combining generations is always your decision;
 <code><a href="read_brfss.html">read_brfss()</a></code> points here (a <code>brfssdata_rename_note</code> message) when
@@ -141,6 +132,37 @@ missing catalog raises an error instead of being downloaded.</p></dd>
 appearance), <code>status</code>, <code>comparable</code>, and <code>note</code>, one row per
 variable-year. A lookup that matches nothing returns zero rows
 with a <code>brfssdata_empty_result</code> message.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="reading-the-crosswalk">Reading the crosswalk<a class="anchor" aria-label="anchor" href="#reading-the-crosswalk"></a></h2>
+
+
+<p><code>generation</code> is the variable's position in the rename chain, in
+order of first appearance: <code>ACEHURT</code> (2009-2012) is generation 1 of
+the concept <code>acehurt</code>, its successor <code>ACEHURT1</code> (2019-2024) is
+generation 2.</p>
+<p><code>comparable</code> always sits on the <em>later</em> generation's rows and
+answers one question: does this generation still measure the same
+thing as the generation immediately before it, closely enough to
+pool across the rename? <code>TRUE</code> means yes (the <code>note</code> gives the
+basis); <code>FALSE</code> means the definition changed (the <code>note</code> says what
+moved). On a family's first generation <code>comparable</code> is <code>NA</code> by
+construction – there is nothing earlier to compare against – while
+<code>NA</code> on a later generation of a candidate family means unreviewed.</p>
+<p>Verdicts are per link and do not chain through a <code>FALSE</code>. In the
+falls-injury family, <code>FALLINJ2 -&gt; FALLINJ3</code> is <code>FALSE</code> (the injury
+definition in the question changed) while <code>FALLINJ3 -&gt; FALLINJ4</code> is
+<code>TRUE</code>: the later two generations pool, all three do not.</p>
+<p>When every link you span is <code>TRUE</code>, the pooling pattern is to
+coalesce the generations into one analysis column and keep the
+originals:</p>
+<p></p><div class="sourceCode r"><pre><code><span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_brfss.html">read_brfss</a></span><span class="op">(</span><span class="fl">2009</span><span class="op">:</span><span class="fl">2024</span>, vars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ACEHURT"</span>, <span class="st">"ACEHURT1"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">dat</span><span class="op">$</span><span class="va">acehurt</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/coalesce.html" class="external-link">coalesce</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">ACEHURT</span>, <span class="va">dat</span><span class="op">$</span><span class="va">ACEHURT1</span><span class="op">)</span></span></code></pre><p></p></div>
+<p><code>comparable</code> describes the <em>question's definition</em>, not the survey's
+weighting: a family spanning 2010/2011 can be <code>TRUE</code> as a measure
+while estimates across that boundary remain non-comparable because
+of the weighting redesign, which is why <code><a href="brfss_design.html">brfss_design()</a></code> keeps its
+separate <code>allow_break</code> guard.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
