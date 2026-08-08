@@ -91,6 +91,14 @@ weighting redesign, which is why
 [`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
 keeps its separate `allow_break` guard.
 
+Notes are complete sentences, and tibble printing truncates them to the
+console width. To read them in full, pull the column or open the viewer:
+
+    brfss_crosswalk("_DRNKWK1") |>
+      dplyr::pull(note) |>
+      unique() |>
+      writeLines()
+
 ## See also
 
 [`brfss_vars()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_vars.md)
