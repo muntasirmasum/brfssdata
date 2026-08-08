@@ -81,6 +81,16 @@ weighting: a family spanning 2010/2011 can be \code{TRUE} as a measure
 while estimates across that boundary remain non-comparable because
 of the weighting redesign, which is why \code{\link[=brfss_design]{brfss_design()}} keeps its
 separate \code{allow_break} guard.
+
+Notes are complete sentences, and tibble printing truncates them to
+the console width. To read them in full, pull the column or open the
+viewer:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{brfss_crosswalk("_DRNKWK1") |>
+  dplyr::pull(note) |>
+  unique() |>
+  writeLines()
+}\if{html}{\out{</div>}}
 }
 
 \examples{
