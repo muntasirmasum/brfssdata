@@ -33,10 +33,43 @@ Initial CRAN release.
   rows in 2023) and the design constructor refused missing weights. The
   automatic era weight still aborts on missing values, which there
   indicate a damaged file.
+* The matcher also recognizes the abbreviations CDC's 1998 to 2001
+  format libraries use for don't-know and refused ("UNK/REF", "UNK",
+  "REF", "UNKNOWN"), together with the bare "N/A" and "N/A,REF"
+  placeholders from the same years. Validated against every row of the
+  shipped catalog, this matches 786 rows across 370 variables, all in
+  1998 to 2001, and loses none. Without it, `na = TRUE` left those
+  codes in the data for years the catalog nominally covers: 145,594
+  cells in the 1998 file (`_DRNKMO` code 9999 alone on 117,351 rows)
+  and 380,693 in 2001, so any mean or proportion from an affected
+  variable was wrong. Spelled-out "not applicable" is deliberately not
+  a token, because in later years it names ordinal scale positions such
+  as `GETHIV` code 5.
 * `na = TRUE` says so (`brfssdata_na_coverage_note`) when requested
   years have no value-label catalog at all (1985-1997) or mostly lack
   it (1998 covers under a quarter of that file's variables), instead of
   silently changing nothing.
+* `labels = TRUE` refuses to convert a variable whose label wording
+  changed meaning across the requested years, keeping CDC's numeric
+  codes and naming it in a `brfssdata_label_drift_warning`. Applying
+  the newest year's labels to every row would restate what earlier
+  respondents answered: CDC reused `COLNTES1` and `SIGMTES1` codes 3 to
+  5 for different colorectal screening intervals from 2022 on, so
+  `read_brfss(2021:2024, vars = "COLNTES1", labels = TRUE)` would
+  otherwise return a wrong interval distribution. This matches how
+  every other ambiguity gate (incomplete formats, mismatched code sets,
+  duplicate codes or labels, uncovered values) already behaves. The
+  wording comparison folds `<` and `>` to words before stripping
+  punctuation, so CDC's house abbreviation ("anytime < 12 months ago"
+  against "anytime less than 12 months ago") counts as cosmetic and
+  still converts.
+* The pooled state-participation warning
+  (`brfssdata_pooled_states_warning`) counts participation over the
+  rows a user-supplied `weight` covers, the population the design
+  actually estimates, not over the whole annual file. Counting over the
+  file names states the design never contained, and goes silent when
+  the files agree on coverage but the weight's domain does not, which
+  is exactly the case for 2022 pooled with 2023 under `_CLLCPWT`.
 * Blank SAS character fields are stored as missing values, not `""`,
   and code matching is proof against R's scientific notation, so a
   future round code at or above 100,000 cannot be skipped.
@@ -58,9 +91,23 @@ Initial CRAN release.
   a year warns (`brfssdata_state_coverage_warning`).
 * `brfss_codebook()` renders a per-variable card: label history, value
   labels with missing-type codes flagged, year availability, and the
-  rename family. `brfss_year_info()` lists respondents, variables,
-  states, hosted size, and CDC's documentation page per year.
-  `brfss_citation()` returns per-year `bibentry` citations.
+  rename family. A card whose variable has no coded values says which
+  of the two reasons applies, either that the requested years sit
+  outside the catalog's span or that CDC's format for the variable is
+  continuous or range-only (`_BMI5`), and a card built from a range
+  format (`PHYSHLTH`, cataloged only as 77, 88, and 99) says that
+  ordinary in-range values are valid and are not listed, so a truncated
+  code list cannot read as the whole value set. Cards carry codes and
+  labels only, with no units, scale factor, or valid range; those live
+  in CDC's codebook, named per year by `brfss_year_info()$codebook_url`.
+  A cache-integrity failure while reading the rename crosswalk aborts,
+  as it does everywhere else in the package, rather than quietly
+  returning a card with no concept family. `brfss_year_info()` lists
+  respondents, variables, states, hosted size, and CDC's documentation
+  page per year. `brfss_citation()` returns per-year `bibentry`
+  citations, each with a stable BibTeX key (`brfss2023` and the like,
+  and `brfssdata` for the package), so `toBibtex()` output drops into a
+  `.bib` file unedited.
 * New package data: `brfss_states` (FIPS, names, abbreviations, Census
   regions for all 56 BRFSS jurisdictions) and `brfss_std_pop_2000` (the
   2000 projected U.S. standard population, all-ages and `_AGE_G`-
@@ -112,5 +159,41 @@ Initial CRAN release.
   `brfss_cache_clear()` manage the cache. A cached file that fails
   integrity checks is re-downloaded automatically or named in a classed
   error with its remedy.
+* A cached manifest that is present but unreadable does not count as
+  fresh. The manifest is the one asset fetched without an expected
+  hash, and any non-empty payload is accepted, so a captive-portal or
+  proxy error page served with HTTP 200 could otherwise sit in the
+  cache looking new. For a day after that, `brfss_years()` would return
+  `integer(0)` and every checksum lookup would return `NULL`, so
+  downloads would proceed unverified. Freshness now reads the content,
+  the bundled copy wins over an unusable cache with a
+  `brfssdata_manifest_note` naming `brfss_years(refresh = TRUE)` as the
+  repair, and a downloaded manifest reaches the cache only once its
+  payload parses.
+* A request whose `states` filter leaves no rows aborts with a classed
+  `brfssdata_no_eligible_rows` error naming the states, years, and
+  weight, instead of failing inside the survey package with "group
+  length is 0 but data length > 0". Kentucky and Pennsylvania in 2023
+  are the live cases. `read_brfss()` still returns the zero-row tibble,
+  which is a usable answer where a zero-row design is not.
 * Every error, warning, and message carries a documented condition
   class; see `?brfssdata-conditions`.
+
+## Documentation
+
+* The *Age-adjusted prevalence* article passes the outcome to
+  `survey::svystandardize()`, as `excluding.missing = ~ fair_poor +
+  age_group`. `svystandardize()` filters on `excluding.missing` before
+  it calibrates, so naming only the age variable leaves the age weights
+  calibrated over respondents that `na.rm = TRUE` discards afterwards,
+  returning the age-group means weighted by standard share times
+  weighted response rate instead of by standard share alone. The two
+  agree only when item nonresponse is flat across age, which it is not.
+  The recipe also labels the age factor from `brfss_std_pop_2000` and
+  asserts the level order, because `svystandardize()` matches
+  `population` to the levels of `by` by position without checking
+  names. `brfss_std_pop_2000` now documents that ordering contract.
+* The articles no longer call a whole-file estimate national. The 2023
+  public-use file covers 52 reporting areas, 48 states plus the
+  District of Columbia, Guam, Puerto Rico, and the U.S. Virgin Islands,
+  with Kentucky and Pennsylvania absent.

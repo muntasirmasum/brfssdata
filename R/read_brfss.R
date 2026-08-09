@@ -39,8 +39,15 @@
 #'   `"both"` keeps the code in the level text (`"[1] Excellent"`) so it
 #'   stays recoverable. A variable converts only when its format is a
 #'   pure code-to-label map, its code set agrees across the requested
-#'   years, and every observed value is covered; everything else keeps
-#'   its numeric codes. Identifier and design columns (`_STATE`, the
+#'   years, every observed value is covered, and its label wording did
+#'   not change meaning across those years; everything else keeps its
+#'   numeric codes. Wording that did change (CDC reused `COLNTES1`
+#'   codes 3 to 5 for different screening intervals from 2022 on) keeps
+#'   its codes too, with a `brfssdata_label_drift_warning` naming the
+#'   variables; read those years separately if you want each year's own
+#'   wording. Levels come from the newest requested year, so purely
+#'   cosmetic rewording is shown in CDC's most recent phrasing.
+#'   Identifier and design columns (`_STATE`, the
 #'   weights, strata, and PSU) always keep numeric codes so filters like
 #'   `_STATE == 6` keep working. See [brfss_labels()] for the catalog.
 #' @param na If `TRUE`, set the codes CDC uses for missing-type answers
@@ -97,6 +104,19 @@ read_brfss <- function(
   # Validated eagerly: passed lazily, an invalid labels value would only
   # surface if some variable actually converted.
   labels_mode <- if (isFALSE(labels)) NULL else labels_how(labels)
+  # Modern years are 350-plus columns wide, so the default selection
+  # materializes about 1.1 GB for 2023 alone. Said before anything is
+  # downloaded or read, while narrowing the request still helps.
+  if (is.null(vars) && !quiet) {
+    cli::cli_inform(
+      c(
+        "i" = "Loading every column for {summarize_years(years)}; pass
+               {.code vars = c(...)} to carry only analysis variables
+               (faster, much smaller)."
+      ),
+      class = "brfssdata_full_load_note"
+    )
+  }
   paths <- ensure_years_cached(years, download = download, quiet = quiet)
   dat <- query_parquet(
     paths,

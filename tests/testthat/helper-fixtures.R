@@ -11,6 +11,7 @@ write_fixture_year <- function(
   psu_size = 1,
   alt_weights = FALSE,
   states = 1,
+  child_states = NULL,
   add_cols = NULL,
   chr_cols = NULL
 ) {
@@ -61,7 +62,16 @@ write_fixture_year <- function(
     # is NULL on 383,782 of 433,323 rows). _LLCPWT2 is an intermediate
     # pipeline weight that should warn, and in the real files it is
     # complete, so it stays complete here.
-    covered <- seq_len(n) <= ceiling(n / 3)
+    # The default block is a row position, deliberately independent of
+    # _STATE, so most tests see a domain that cuts across states.
+    # child_states keys the domain on _STATE instead, which is what a
+    # real module weight does and the only shape that can tell a
+    # file-wide state comparison apart from a domain-wide one.
+    covered <- if (is.null(child_states)) {
+      seq_len(n) <= ceiling(n / 3)
+    } else {
+      df[["_STATE"]] %in% child_states
+    }
     df[["_CLLCPWT"]] <- ifelse(covered, df[[wt_col]] * 3 + 7, NA_real_)
     df[["_LLCPWT2"]] <- df[[wt_col]] * 5 + 11
   }
@@ -249,6 +259,7 @@ local_brfss_cache <- function(
   psu_size = 1,
   alt_weights = integer(0),
   states = list(),
+  child_states = list(),
   add_cols = list(),
   chr_cols = list(),
   schema = 2,
@@ -267,6 +278,7 @@ local_brfss_cache <- function(
       psu_size = psu_size,
       alt_weights = y %in% alt_weights,
       states = states[[as.character(y)]] %||% 1,
+      child_states = child_states[[as.character(y)]],
       add_cols = add_cols[[as.character(y)]],
       chr_cols = chr_cols[[as.character(y)]]
     )
@@ -313,8 +325,10 @@ local_brfss_manifest <- function(years, schema = 2, env = parent.frame()) {
 # across years, DUPLABEL a complete map that gives two codes the same
 # label, FRUITVAR a calculated-variable missing bucket with a trailing
 # noun, BIGCODE a map whose code is at R's scientific-notation
-# threshold. extra_years mirrors the real catalog's coverage: fixture
-# years from 1998 on get GENHLTH/_STATE rows; earlier years get none.
+# threshold, SEMDRIFT and COSDRIFT a real and a cosmetic change of
+# wording across years. extra_years mirrors the real catalog's
+# coverage: fixture years from 1998 on get GENHLTH/_STATE rows; earlier
+# years get none.
 write_fixture_labels <- function(dir, extra_years = integer(0)) {
   label_years <- sort(unique(c(
     2022L,
@@ -367,8 +381,8 @@ write_fixture_labels <- function(dir, extra_years = integer(0)) {
     stringsAsFactors = FALSE
   )
   # Same code set across years but genuinely reworded (not cosmetic):
-  # converts with the newest wording and warns. Codes 0/1 so the extra
-  # fixture columns (which sample 0:1) stay inside the map.
+  # refuses conversion, keeps the codes, and warns. Codes 0/1 so the
+  # extra fixture columns (which sample 0:1) stay inside the map.
   semdrift <- data.frame(
     year = c(2022L, 2022L, 2023L, 2023L),
     variable = "SEMDRIFT",
@@ -378,6 +392,23 @@ write_fixture_labels <- function(dir, extra_years = integer(0)) {
       "Former smoker",
       "Current smoker",
       "Quit over a year ago"
+    ),
+    complete = TRUE,
+    stringsAsFactors = FALSE
+  )
+  # The same map in both years apart from CDC's house abbreviation
+  # ("< 12 months" against "less than 12 months"): cosmetic, so it must
+  # convert silently. Pins the carve-out in normalize_semantic(), which
+  # would otherwise delete the "<" and read the two as different.
+  cosdrift <- data.frame(
+    year = c(2022L, 2022L, 2023L, 2023L),
+    variable = "COSDRIFT",
+    code = c(0L, 1L, 0L, 1L),
+    label = c(
+      "Anytime < 12 months ago",
+      "Never",
+      "Anytime less than 12 months ago",
+      "Never"
     ),
     complete = TRUE,
     stringsAsFactors = FALSE
@@ -433,6 +464,7 @@ write_fixture_labels <- function(dir, extra_years = integer(0)) {
       state,
       trapvar,
       semdrift,
+      cosdrift,
       driftvar,
       duplabel,
       fruitvar,

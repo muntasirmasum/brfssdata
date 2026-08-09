@@ -15,6 +15,11 @@ for the open-ended top group.}
 \item{std_weight}{\code{std_pop} normalized within the set (each set
 sums to 1).}
 }
+Rows run in ascending age order within each set, so the \code{adult6}
+rows are in \verb{_AGE_G} code order (1 through 6), which is the order
+\code{survey::svystandardize()} expects for its \code{population} argument
+(it matches that vector to the levels of \code{by} by position, without
+checking names).
 }
 \source{
 Aggregated from SEER's single-age rendering of the Census

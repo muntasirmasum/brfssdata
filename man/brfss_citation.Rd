@@ -7,13 +7,16 @@
 brfss_citation(years = NULL)
 }
 \arguments{
-\item{years}{Optional integer vector of survey years to cite.
-\code{NULL} cites the collection's span as a single entry.}
+\item{years}{Optional integer vector of one or more survey years to
+cite. \code{NULL} cites the collection's span as a single entry.}
 }
 \value{
 A \code{\link[utils:bibentry]{utils::bibentry()}} vector: one entry per requested year
 (or one spanning entry when \code{years = NULL}), then the package
-entry.
+entry. Every entry carries a BibTeX key, \code{brfssdata} for the
+package, \code{brfss} for the spanning data entry, and \code{brfss2023} and
+the like for each requested year, so \code{toBibtex()} output drops
+into a \code{.bib} file unedited.
 }
 \description{
 Returns ready-to-use \code{\link[utils:bibentry]{utils::bibentry()}} citations: CDC's

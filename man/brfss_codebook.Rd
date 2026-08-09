@@ -40,6 +40,15 @@ regular tibble; the \code{values} and \code{missing_codes} columns are
 list-columns of tibbles, \code{related} a list-column of sibling
 variable names.
 }
+\details{
+The card documents codes and labels only. It carries no units, no
+scale factor, and no valid range, so a calculated variable CDC
+stores scaled (\verb{_BMI5} and \verb{_DRNKWK2} carry two implied decimals)
+looks no different here from an unscaled one, and a range format
+lists its special codes without the ordinary values around them.
+Read magnitudes against CDC's codebook for the year, whose address
+is \code{brfss_year_info()$codebook_url}.
+}
 \examples{
 brfss_codebook("GENHLTH", years = 2023, download = FALSE)
 }

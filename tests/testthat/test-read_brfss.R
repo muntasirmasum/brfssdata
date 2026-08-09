@@ -118,6 +118,27 @@ test_that("a type conflict outside the selection never blocks the read", {
   )
 })
 
+test_that("a default full-width read says it is loading every column", {
+  # 2023 is 351 columns over 433,323 rows, about 1.1 GB materialized,
+  # and read_brfss() is the lower-level of the two full-load entry
+  # points, so the note belongs here rather than only in brfss_design().
+  local_brfss_cache(2023)
+  expect_message(
+    read_brfss(2023),
+    class = "brfssdata_full_load_note"
+  )
+  # A vars selection has nothing to warn about, and quiet = TRUE keeps
+  # its promise.
+  expect_no_message(
+    read_brfss(2023, vars = "GENHLTH"),
+    class = "brfssdata_full_load_note"
+  )
+  expect_no_message(
+    read_brfss(2023, quiet = TRUE),
+    class = "brfssdata_full_load_note"
+  )
+})
+
 test_that("no download is attempted when all years are cached", {
   local_brfss_cache(2023)
   local_mocked_bindings(

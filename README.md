@@ -28,17 +28,17 @@ sampling units for each survey era.
 
 ## Installation
 
-Install the released version from CRAN:
-
-``` r
-install.packages("brfssdata")
-```
-
-Or the development version from GitHub:
+Install the development version from GitHub:
 
 ``` r
 # install.packages("pak")
 pak::pak("muntasirmasum/brfssdata")
+```
+
+Once the package is on CRAN, install it the usual way.
+
+``` r
+install.packages("brfssdata")
 ```
 
 ## Usage

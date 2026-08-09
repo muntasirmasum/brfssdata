@@ -35,6 +35,11 @@
 #'   \item{`brfssdata_bad_design_var`}{A design variable (era weight,
 #'     `_STSTR`, `_PSU`) is absent or carries missing values, so no
 #'     valid design can be built.}
+#'   \item{`brfssdata_no_eligible_rows`}{No rows are left to build a
+#'     survey design: a `states` filter, or the domain of a
+#'     user-supplied `weight`, emptied the frame. [read_brfss()] still
+#'     returns the zero-row tibble, which is a usable answer; a
+#'     zero-row survey design is not constructible.}
 #'   \item{`brfssdata_break_error`}{The requested years span the 2011
 #'     redesign and `allow_break = TRUE` was not set.}
 #'   \item{`brfssdata_not_cached`}{`download = FALSE` was set and the
@@ -63,10 +68,15 @@
 #'     pipeline (e.g. `_LLCPWT2`, the truncated pre-raking design
 #'     weight), not a final analysis weight.}
 #'   \item{`brfssdata_pooled_states_warning`}{Pooled years differ in
-#'     state participation, so totals mix coverage.}
+#'     state participation, so totals mix coverage. Participation is
+#'     counted over the rows a user-supplied `weight` covers, the
+#'     population the design actually estimates, not over the whole
+#'     file.}
 #'   \item{`brfssdata_label_drift_warning`}{Label wording for a
-#'     converted variable changed meaning (not just formatting) across
-#'     the requested years; the newest wording was applied.}
+#'     variable changed meaning (not just formatting) across the
+#'     requested years, so it kept CDC's numeric codes instead of
+#'     converting to a factor; read the years separately if each
+#'     year's own wording is wanted.}
 #'   \item{`brfssdata_state_coverage_warning`}{A jurisdiction requested
 #'     via `states` is absent from a requested year's file, so
 #'     estimates for that year cover the remaining states only.}

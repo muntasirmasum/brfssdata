@@ -112,6 +112,93 @@ test_that("read_manifest_cached falls back to the bundled manifest", {
   expect_identical(read_manifest_cached()$years, 1999L)
 })
 
+# The manifest is the one asset fetched without an expected hash, and
+# download_to_cache() accepts any non-empty payload, so the error page a
+# captive portal or proxy serves with HTTP 200 can land in the cache
+# looking brand new. Freshness therefore has to read the content: a
+# present-but-unparseable file must never beat the bundled copy, or
+# brfss_years() empties and every manifest_sha256() lookup returns NULL,
+# which would let all later downloads proceed unverified for a day.
+local_corrupt_manifest <- function(env = parent.frame()) {
+  dir <- withr::local_tempdir(.local_envir = env)
+  withr::local_options(brfssdata.cache_dir = dir, .local_envir = env)
+  local_manifest_state(env)
+  writeLines(
+    "<html><body>Sign in to this network to continue</body></html>",
+    file.path(dir, "manifest.json")
+  )
+  dir
+}
+
+test_that("a fresh but corrupt cached manifest falls back to the bundle", {
+  local_corrupt_manifest()
+  sentinel <- withr::local_tempfile(lines = '{"years": [1999]}')
+  local_mocked_bindings(
+    download_to_cache = function(...) {
+      cli::cli_abort("offline", class = "brfssdata_download_error")
+    },
+    bundled_manifest_path = function() sentinel
+  )
+  # Two notes: the refresh failed, and the cached copy is unreadable.
+  expect_message(
+    expect_message(
+      years <- brfss_years(),
+      class = "brfssdata_manifest_note"
+    ),
+    class = "brfssdata_manifest_note"
+  )
+  expect_identical(years, 1999L)
+})
+
+test_that("an unreadable cached manifest names the repair command", {
+  local_corrupt_manifest()
+  sentinel <- withr::local_tempfile(lines = '{"years": [1999]}')
+  local_mocked_bindings(bundled_manifest_path = function() sentinel)
+  # read_manifest_cached() never touches the network, so this is the
+  # unreadable-cache note on its own.
+  expect_message(m <- read_manifest_cached(), "unreadable")
+  expect_identical(m$years, 1999L)
+  # Once per session, not once per checksum lookup.
+  expect_no_message(read_manifest_cached())
+})
+
+test_that("a corrupt cached manifest is not treated as fresh", {
+  local_corrupt_manifest()
+  calls <- 0L
+  local_mocked_bindings(
+    download_to_cache = function(url, dest, ...) {
+      calls <<- calls + 1L
+      writeLines('{"years": [2020, 2021]}', dest)
+      dest
+    }
+  )
+  expect_identical(brfss_years(), c(2020L, 2021L))
+  expect_identical(calls, 1L)
+  # The repaired copy is fresh, so the next call reads it in silence.
+  expect_no_message(expect_identical(brfss_years(), c(2020L, 2021L)))
+  expect_identical(calls, 1L)
+})
+
+test_that("a refresh that returns junk keeps the cached manifest", {
+  dir <- local_brfss_manifest(c(2020, 2021))
+  local_mocked_bindings(
+    download_to_cache = function(url, dest, ...) {
+      writeLines("<html>proxy error</html>", dest)
+      dest
+    }
+  )
+  expect_message(
+    years <- brfss_years(refresh = TRUE),
+    class = "brfssdata_manifest_note"
+  )
+  expect_identical(years, c(2020L, 2021L))
+  expect_identical(read_manifest_cached()$years, c(2020L, 2021L))
+  # A junk payload counts as a failed refresh, memo and all, and leaves
+  # nothing staged behind in the cache.
+  expect_false(is.null(manifest_state$last_failure))
+  expect_length(list.files(dir, pattern = "^manifest-"), 0L)
+})
+
 test_that("fixture manifests carry real hashes of the fixture files", {
   dir <- local_brfss_cache(2023)
   m <- read_manifest_cached()

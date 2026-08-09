@@ -189,16 +189,8 @@ brfss_design <- function(
     if (length(post) > 0) WEIGHT_POST
   )
 
-  if (is.null(vars) && !quiet) {
-    cli::cli_inform(
-      c(
-        "i" = "Loading every column for {summarize_years(years)}; pass
-               {.code vars = c(...)} to carry only analysis variables
-               (faster, much smaller)."
-      ),
-      class = "brfssdata_full_load_note"
-    )
-  }
+  # The full-width load note lives in read_brfss(), which vars = NULL is
+  # passed straight through to, so both entry points signal it once.
 
   dat <- read_brfss(
     years,
@@ -331,6 +323,40 @@ brfss_design <- function(
     wt <- dat[[weight_vars]]
   }
 
+  # First point where the row count is final: both the states filter
+  # (read_brfss() returns zero rows when no requested jurisdiction
+  # reported in any requested year) and the weight-domain subset above
+  # have run. Every guard below is an any() over a logical vector, and
+  # any(logical(0)) is FALSE, so none of them fires on an empty frame;
+  # survey would then die inside split.default() with the bare
+  # "group length is 0 but data length > 0". A zero-row tibble is a
+  # usable answer, which is why read_brfss() still returns one, but a
+  # zero-row survey design is not constructible at all.
+  if (nrow(dat) == 0) {
+    cli::cli_abort(
+      c(
+        "No rows are left to build a survey design for
+         {summarize_years(years)}.",
+        if (!is.null(states)) {
+          c(
+            "x" = "Requested jurisdiction{?s} {.val {as.character(states)}}
+                   {?has/have} no records there."
+          )
+        },
+        if (!is.null(weight)) {
+          c(
+            "x" = "The design is confined to the rows {.val {weight}}
+                   covers."
+          )
+        },
+        "i" = "A survey design needs at least one weighted record. Call
+               {.fun read_brfss} with the same arguments to see what the
+               filters left."
+      ),
+      class = "brfssdata_no_eligible_rows"
+    )
+  }
+
   if (spans_break) {
     cli::cli_warn(
       c(
@@ -345,7 +371,11 @@ brfss_design <- function(
 
   if (pool_weights && length(years) > 1) {
     wt <- wt / length(years)
-    warn_unequal_state_participation(years, states = resolve_states(states))
+    warn_unequal_state_participation(
+      years,
+      states = resolve_states(states),
+      weight = weight
+    )
   }
 
   bad_wt <- is.na(wt)
@@ -506,7 +536,20 @@ brfss_design <- function(
 # silently when any file lacks _STATE (never true of real BRFSS years).
 # With a states filter, only the requested states are compared: a state
 # outside the filter cannot affect the pooled estimate.
-warn_unequal_state_participation <- function(years, states = NULL) {
+# The query must see the same population the design does. A
+# user-supplied weight subsets the design to that weight's domain
+# above, so the same restriction is pushed into the query here; over
+# the whole file instead, the diagnostic names states the design never
+# contained and, worse, goes silent when the full-file state sets match
+# while the domain sets differ (2022 plus 2023 under _CLLCPWT is
+# exactly that shape). union_by_name yields NULL for a year that lacks
+# the weight column, which correctly contributes no states; the
+# absent-from-a-requested-year case already aborted further up.
+warn_unequal_state_participation <- function(
+  years,
+  states = NULL,
+  weight = NULL
+) {
   paths <- cache_path(year_asset(years))
   paths <- paths[file.exists(paths)]
   if (length(paths) < 2) {
@@ -521,13 +564,19 @@ warn_unequal_state_participation <- function(years, states = NULL) {
         paste(quote_literal(paths), collapse = ", "),
         "]"
       )
+      where_sql <- if (is.null(weight)) {
+        ""
+      } else {
+        sprintf(" WHERE %s IS NOT NULL", quote_ident(weight))
+      }
       q <- DBI::dbGetQuery(
         con,
         sprintf(
           'SELECT year, "_STATE" AS state
-           FROM read_parquet(%s, union_by_name = true)
+           FROM read_parquet(%s, union_by_name = true)%s
            GROUP BY 1, 2',
-          files_sql
+          files_sql,
+          where_sql
         )
       )
       if (anyNA(q$state)) {
@@ -555,6 +604,12 @@ warn_unequal_state_participation <- function(years, states = NULL) {
       "State participation differs across the pooled years: state
        FIPS code{?s} {.val {as.character(uneven)}} {?does/do} not appear
        in every year.",
+      if (!is.null(weight)) {
+        c(
+          "i" = "Counted over the rows {.val {weight}} covers, the
+                 population this design estimates, not the whole file."
+        )
+      },
       "i" = "Pooled totals average over changing state coverage; filter
              to the common states, or set {.code pool_weights = FALSE}
              and estimate per year, if that matters for your analysis."

@@ -60,6 +60,28 @@ test_that("a state absent from a year warns instead of shrinking silently", {
   )
 })
 
+test_that("a filter that empties the frame reads fine but cannot be a design", {
+  local_brfss_cache(2023, states = list("2023" = 1:3))
+  # State 4 is a real jurisdiction that is absent from this year's file,
+  # the shape of Kentucky and Pennsylvania in 2023. The read is a usable
+  # answer and must stay one; a zero-row survey design is not
+  # constructible, and before the guard survey died on it with a bare
+  # "group length is 0 but data length > 0".
+  dat <- suppressWarnings(
+    read_brfss(2023, vars = "GENHLTH", states = 4, quiet = TRUE)
+  )
+  expect_identical(nrow(dat), 0L)
+  err <- expect_error(
+    suppressWarnings(
+      brfss_design(2023, vars = "GENHLTH", states = 4, quiet = TRUE)
+    ),
+    class = "brfssdata_no_eligible_rows"
+  )
+  # brfss_design() passes states through unresolved, so the message
+  # echoes what was typed rather than a FIPS code it resolved to.
+  expect_match(conditionMessage(err), "2023")
+})
+
 test_that("a state design equals the post-hoc filtered design", {
   skip_if_not_installed("survey")
   local_brfss_cache(2023, states = list("2023" = 1:3))
@@ -89,4 +111,61 @@ test_that("the pooled state-participation warning respects the filter", {
     brfss_design(2022:2023, vars = "GENHLTH", states = 1:2, quiet = TRUE),
     class = "brfssdata_pooled_states_warning"
   )
+})
+
+test_that("the pooled diagnostic sees a domain the whole file hides", {
+  local_brfss_cache(
+    c(2022, 2023),
+    states = list("2022" = 1:2, "2023" = 1:2),
+    alt_weights = c(2022, 2023),
+    child_states = list("2022" = 1:2, "2023" = 1)
+  )
+  # The files carry the same two states in both years, so a comparison
+  # over the files alone stays silent. The child weight's domain drops
+  # state 2 in 2023, and that domain is the population the design
+  # estimates: the silent false negative the real 2022 plus 2023
+  # _CLLCPWT pooling exhibits.
+  expect_no_warning(
+    brfss_design(2022:2023, vars = "GENHLTH", quiet = TRUE),
+    class = "brfssdata_pooled_states_warning"
+  )
+  expect_warning(
+    brfss_design(
+      2022:2023,
+      vars = "GENHLTH",
+      weight = "_CLLCPWT",
+      quiet = TRUE
+    ),
+    class = "brfssdata_pooled_states_warning"
+  )
+})
+
+test_that("the pooled diagnostic names only states inside the domain", {
+  local_brfss_cache(
+    c(2022, 2023),
+    states = list("2022" = 1:3, "2023" = 1:2),
+    alt_weights = c(2022, 2023),
+    child_states = list("2022" = 1:2, "2023" = 1)
+  )
+  # State 3 is uneven across the files but sits outside the child
+  # domain in both years, so it cannot move a _CLLCPWT estimate; state
+  # 2 is even across the files and uneven inside the domain.
+  file_warn <- expect_warning(
+    brfss_design(2022:2023, vars = "GENHLTH", quiet = TRUE),
+    class = "brfssdata_pooled_states_warning"
+  )
+  expect_match(conditionMessage(file_warn), '"3"')
+  domain_warn <- expect_warning(
+    brfss_design(
+      2022:2023,
+      vars = "GENHLTH",
+      weight = "_CLLCPWT",
+      quiet = TRUE
+    ),
+    class = "brfssdata_pooled_states_warning"
+  )
+  expect_match(conditionMessage(domain_warn), '"2"')
+  expect_no_match(conditionMessage(domain_warn), '"3"')
+  # and the scope is stated, so the two warnings cannot be confused
+  expect_match(conditionMessage(domain_warn), "_CLLCPWT")
 })

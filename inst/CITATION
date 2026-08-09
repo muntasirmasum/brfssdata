@@ -6,6 +6,7 @@ citHeader(
 
 bibentry(
   bibtype = "Manual",
+  key = "brfssdata",
   title = "{brfssdata}: Access CDC Behavioral Risk Factor Surveillance System Data",
   author = person(
     "Muntasir",
@@ -23,6 +24,7 @@ bibentry(
 
 bibentry(
   bibtype = "Misc",
+  key = "brfss",
   title = "Behavioral Risk Factor Surveillance System Survey Data",
   author = person("{Centers for Disease Control and Prevention (CDC)}"),
   year = "1985--2024",

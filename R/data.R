@@ -50,6 +50,11 @@
 #'   \item{std_weight}{`std_pop` normalized within the set (each set
 #'     sums to 1).}
 #' }
+#' Rows run in ascending age order within each set, so the `adult6`
+#' rows are in `_AGE_G` code order (1 through 6), which is the order
+#' `survey::svystandardize()` expects for its `population` argument
+#' (it matches that vector to the levels of `by` by position, without
+#' checking names).
 #' @source Aggregated from SEER's single-age rendering of the Census
 #'   P25-1130 year-2000 projected population,
 #'   <https://seer.cancer.gov/stdpopulations/>. Anchors verified

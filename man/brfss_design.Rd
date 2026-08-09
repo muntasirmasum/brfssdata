@@ -62,8 +62,15 @@ codes (most CDC code sets are non-contiguous, so the two disagree).
 \code{"both"} keeps the code in the level text (\code{"[1] Excellent"}) so it
 stays recoverable. A variable converts only when its format is a
 pure code-to-label map, its code set agrees across the requested
-years, and every observed value is covered; everything else keeps
-its numeric codes. Identifier and design columns (\verb{_STATE}, the
+years, every observed value is covered, and its label wording did
+not change meaning across those years; everything else keeps its
+numeric codes. Wording that did change (CDC reused \code{COLNTES1}
+codes 3 to 5 for different screening intervals from 2022 on) keeps
+its codes too, with a \code{brfssdata_label_drift_warning} naming the
+variables; read those years separately if you want each year's own
+wording. Levels come from the newest requested year, so purely
+cosmetic rewording is shown in CDC's most recent phrasing.
+Identifier and design columns (\verb{_STATE}, the
 weights, strata, and PSU) always keep numeric codes so filters like
 \verb{_STATE == 6} keep working. See \code{\link[=brfss_labels]{brfss_labels()}} for the catalog.}
 

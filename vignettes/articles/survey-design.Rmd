@@ -87,6 +87,13 @@ Whether weighting matters depends on how strongly the quantity is
 related to the characteristics the weights correct for, and access to a
 regular provider is strongly related to age.
 
+Both quantities are estimated over the whole 2023 file, which covers 52
+reporting areas, 48 states plus the District of Columbia, Guam, Puerto
+Rico, and the U.S. Virgin Islands, since Kentucky and Pennsylvania are
+absent that year. Neither is a fifty-state number, and `states =`
+restricts the extract to a states-and-DC subset when that is the
+universe being described.
+
 ```{r composition}
 des |>
   group_by(`_AGE_G`) |>

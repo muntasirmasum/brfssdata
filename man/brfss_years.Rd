@@ -12,8 +12,8 @@ cached copy exists.}
 }
 \value{
 An integer vector of available survey years. If the manifest
-cannot be refreshed, a message notes the fallback (cached or bundled
-copy) that was used instead.
+cannot be refreshed, or the cached copy is unreadable, a message
+notes the fallback (cached or bundled copy) that was used instead.
 }
 \description{
 Reads the data manifest that accompanies the hosted parquet releases and

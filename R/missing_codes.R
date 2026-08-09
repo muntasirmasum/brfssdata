@@ -14,7 +14,10 @@
 #' start with the word "missing" and at least one part names the answer
 #' itself (don't know / not sure / refused) -- the shape of CDC's
 #' calculated-variable buckets such as "Don't know, refused or missing
-#' values" on `_FRTLT1A`. A short audited allowlist covers CDC's
+#' values" on `_FRTLT1A`. The abbreviations CDC's 1998 to 2001 format
+#' libraries use ("UNK/REF", "UNK", "REF", "UNKNOWN") count as those
+#' phrases, as do the bare "N/A" and "N/A,REF" placeholders from the
+#' same years. A short audited allowlist covers CDC's
 #' "component question" wordings on the `RACE2` family. Substantive
 #' answers that merely contain one of the words, such as "Doctor refused
 #' when asked" or a bare "Missing Fruit Responses" exclusion flag, never
@@ -75,6 +78,11 @@ MISSING_LABEL_TOKENS <- c(
   "not sure",
   "ns",
   "refused",
+  # CDC's 1998-2001 format libraries abbreviate the same answers:
+  # "UNK/REF" on 351 variables, plus bare "UNK", "REF", and "UNKNOWN".
+  "unk",
+  "ref",
+  "unknown",
   "missing",
   "blank",
   "not asked"
@@ -90,16 +98,30 @@ MISSING_CORE_TOKENS <- c(
   "dk",
   "not sure",
   "ns",
-  "refused"
+  "refused",
+  "unk",
+  "ref",
+  "unknown"
 )
 
 # Exact normalized labels that are genuine don't-know/refused buckets
 # but fit neither token rule: CDC's "component question" footnotes on
-# RACE2, _RACEG2, and _RACEGR2 code 9 (2002-2004 era). Audited by hand
-# against the CDC codebooks before being added.
+# RACE2, _RACEG2, and _RACEGR2 code 9 (2002-2004 era), and the 1998-2001
+# "N/A" placeholder, whose slash the token split would otherwise cut in
+# half. Audited by hand against the CDC codebooks before being added.
+#
+# The "N/A" entries are deliberately exact rather than a token: they name
+# code 8 on 100 yes/no variables (1998, 1999, 2001) and code 9 on the
+# 2000 calculated risk factors _RFDRDRI, _RFSMOK2, and _RFTOBAC, all of
+# them CDC's not-asked placeholder. A general "not applicable" token
+# would instead reach spelled-out answer categories that are ordinal
+# scale positions, such as GETHIV code 5 next to "NONE", so it is not
+# one.
 MISSING_LABEL_ALLOWLIST <- c(
   "do not know/not sure/refused component question",
-  "do not know/not sure/refused missing component question"
+  "do not know/not sure/refused missing component question",
+  "n/a",
+  "n/a,ref"
 )
 
 # A label marks a missing-type answer iff one of:
@@ -127,6 +149,14 @@ MISSING_LABEL_ALLOWLIST <- c(
 # _FRTLT1, _FRTLT1A, _VEGLT1, _VEGLT1A, _HLTHPLN, _HLTHPL1, _HLTHPL2,
 # _LMTACT1-3, _LMTSCL1, _LMTWRK1-3, RACE2, _RACEG2, _RACEGR2) and
 # removes none.
+#
+# The 1998-2001 abbreviations were validated the same way against the
+# shipped catalog: "unk", "ref", and "unknown" plus the two "n/a"
+# allowlist entries match 786 more rows (651 "UNK/REF", 108 "N/A", 13
+# "UNKNOWN", 9 "REF", 3 "N/A,REF", 2 "UNK") over 370 variables, all of
+# them in 1998-2001, and cost none. Spelled-out "not applicable" is
+# deliberately not a token: it names ordinal scale positions in later
+# years, such as GETHIV code 5 sitting beside "NONE".
 is_missing_label <- function(labels) {
   normalized <- normalize_label(labels)
   out <- vapply(

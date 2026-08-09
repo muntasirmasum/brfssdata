@@ -10,8 +10,8 @@
 #'   cached copy exists.
 #'
 #' @return An integer vector of available survey years. If the manifest
-#'   cannot be refreshed, a message notes the fallback (cached or bundled
-#'   copy) that was used instead.
+#'   cannot be refreshed, or the cached copy is unreadable, a message
+#'   notes the fallback (cached or bundled copy) that was used instead.
 #'
 #' @examplesIf interactive()
 #' brfss_years()
@@ -33,10 +33,35 @@ bundled_manifest_path <- function() {
   system.file("extdata", "manifest.json", package = "brfssdata")
 }
 
+# Freshness is about content, not presence. The manifest is the one asset
+# fetched without an expected hash (it cannot verify itself) and
+# download_to_cache() accepts any non-empty payload, so a captive portal
+# or proxy error page served with HTTP 200 lands in the cache looking
+# perfectly fresh. Counting that as usable would empty brfss_years() and,
+# worse, blank every manifest_sha256() lookup, so all later downloads
+# would proceed unverified for a day.
+#
+# Usable means the bytes still parse as the JSON object a manifest is:
+# an HTML sign-in page, a truncated transfer, and an API error body such
+# as {"message": "Not Found"} all fail. A manifest that parses but lists
+# no years is a different thing, a real statement that nothing is
+# published, and keeps its own error (`brfssdata_no_data`) rather than
+# being papered over with the bundled copy.
+manifest_usable <- function(path) {
+  if (!file.exists(path)) {
+    return(FALSE)
+  }
+  parsed <- tryCatch(
+    jsonlite::read_json(path, simplifyVector = TRUE),
+    error = function(e) NULL
+  )
+  is.list(parsed) && !is.null(parsed$years)
+}
+
 read_manifest <- function(refresh = FALSE) {
   path <- cache_path("manifest.json")
 
-  fresh <- file.exists(path) &&
+  fresh <- manifest_usable(path) &&
     difftime(Sys.time(), file.mtime(path), units = "secs") < MANIFEST_MAX_AGE
   recently_failed <- !is.null(manifest_state$last_failure) &&
     difftime(Sys.time(), manifest_state$last_failure, units = "secs") <
@@ -45,14 +70,12 @@ read_manifest <- function(refresh = FALSE) {
   download_failed <- FALSE
   if (refresh || (!fresh && !recently_failed)) {
     ok <- tryCatch(
-      {
-        download_to_cache(manifest_url(), path, quiet = TRUE)
-        TRUE
-      },
+      refresh_manifest(path),
       brfssdata_download_error = function(e) FALSE
     )
     if (ok) {
       manifest_state$last_failure <- NULL
+      manifest_state$unusable_noted <- NULL
     } else {
       manifest_state$last_failure <- Sys.time()
       download_failed <- TRUE
@@ -60,7 +83,11 @@ read_manifest <- function(refresh = FALSE) {
   }
 
   if (download_failed) {
-    fallback <- if (file.exists(path)) "a previously cached" else "the bundled"
+    fallback <- if (manifest_usable(path)) {
+      "a previously cached"
+    } else {
+      "the bundled"
+    }
     cli::cli_inform(
       c(
         "!" = "Could not refresh the BRFSS data manifest;
@@ -73,18 +100,61 @@ read_manifest <- function(refresh = FALSE) {
   read_manifest_cached()
 }
 
+# Download into a staging file inside the cache directory and promote it
+# only once it parses. A payload that is not a manifest is treated as a
+# failed refresh, so a good cached copy survives an error page and the
+# daily failure memo keeps the next call from retrying immediately.
+refresh_manifest <- function(path) {
+  ensure_cache_dir()
+  staged <- tempfile(
+    pattern = "manifest-",
+    tmpdir = dirname(path),
+    fileext = ".json"
+  )
+  on.exit(unlink(staged), add = TRUE)
+  download_to_cache(manifest_url(), staged, quiet = TRUE)
+  if (!manifest_usable(staged)) {
+    return(FALSE)
+  }
+  isTRUE(file.rename(staged, path)) ||
+    isTRUE(file.copy(staged, path, overwrite = TRUE))
+}
+
 # Parse the manifest without ever touching the network: the cached copy
 # if present, the bundled fallback otherwise. The verification lookups on
 # the read path use this so a fully cached request stays offline.
 read_manifest_cached <- function() {
   path <- cache_path("manifest.json")
-  if (!file.exists(path)) {
+  if (!manifest_usable(path)) {
+    if (file.exists(path)) {
+      note_unusable_manifest()
+    }
     path <- bundled_manifest_path()
   }
   if (identical(path, "") || !file.exists(path)) {
     return(empty_manifest())
   }
   parse_manifest(path)
+}
+
+# Once per session: read_manifest_cached() sits on the verification path
+# of every download, so an unreadable cache file would otherwise repeat
+# this several times per call. The memo lives in manifest_state, which
+# the test fixtures already save and restore, and a successful refresh
+# clears it.
+note_unusable_manifest <- function() {
+  if (isTRUE(manifest_state$unusable_noted)) {
+    return(invisible())
+  }
+  manifest_state$unusable_noted <- TRUE
+  cli::cli_inform(
+    c(
+      "!" = "The cached BRFSS data manifest is unreadable; using the
+             bundled copy.",
+      "i" = "Repair it with {.code brfss_years(refresh = TRUE)}."
+    ),
+    class = "brfssdata_manifest_note"
+  )
 }
 
 empty_manifest <- function() {

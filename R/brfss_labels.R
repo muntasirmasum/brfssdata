@@ -102,9 +102,10 @@ labels_catalog <- function(
 
 # Convert eligible variables to factors. A variable qualifies when, for
 # the requested years, its format is `complete` everywhere, the code set
-# is identical across those years, and every observed value is covered.
-# Labels come from the most recent requested year (wording drifts;
-# semantic drift converts but warns). Anything else is left untouched.
+# is identical across those years, every observed value is covered, and
+# the wording of each code did not change meaning across those years.
+# Labels come from the most recent requested year, so cosmetic rewording
+# is presented in CDC's latest phrasing. Anything else is left untouched.
 #
 # how = "label" gives plain label levels; "both" prefixes each level
 # with its CDC code ("[1] Excellent", the haven convention), keeping
@@ -181,9 +182,14 @@ apply_labels <- function(
       next
     }
 
-    # Every observed real difference in CDC's catalogs is cosmetic
-    # (case, apostrophes, punctuation); normalize those away and warn
-    # only when the wording genuinely changed between requested years.
+    # Most wording differences in CDC's catalogs are cosmetic (case,
+    # apostrophes, punctuation, the "<" house abbreviation); normalize
+    # those away. What survives is a real change of meaning, and a
+    # factor carries one level set for every row, so applying the
+    # newest wording to earlier years would silently restate what those
+    # respondents answered: COLNTES1 code 4 is "within the past 5
+    # years" in 2021 and "within the past 10 years" from 2022. Refuse,
+    # exactly as the duplicate-label and uncovered-value gates above do.
     if (length(unique(sub$year)) > 1) {
       per_year <- vapply(
         split(sub, sub$year),
@@ -199,6 +205,7 @@ apply_labels <- function(
       )
       if (length(unique(per_year)) != 1) {
         drifted <- c(drifted, v)
+        next
       }
     }
 
@@ -221,12 +228,13 @@ apply_labels <- function(
   if (length(drifted) > 0) {
     cli::cli_warn(
       c(
-        "Label wording for {.val {drifted}} differs across the requested
-         years beyond cosmetic changes; the newest year's wording was
-         applied to all rows.",
-        "i" = "Compare {.code brfss_labels(c({paste0('\"', drifted, '\"',
-               collapse = ', ')}))} across years if the difference
-               matters."
+        "Label wording for {.val {drifted}} changed meaning across the
+         requested years, so {?it/they} kept CDC's numeric codes.",
+        "i" = "Compare the wording year by year with
+               {.code brfss_labels(c({paste0('\"', drifted, '\"',
+               collapse = ', ')}))}.",
+        "i" = "Read the years separately if you want each year's own
+               wording: one factor carries one level set for every row."
       ),
       class = "brfssdata_label_drift_warning"
     )
@@ -236,8 +244,16 @@ apply_labels <- function(
 
 # Case, apostrophes, punctuation, and spacing are presentation, not
 # meaning; strip them before comparing label wording across years.
+# "<" and ">" are folded to words first, because stripping punctuation
+# would delete them outright and make CDC's house abbreviation ("anytime
+# < 12 months ago" against "anytime less than 12 months ago") read as a
+# change of meaning. "less that" is CDC's own typo for "less than"
+# (EMPLOY1 in 2013).
 normalize_semantic <- function(x) {
+  x <- gsub("<", " less than ", x, fixed = TRUE)
+  x <- gsub(">", " more than ", x, fixed = TRUE)
   x <- normalize_label(x)
+  x <- gsub("\\bless that\\b", "less than", x)
   x <- gsub("[^a-z0-9 ]", "", x)
   gsub("[[:space:]]+", " ", trimws(x))
 }

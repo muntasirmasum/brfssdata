@@ -192,7 +192,7 @@ test_that("a years-only lookup that matches nothing says so", {
   )
 })
 
-test_that("semantic label drift warns; identical wording stays silent", {
+test_that("semantic label drift keeps codes; identical wording stays silent", {
   local_brfss_cache(
     c(2022, 2023),
     extra = list("2022" = "SEMDRIFT", "2023" = "SEMDRIFT")
@@ -201,12 +201,42 @@ test_that("semantic label drift warns; identical wording stays silent", {
     dat <- read_brfss(2022:2023, quiet = TRUE, labels = TRUE),
     class = "brfssdata_label_drift_warning"
   )
-  expect_s3_class(dat$SEMDRIFT, "factor")
-  expect_true("Quit over a year ago" %in% levels(dat$SEMDRIFT))
+  # Converting would stamp 2023's meaning on 2022's rows (the COLNTES1
+  # shape: one code, two screening intervals). Refuse, like every other
+  # ambiguity gate, and leave CDC's codes in place.
+  expect_false(is.factor(dat$SEMDRIFT))
+  expect_true(is.numeric(dat$SEMDRIFT))
+
+  # A single year still converts with its own map.
+  one <- read_brfss(2023, vars = "SEMDRIFT", quiet = TRUE, labels = TRUE)
+  expect_s3_class(one$SEMDRIFT, "factor")
+  expect_true("Quit over a year ago" %in% levels(one$SEMDRIFT))
 
   # GENHLTH spans the same years with identical wording: no warning.
   expect_no_warning(
     read_brfss(2022:2023, vars = "GENHLTH", quiet = TRUE, labels = TRUE)
+  )
+})
+
+test_that("cosmetic wording differences still convert", {
+  # CDC writes "< 12 months" in one year and "less than 12 months" in
+  # the next. Deleting the "<" as punctuation would read that as a
+  # change of meaning and refuse, which would strip factors from
+  # variables where nothing actually changed.
+  local_brfss_cache(
+    c(2022, 2023),
+    add_cols = list(
+      "2022" = list(COSDRIFT = c(0, 1)),
+      "2023" = list(COSDRIFT = c(0, 1))
+    )
+  )
+  expect_no_warning(
+    dat <- read_brfss(2022:2023, vars = "COSDRIFT", quiet = TRUE, labels = TRUE)
+  )
+  expect_s3_class(dat$COSDRIFT, "factor")
+  expect_identical(
+    levels(dat$COSDRIFT),
+    c("Anytime less than 12 months ago", "Never")
   )
 })
 

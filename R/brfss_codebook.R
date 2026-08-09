@@ -13,6 +13,15 @@
 #' list-columns of tibbles, `related` a list-column of sibling
 #' variable names.
 #'
+#' @details
+#' The card documents codes and labels only. It carries no units, no
+#' scale factor, and no valid range, so a calculated variable CDC
+#' stores scaled (`_BMI5` and `_DRNKWK2` carry two implied decimals)
+#' looks no different here from an unscaled one, and a range format
+#' lists its special codes without the ordinary values around them.
+#' Read magnitudes against CDC's codebook for the year, whose address
+#' is `brfss_year_info()$codebook_url`.
+#'
 #' @param vars Character vector of variable names, matched
 #'   case-insensitively by exact name (required -- for browsing the
 #'   whole catalog use [brfss_vars()]).
@@ -66,9 +75,36 @@ brfss_codebook <- function(
   )
   catalog <- query_parquet(path)
   labels <- labels_catalog(download = download, quiet = quiet)
+  # The years the value-label catalog covers at all, read before the
+  # year filter narrows it: an empty value set means something
+  # different inside that span (the CDC format carries no code list)
+  # than outside it (no format library to read).
+  label_years <- sort(unique(labels$year))
+  # A checksum mismatch or an unreadable cached file is the package's
+  # headline integrity signal and must reach the user, not be swallowed
+  # into a card with the rename family silently dropped; R/cache.R
+  # makes the same exception. One handler that re-raises, rather than a
+  # class-specific handler ahead of a generic one, because re-raising
+  # from an earlier handler is caught by a later handler of the same
+  # tryCatch(). Anything else costs only the family, so it degrades to
+  # a note.
   xwalk <- tryCatch(
     crosswalk_catalog(download = download, quiet = quiet),
-    error = function(e) NULL
+    error = function(e) {
+      if (
+        inherits(e, c("brfssdata_checksum_error", "brfssdata_corrupt_cache"))
+      ) {
+        stop(e)
+      }
+      cli::cli_inform(
+        c(
+          "!" = "Could not read the rename crosswalk; these cards omit
+                 concept family and related variables."
+        ),
+        class = "brfssdata_manifest_note"
+      )
+      NULL
+    }
   )
   if (!is.null(years)) {
     catalog <- catalog[catalog$year %in% as.integer(years), , drop = FALSE]
@@ -109,6 +145,13 @@ brfss_codebook <- function(
       label = v_lab$label,
       complete = v_lab$complete,
       missing = is_missing_label(v_lab$label)
+    )
+    # Rides along on the row's own values tibble so it survives
+    # subsetting; the print method needs it only when there is nothing
+    # to print.
+    attr(values, "coverage") <- list(
+      in_coverage = any(v_cat$year %in% label_years),
+      start = if (length(label_years) > 0) min(label_years) else NA_integer_
     )
     concept <- NA_character_
     related <- character(0)
@@ -162,9 +205,30 @@ print.brfss_codebook <- function(x, ...) {
     }
     values <- x$values[[i]]
     if (nrow(values) == 0) {
-      cli::cli_text(
-        "No value labels in the catalog here (labels cover 1998 on)."
-      )
+      coverage <- attr(values, "coverage")
+      if (isTRUE(coverage$in_coverage)) {
+        # Inside the catalog's span an empty value set is a statement
+        # about the CDC format, not about coverage: continuous and
+        # range-only formats reach the catalog with their special
+        # codes only, and some carry none.
+        cli::cli_text(
+          "No coded values here: this variable's CDC format is
+           continuous or range-only, so only special codes would be
+           cataloged and it has none."
+        )
+        cli::cli_text(
+          "The valid range and any implied decimals are in CDC's
+           codebook for the year ({.fun brfss_year_info} gives the
+           URL)."
+        )
+      } else if (!is.null(coverage) && !is.na(coverage$start)) {
+        cli::cli_text(
+          "No value labels in the catalog here (labels cover
+           {coverage$start} on)."
+        )
+      } else {
+        cli::cli_text("No value labels in the catalog here.")
+      }
     } else {
       latest <- values[values$year == max(values$year), , drop = FALSE]
       cli::cli_text("Values ({max(values$year)}):")
@@ -182,6 +246,19 @@ print.brfss_codebook <- function(x, ...) {
           esc(latest$label[[j]]),
           flag
         ))
+      }
+      # A range format reaches the catalog as its special codes alone
+      # (data-raw/05_labels.R keeps integer left-hand sides), so the
+      # list above is not the variable's value set.
+      if (any(!latest$complete, na.rm = TRUE)) {
+        cli::cli_text(
+          "Range format: only the special codes above are cataloged.
+           Ordinary in-range values are valid and are not listed, and
+           some calculated variables are stored scaled ({.code _BMI5}
+           and {.code _DRNKWK2} carry two implied decimals). See CDC's
+           codebook for the year ({.fun brfss_year_info} gives the
+           URL)."
+        )
       }
     }
     cli::cli_text("")

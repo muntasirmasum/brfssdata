@@ -102,6 +102,55 @@ test_that("every observed spelling of the missing-type labels matches", {
   expect_false(is_missing_label(NA_character_))
 })
 
+test_that("CDC's 1998-2001 abbreviations match", {
+  # The older format libraries abbreviate the same answers. Left
+  # unmatched, these cover 786 catalog rows over 370 variables, so
+  # na = TRUE was leaving don't-know and refused codes (including
+  # _DRNKMO 9999 on 117,351 rows of the 1998 file) in the data for
+  # years the catalog nominally covers.
+  labels <- c(
+    "UNK/REF",
+    "unk/ref",
+    "UNK",
+    "REF",
+    "UNKNOWN",
+    "Unknown",
+    "N/A",
+    "N/A,REF",
+    # The abbreviations compose with the existing tokens and rules.
+    "UNK/REF/Missing",
+    "Refused or UNK"
+  )
+  expect_true(all(is_missing_label(labels)))
+})
+
+test_that("substantive labels near the abbreviations never match", {
+  # "not applicable" spelled out is a scale position in later years
+  # (GETHIV code 5, next to "NONE"), so only the bare "N/A" placeholder
+  # counts; and the abbreviations stay whole-token like every other
+  # rule here.
+  labels <- c(
+    "Not applicable",
+    "NOT APPLICABLE",
+    "Not applicable (Blind)",
+    "N/A or none",
+    "Unknown provider",
+    "REFERRED BY DR.",
+    "Referred",
+    "Other/do not know/refused",
+    "02-REFUSED",
+    # The three real catalog labels that carry one of the abbreviations
+    # as a bare substring. They are the whole reason matching is on
+    # whole tokens: "India(n/A)laskan" and "DEPRESSIO(N/A)NXIETY" both
+    # contain "n/a", and a substring rule would blank the American
+    # Indian race category and the depression answer outright.
+    "American Indian/Alaskan Native, Non-Hispanic",
+    "DEPRESSION/ANXIETY/EMOTIONAL PROB",
+    "IUD, type unknown"
+  )
+  expect_false(any(is_missing_label(labels)))
+})
+
 test_that("the na step never touches excluded identifier columns", {
   dir <- local_brfss_cache(2023)
   # A hostile catalog labeling an observed _STATE code as "Refused":
@@ -190,6 +239,27 @@ test_that("a trailing-noun bucket is cleared end to end", {
   expect_true(anyNA(dat$FRUITVAR))
   out <- brfss_missing_codes("FRUITVAR", years = 2023)
   expect_identical(out$code, 9L)
+})
+
+test_that("an abbreviated missing label is cleared end to end", {
+  dir <- local_brfss_cache(2023)
+  write_fixture_parquet(
+    data.frame(
+      year = 2023L,
+      variable = "GENHLTH",
+      code = c(7L, 9L),
+      label = c("UNK", "N/A,REF"),
+      complete = TRUE,
+      stringsAsFactors = FALSE
+    ),
+    file.path(dir, "brfss_labels.parquet")
+  )
+  write_fixture_manifest(dir, 2023)
+  dat <- read_brfss(2023, vars = "GENHLTH", quiet = TRUE, na = TRUE)
+  expect_false(any(dat$GENHLTH %in% c(7, 9), na.rm = TRUE))
+  expect_true(anyNA(dat$GENHLTH))
+  out <- brfss_missing_codes("GENHLTH", years = 2023)
+  expect_setequal(out$code, c(7L, 9L))
 })
 
 test_that("codes at the scientific-notation threshold are cleared", {

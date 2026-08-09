@@ -38,7 +38,10 @@ missing-answer phrase, or when the only parts beyond those phrases
 start with the word "missing" and at least one part names the answer
 itself (don't know / not sure / refused) -- the shape of CDC's
 calculated-variable buckets such as "Don't know, refused or missing
-values" on \verb{_FRTLT1A}. A short audited allowlist covers CDC's
+values" on \verb{_FRTLT1A}. The abbreviations CDC's 1998 to 2001 format
+libraries use ("UNK/REF", "UNK", "REF", "UNKNOWN") count as those
+phrases, as do the bare "N/A" and "N/A,REF" placeholders from the
+same years. A short audited allowlist covers CDC's
 "component question" wordings on the \code{RACE2} family. Substantive
 answers that merely contain one of the words, such as "Doctor refused
 when asked" or a bare "Missing Fruit Responses" exclusion flag, never
