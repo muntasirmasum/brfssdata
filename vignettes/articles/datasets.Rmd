@@ -218,6 +218,39 @@ brfss_vars("SMOKDAY2", years = c(2003, 2005))
 The reply names 2005 only, so in a read spanning both years the 2003
 rows would come back all `NA` for that column.
 
+## Known limitations
+
+A few gaps are worth knowing before building on the collection.
+
+The files carry no upstream provenance yet. `brfss_year_info()` reports
+what the hosted copy contains, but not the CDC URL it was built from,
+when it was retrieved, or the hash of the upstream Transport file, so
+there is no way from inside the package to tell which CDC revision of a
+year you are holding. Those columns are planned for the next data
+republish.
+
+Calculated variables keep CDC's stored scaling. `_BMI5` and `_DRNKWK2`
+carry two implied decimal places, so a stored 2704 is a BMI of 27.04,
+and nothing in the files or catalogs records that factor, nor units or
+valid ranges. The per-year CDC codebook, linked from
+`brfss_year_info()$codebook_url`, is the source for all three.
+
+Value labels stop at 1998, because CDC distributes no usable format
+libraries for earlier years. `na = TRUE` therefore has no catalog to
+consult before 1998 and warns rather than guessing; special codes in
+those years must be recoded by hand from CDC's codebooks.
+
+Module analyses that require CDC's questionnaire-version datasets and
+their `_LCPWTV1` to `_LCPWTV3` weights are not supported, because the
+hosted annual files do not include those weights. For the module
+weights the files do carry, the confinement check in `brfss_design()`
+warns when a module variable is analyzed under a full-sample weight.
+
+Releases are not immutable. A corrected year replaces the published
+bytes under the same tag; the manifest checksum and the daily cache
+recheck notice the change, but there is no way yet to pin an analysis
+to an exact prior snapshot.
+
 ## Citing the data
 
 All data originate from the CDC BRFSS annual survey files, which are in

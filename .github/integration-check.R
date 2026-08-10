@@ -1,8 +1,10 @@
 # End-to-end check against the real released data, run weekly by
-# .github/workflows/integration.yaml. Everything here is intentionally
-# independent of the fixtures: real downloads, the published .sha256
-# sidecars (not just the manifest hashes the package verifies itself),
-# recorded row counts, and one known-answer estimate.
+# .github/workflows/integration.yaml. Everything here runs against real
+# downloads, not the test fixtures: the published .sha256 sidecars,
+# recorded row counts, and one known-answer estimate. The sidecars and
+# the manifest hashes share an origin (data-raw/04_upload.R hashes the
+# same local bytes for both), so agreement here rules out drift between
+# the two records and transport corruption, not a bad publish.
 
 library(brfssdata)
 
@@ -16,9 +18,14 @@ for (year in years) {
   message(sprintf("%d: %d rows downloaded and read", year, nrow(dat)))
 }
 
-# 2. The published .sha256 sidecars agree with what we cached. This is
-#    the independent verification channel: a manifest that lied about
-#    its own hashes would pass the package's check but fail this one.
+# 2. The published .sha256 sidecars agree with what we cached. The
+#    sidecar and the manifest hash come from the same hashing step at
+#    publish time, so this is a drift check, not an independent
+#    channel: it fails when a republish updated one record but not the
+#    other, or when either file was corrupted after publish. The one
+#    genuinely independent guard lives in data-raw/04_upload.R, where
+#    upload_verified() refuses to publish when a local rebuild differs
+#    from the already-published sidecar.
 for (year in years) {
   sidecar_url <- sprintf(
     "https://github.com/muntasirmasum/brfssdata/releases/download/data-%d/brfss_%d.parquet.sha256",

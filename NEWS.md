@@ -32,7 +32,9 @@ Initial CRAN release.
   weight is missing outside its module's records (383,782 of 433,323
   rows in 2023) and the design constructor refused missing weights. The
   automatic era weight still aborts on missing values, which there
-  indicate a damaged file.
+  indicate a damaged file, and an explicitly named full-sample weight
+  (`_LLCPWT`, `_FINALWT`) follows that same rule instead of silently
+  subsetting.
 * The matcher also recognizes the abbreviations CDC's 1998 to 2001
   format libraries use for don't-know and refused ("UNK/REF", "UNK",
   "REF", "UNKNOWN"), together with the bare "N/A" and "N/A,REF"
@@ -45,10 +47,11 @@ Initial CRAN release.
   variable was wrong. Spelled-out "not applicable" is deliberately not
   a token, because in later years it names ordinal scale positions such
   as `GETHIV` code 5.
-* `na = TRUE` says so (`brfssdata_na_coverage_note`) when requested
-  years have no value-label catalog at all (1985-1997) or mostly lack
-  it (1998 covers under a quarter of that file's variables), instead of
-  silently changing nothing.
+* `na = TRUE` says so when requested years have no value-label catalog
+  at all (1985-1997, a classed `brfssdata_na_coverage_warning`) or
+  mostly lack it (1998 covers under a quarter of that file's
+  variables, a `brfssdata_na_coverage_note`), instead of silently
+  changing nothing.
 * `labels = TRUE` refuses to convert a variable whose label wording
   changed meaning across the requested years, keeping CDC's numeric
   codes and naming it in a `brfssdata_label_drift_warning`. Applying
@@ -274,3 +277,32 @@ Initial CRAN release.
   public-use file covers 52 reporting areas, 48 states plus the
   District of Columbia, Guam, Puerto Rico, and the U.S. Virgin Islands,
   with Kentucky and Pennsylvania absent.
+
+## Known limitations
+
+* Upstream provenance is not recorded yet: `brfss_year_info()` carries
+  no CDC source URL, retrieval date, or hash of the upstream SAS
+  Transport file, so the package cannot say which CDC revision of a
+  year the hosted copy was built from. The published checksums cover
+  the hosted copies. Provenance columns are planned for 0.1.1, which
+  requires a data republish.
+* Calculated variables keep CDC's stored scaling. `_BMI5` and
+  `_DRNKWK2` carry two implied decimals (a stored 2704 in `_BMI5` is a
+  BMI of 27.04), and neither the files nor the catalogs record scale
+  factors, units, or valid ranges. Codebook cards say so and point to
+  CDC's per-year codebook (`brfss_year_info()$codebook_url`). Curated
+  scale metadata is 0.2.0 work.
+* No value-label catalog exists before 1998, so `na = TRUE` has
+  nothing to consult there and warns instead of guessing; special
+  codes in 1985 to 1997 must be recoded by hand from CDC's codebooks.
+  This is a deliberate policy of signaling over hand-curation.
+* Module analyses that require CDC's questionnaire-version datasets
+  and their `_LCPWTV1` to `_LCPWTV3` final weights are unsupported;
+  the hosted annual files do not include those weights. The
+  module-weight confinement check covers the reachable cases; curated
+  module-to-weight metadata is 0.2.0 work.
+* Data releases are not immutable snapshots. A corrected year replaces
+  the published bytes under the same tag; the manifest checksum and
+  the daily cache recheck notice the change, but an analysis cannot
+  yet pin itself to an exact prior snapshot. Versioned snapshots are
+  0.2.0 work.
