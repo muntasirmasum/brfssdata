@@ -216,6 +216,26 @@ Initial CRAN release.
   `brfss_cache_clear()` manage the cache. A cached file that fails
   integrity checks is re-downloaded automatically or named in a classed
   error with its remedy.
+* Cached survey years are re-verified against the manifest's checksums
+  at most once a day per session, the same cadence the metadata
+  catalogs already use. A cached file whose hash no longer matches is
+  treated like a damaged one: announced (`brfssdata_cache_note`) and
+  re-downloaded verified, with the old file kept until a verified
+  replacement lands. Previously only file size was compared after the
+  initial download, so a same-size corrupted copy was accepted without
+  a condition. On that same path, a fully cached `read_brfss()` with
+  `download = TRUE` now lets the manifest refresh on its daily
+  cadence, so a user who cached a year before a corrected republish is
+  told within a day; when the refresh fails (offline), the cached
+  manifest is used with a `brfssdata_manifest_note` and the read
+  proceeds as before. `download = FALSE` checks nothing, downloads
+  nothing, and never deletes anything.
+* `brfss_cache_info(verify = TRUE)` adds a `verified` column: `TRUE`
+  when a cached file's sha256 matches the manifest entry, `FALSE` on a
+  mismatch, `NA` where the manifest has no entry to compare against.
+  Off by default because hashing reads every byte, roughly two seconds
+  for the full 40-year, 737 MB cache, and `brfss_download()` lists the
+  cache on every call.
 * A cached manifest that is present but unreadable does not count as
   fresh. The manifest is the one asset fetched without an expected
   hash, and any non-empty payload is accepted, so a captive-portal or

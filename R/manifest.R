@@ -205,18 +205,20 @@ parse_manifest <- function(path) {
   out
 }
 
-# Catalog freshness memo, kept inside manifest_state so the test
-# helpers' save/clear/restore scoping covers it automatically.
-catalog_check_due <- function(asset) {
-  checked <- manifest_state$catalog_checked[[asset]]
+# Per-asset freshness memo, shared by the metadata catalogs and the
+# cached year files, kept inside manifest_state so the test helpers'
+# save/clear/restore scoping covers it automatically. In-memory, so
+# "daily" means at most once per day per R session.
+asset_check_due <- function(asset) {
+  checked <- manifest_state$asset_checked[[asset]]
   is.null(checked) ||
     difftime(Sys.time(), checked, units = "secs") >= MANIFEST_MAX_AGE
 }
 
-catalog_checked <- function(asset) {
-  memo <- manifest_state$catalog_checked %||% list()
+asset_checked <- function(asset) {
+  memo <- manifest_state$asset_checked %||% list()
   memo[[asset]] <- Sys.time()
-  manifest_state$catalog_checked <- memo
+  manifest_state$asset_checked <- memo
   invisible()
 }
 

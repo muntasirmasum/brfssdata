@@ -118,8 +118,8 @@
 #' \describe{
 #'   \item{`brfssdata_cache_note`}{Cache lifecycle notes: directory
 #'     created, files removed by [brfss_cache_clear()], a
-#'     size-mismatched file or stale catalog re-downloaded, or the
-#'     [brfss_download()] summary.}
+#'     size-mismatched or checksum-failing cached file re-downloaded,
+#'     a stale catalog refreshed, or the [brfss_download()] summary.}
 #'   \item{`brfssdata_download_note`}{A survey year is being downloaded
 #'     (once, then cached).}
 #'   \item{`brfssdata_manifest_note`}{The manifest or a catalog could

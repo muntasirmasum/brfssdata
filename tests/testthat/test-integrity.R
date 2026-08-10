@@ -237,17 +237,21 @@ test_that("a corrupt cached parquet raises a classed error with the remedy", {
   path <- file.path(dir, "brfss_2023.parquet")
   # Corrupt the file while preserving its size (zero the leading magic
   # bytes), so the size-heal cannot catch it and the failure surfaces at
-  # query time.
+  # query time. download = FALSE, because with downloads allowed the
+  # daily checksum recheck would heal exactly this damage before the
+  # query ever ran (pinned separately below).
   bytes <- readBin(path, "raw", file.size(path))
   bytes[seq_len(min(100L, length(bytes)))] <- as.raw(0L)
   writeBin(bytes, path)
 
   err <- expect_error(
-    read_brfss(2023, quiet = TRUE),
+    read_brfss(2023, quiet = TRUE, download = FALSE),
     class = "brfssdata_corrupt_cache"
   )
   expect_match(conditionMessage(err), "brfss_cache_clear")
   expect_match(conditionMessage(err), "2023")
+  # and nothing was deleted: the unreadable file stays for forensics
+  expect_true(file.exists(path))
 })
 
 test_that("a genuine query error is rethrown, not blamed on the cache", {
@@ -301,7 +305,7 @@ test_that("the catalog freshness check runs at most once per day", {
   # First call performs the check (hash matches, nothing downloads) and
   # memoizes; a second call within the day must not even re-hash.
   brfss_vars("smok")
-  expect_false(catalog_check_due("brfss_variables.parquet"))
+  expect_false(asset_check_due("brfss_variables.parquet"))
   brfss_vars("smok")
   succeed()
 })
@@ -313,4 +317,109 @@ test_that("a catalog with no manifest entry is kept silently", {
   write_fixture_labels(dir)
   out <- brfss_labels("GENHLTH", years = 2023)
   expect_identical(nrow(out), 7L)
+})
+
+test_that("a cached year failing the daily hash recheck is re-downloaded", {
+  dir <- local_brfss_cache(2023)
+  path <- file.path(dir, "brfss_2023.parquet")
+  # Same-size corruption, invisible to the size heal: before the daily
+  # recheck existed, this was accepted without a condition.
+  bytes <- readBin(path, "raw", file.size(path))
+  bytes[seq_len(min(100L, length(bytes)))] <- as.raw(0L)
+  writeBin(bytes, path)
+  called <- FALSE
+  local_mocked_bindings(
+    download_to_cache = function(url, dest, ..., expected_sha256 = NULL) {
+      called <<- TRUE
+      expect_false(is.null(expected_sha256))
+      write_fixture_year(2023, dirname(dest))
+      dest
+    }
+  )
+  expect_message(
+    dat <- read_brfss(2023, vars = "GENHLTH"),
+    class = "brfssdata_cache_note"
+  )
+  expect_true(called)
+  expect_gt(nrow(dat), 0)
+})
+
+test_that("the year recheck runs at most once per day", {
+  local_brfss_cache(2023)
+  read_brfss(2023, vars = "GENHLTH", quiet = TRUE)
+  expect_false(asset_check_due("brfss_2023.parquet"))
+  read_brfss(2023, vars = "GENHLTH", quiet = TRUE)
+  succeed()
+})
+
+test_that("a failed re-download after a hash mismatch keeps the file", {
+  dir <- local_brfss_cache(2023)
+  path <- file.path(dir, "brfss_2023.parquet")
+  bytes <- readBin(path, "raw", file.size(path))
+  bytes[seq_len(min(100L, length(bytes)))] <- as.raw(0L)
+  writeBin(bytes, path)
+  local_mocked_bindings(
+    download_to_cache = function(url, dest, ...) {
+      cli::cli_abort("offline", class = "brfssdata_download_error")
+    }
+  )
+  expect_error(
+    read_brfss(2023, vars = "GENHLTH", quiet = TRUE),
+    class = "brfssdata_download_error"
+  )
+  expect_true(file.exists(path))
+})
+
+test_that("a schema-1 manifest gives the recheck no verdict", {
+  dir <- local_brfss_cache(2023, schema = 1)
+  path <- file.path(dir, "brfss_2023.parquet")
+  bytes <- readBin(path, "raw", file.size(path))
+  bytes[seq_len(min(100L, length(bytes)))] <- as.raw(0L)
+  writeBin(bytes, path)
+  # No hash to compare, so no download either (guard_network() proves
+  # it); the damage surfaces at query time exactly as before.
+  expect_error(
+    read_brfss(2023, quiet = TRUE),
+    class = "brfssdata_corrupt_cache"
+  )
+  expect_true(file.exists(path))
+})
+
+test_that("a refreshed manifest with a moved hash re-fetches the year", {
+  # The corrected-republish gap: a user cached 2023, upstream
+  # republished it, the daily manifest refresh brings the new hash, and
+  # the recheck treats the cached copy as damaged even though its bytes
+  # never changed locally.
+  local_brfss_cache(2023)
+  fake <- read_manifest_cached()
+  fake$files[["brfss_2023.parquet"]]$sha256 <- strrep("0", 64)
+  called <- FALSE
+  local_mocked_bindings(
+    read_manifest = function(...) fake,
+    download_to_cache = function(url, dest, ..., expected_sha256 = NULL) {
+      called <<- TRUE
+      write_fixture_year(2023, dirname(dest))
+      dest
+    }
+  )
+  expect_message(
+    read_brfss(2023, vars = "GENHLTH"),
+    class = "brfssdata_cache_note"
+  )
+  expect_true(called)
+})
+
+test_that("an offline manifest refresh on the read path degrades", {
+  dir <- local_brfss_cache(2023)
+  Sys.setFileTime(file.path(dir, "manifest.json"), Sys.time() - 2 * 86400)
+  local_mocked_bindings(
+    download_to_cache = function(url, dest, ...) {
+      cli::cli_abort("offline", class = "brfssdata_download_error")
+    }
+  )
+  expect_message(
+    dat <- read_brfss(2023, vars = "GENHLTH", quiet = TRUE),
+    class = "brfssdata_manifest_note"
+  )
+  expect_gt(nrow(dat), 0)
 })

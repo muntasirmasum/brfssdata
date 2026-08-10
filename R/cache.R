@@ -10,7 +10,14 @@
 #' * `brfss_cache_dir()` returns the cache directory path.
 #' * `brfss_cache_info()` lists cached files with their sizes. Rows with
 #'   `year = NA` are the metadata files (the manifest and the variable
-#'   and label catalogs), not survey years.
+#'   and label catalogs), not survey years. `verify = TRUE` also hashes
+#'   each file and compares it with the data manifest's checksum,
+#'   adding a `verified` column: `TRUE` on a match, `FALSE` on a
+#'   mismatch, `NA` where the manifest has no entry to compare against
+#'   (the manifest itself, foreign files, or a manifest published
+#'   without hashes). Hashing reads every byte, roughly two seconds for
+#'   a full 40-year cache, so it is off by default; the comparison uses
+#'   the cached or bundled manifest and never touches the network.
 #' * `brfss_cache_clear()` deletes cached survey years, all of them by
 #'   default, and reports what it removed. The manifest and catalogs are
 #'   kept unless `catalogs = TRUE`, so offline use of [brfss_vars()] and
@@ -21,12 +28,15 @@
 #'   `integer(0)` removes none (useful with `catalogs = TRUE`).
 #'   Fractional, infinite, missing, or non-numeric years are rejected
 #'   (`brfssdata_bad_years_arg`) before anything is deleted.
+#' @param verify If `TRUE`, `brfss_cache_info()` hashes every cached
+#'   file and adds the `verified` column described above.
 #' @param catalogs If `TRUE`, `brfss_cache_clear()` also removes the
 #'   manifest and the variable and label catalogs.
 #'
 #' @return
 #' `brfss_cache_dir()` returns a path (character). `brfss_cache_info()`
-#' returns a tibble with columns `file`, `year`, and `size` (bytes).
+#' returns a tibble with columns `file`, `year`, and `size` (bytes),
+#' plus `verified` (logical) under `verify = TRUE`.
 #' `brfss_cache_clear()` returns, invisibly, the paths it removed.
 #'
 #' @examples
@@ -40,15 +50,30 @@ brfss_cache_dir <- function() {
 
 #' @rdname brfss_cache_dir
 #' @export
-brfss_cache_info <- function() {
+brfss_cache_info <- function(verify = FALSE) {
   dir <- brfss_cache_dir()
   files <- list.files(dir, full.names = TRUE)
   info <- file.info(files)
-  tibble::tibble(
+  out <- tibble::tibble(
     file = basename(files),
     year = cached_file_year(basename(files)),
     size = info$size
   )
+  if (isTRUE(verify)) {
+    manifest <- read_manifest_cached()
+    out$verified <- vapply(
+      seq_along(files),
+      function(i) {
+        want <- manifest_sha256(out$file[[i]], manifest)
+        if (is.null(want)) {
+          return(NA)
+        }
+        identical(cli::hash_file_sha256(files[[i]]), want)
+      },
+      logical(1)
+    )
+  }
+  out
 }
 
 CACHE_META_FILES <- c(
@@ -432,11 +457,11 @@ ensure_catalog_cached <- function(
       note_bundled_asset(what)
       return(bundled)
     }
-    catalog_checked(asset)
+    asset_checked(asset)
     return(path)
   }
 
-  if (download && catalog_check_due(asset)) {
+  if (download && asset_check_due(asset)) {
     want <- manifest_sha256(asset, read_manifest())
     if (!is.null(want) && !identical(cli::hash_file_sha256(path), want)) {
       if (!quiet) {
@@ -466,7 +491,7 @@ ensure_catalog_cached <- function(
         }
       )
     }
-    catalog_checked(asset)
+    asset_checked(asset)
   }
   path
 }

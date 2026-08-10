@@ -5,7 +5,11 @@
 #' tibble. Each requested year is downloaded once into the local cache
 #' (see [brfss_cache_dir()]) and read from there afterwards; the query
 #' itself runs through DuckDB, so selecting a handful of variables from a
-#' 300-plus column survey stays fast.
+#' 300-plus column survey stays fast. Cached files are re-verified
+#' against the manifest's checksums at most once a day per session; a
+#' file that no longer matches is announced and re-downloaded verified.
+#' With `download = FALSE` nothing is checked, nothing is downloaded,
+#' and nothing is ever deleted.
 #'
 #' Different survey years carry different variable sets. When years are
 #' combined, variables absent from a year are filled with `NA`. A `year`
@@ -267,10 +271,15 @@ ensure_years_cached <- function(
   paths <- cache_path(assets)
   present <- file.exists(paths)
 
-  # The passive read keeps a fully cached request offline; the manifest
-  # on disk is already fresh whenever a download is about to happen,
-  # because validate_years() consulted brfss_years() on that path.
-  manifest <- read_manifest_cached()
+  # On the download path the manifest itself may refresh on its daily
+  # cadence: read_manifest() checks the cached copy's age, attempts one
+  # refresh when stale, and degrades to the cached copy with a
+  # brfssdata_manifest_note when offline (its last_failure memo stops
+  # retry storms). That is what tells a user who cached a year before a
+  # corrected republish, within a day, via the recheck below. With
+  # download = FALSE nothing ever touches the network, so fully cached
+  # offline requests behave exactly as before.
+  manifest <- if (download) read_manifest() else read_manifest_cached()
 
   # Self-heal: a cached file whose size disagrees with the manifest is a
   # truncated download from before checksum verification existed, or a
@@ -294,6 +303,44 @@ ensure_years_cached <- function(
         )
       }
       present[damaged] <- FALSE
+    }
+  }
+
+  # Daily checksum recheck, on the same cadence as the metadata
+  # catalogs: at most once per day per session, a present file's hash
+  # is compared with the manifest entry, and a mismatch is treated
+  # exactly like a damaged file above, announced and re-downloaded
+  # verified. No manifest entry, no verdict. Skipped entirely under
+  # download = FALSE, which must not delete what it cannot replace;
+  # the never-delete rule holds here too, because download_to_cache()
+  # only renames a verified temp file over the old one.
+  if (download && any(present)) {
+    due <- present & vapply(assets, asset_check_due, logical(1))
+    if (any(due)) {
+      failed <- vapply(
+        which(due),
+        function(i) {
+          want <- manifest_sha256(assets[[i]], manifest)
+          !is.null(want) &&
+            !identical(cli::hash_file_sha256(paths[[i]]), want)
+        },
+        logical(1)
+      )
+      bad <- which(due)[failed]
+      if (length(bad) > 0) {
+        if (!quiet) {
+          cli::cli_inform(
+            "Cached file{?s} {.file {assets[bad]}} no longer
+             {?matches/match} the data manifest's checksum;
+             re-downloading.",
+            class = "brfssdata_cache_note"
+          )
+        }
+        present[bad] <- FALSE
+      }
+      for (a in assets[due]) {
+        asset_checked(a)
+      }
     }
   }
 
@@ -332,6 +379,8 @@ ensure_years_cached <- function(
         expected_sha256 = shas[[i]],
         call = call
       )
+      # A just-verified download needs no recheck the same day.
+      asset_checked(year_asset(year))
     }
   }
   paths

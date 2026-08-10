@@ -86,7 +86,11 @@ Returns respondent-level BRFSS data for one or more survey years as a
 tibble. Each requested year is downloaded once into the local cache
 (see \code{\link[=brfss_cache_dir]{brfss_cache_dir()}}) and read from there afterwards; the query
 itself runs through DuckDB, so selecting a handful of variables from a
-300-plus column survey stays fast.
+300-plus column survey stays fast. Cached files are re-verified
+against the manifest's checksums at most once a day per session; a
+file that no longer matches is announced and re-downloaded verified.
+With \code{download = FALSE} nothing is checked, nothing is downloaded,
+and nothing is ever deleted.
 
 Different survey years carry different variable sets. When years are
 combined, variables absent from a year are filled with \code{NA}. A \code{year}

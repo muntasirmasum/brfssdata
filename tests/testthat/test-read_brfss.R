@@ -63,14 +63,21 @@ test_that("download = FALSE refuses to fetch missing years", {
 })
 
 test_that("a cached year reads offline even when the manifest omits it", {
-  # The fully-cached fast path in validate_years(): no manifest lookup,
-  # no network. A stale or year-omitting manifest (the bundled fallback
-  # after brfss_cache_clear(catalogs = TRUE), or a copy predating the
-  # year's release) must not block a read of data already on disk.
+  # The fully-cached fast path in validate_years(): no manifest lookup
+  # for validation. On the read path with download = TRUE the manifest
+  # may refresh on its daily cadence (this one is fresh by mtime, so it
+  # does not), and a year-omitting manifest carries no checksum entry,
+  # so the recheck has no verdict. Either way a stale or year-omitting
+  # manifest (the bundled fallback after
+  # brfss_cache_clear(catalogs = TRUE), or a copy predating the year's
+  # release) must never block a read of data already on disk, and
+  # download = FALSE never consults the network at all.
   dir <- local_brfss_cache(2023)
   writeLines('{"years": [2020]}', file.path(dir, "manifest.json"))
   dat <- read_brfss(2023, quiet = TRUE)
   expect_gt(nrow(dat), 0)
+  dat_offline <- read_brfss(2023, quiet = TRUE, download = FALSE)
+  expect_identical(nrow(dat_offline), nrow(dat))
 })
 
 test_that("a column typed text in one year and numeric in another refuses", {

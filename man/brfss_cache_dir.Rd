@@ -8,11 +8,14 @@
 \usage{
 brfss_cache_dir()
 
-brfss_cache_info()
+brfss_cache_info(verify = FALSE)
 
 brfss_cache_clear(years = NULL, catalogs = FALSE)
 }
 \arguments{
+\item{verify}{If \code{TRUE}, \code{brfss_cache_info()} hashes every cached
+file and adds the \code{verified} column described above.}
+
 \item{years}{Optional integer vector. If supplied to
 \code{brfss_cache_clear()}, only those survey years are removed;
 \code{integer(0)} removes none (useful with \code{catalogs = TRUE}).
@@ -24,7 +27,8 @@ manifest and the variable and label catalogs.}
 }
 \value{
 \code{brfss_cache_dir()} returns a path (character). \code{brfss_cache_info()}
-returns a tibble with columns \code{file}, \code{year}, and \code{size} (bytes).
+returns a tibble with columns \code{file}, \code{year}, and \code{size} (bytes),
+plus \code{verified} (logical) under \code{verify = TRUE}.
 \code{brfss_cache_clear()} returns, invisibly, the paths it removed.
 }
 \description{
@@ -37,7 +41,14 @@ environment variable.
 \item \code{brfss_cache_dir()} returns the cache directory path.
 \item \code{brfss_cache_info()} lists cached files with their sizes. Rows with
 \code{year = NA} are the metadata files (the manifest and the variable
-and label catalogs), not survey years.
+and label catalogs), not survey years. \code{verify = TRUE} also hashes
+each file and compares it with the data manifest's checksum,
+adding a \code{verified} column: \code{TRUE} on a match, \code{FALSE} on a
+mismatch, \code{NA} where the manifest has no entry to compare against
+(the manifest itself, foreign files, or a manifest published
+without hashes). Hashing reads every byte, roughly two seconds for
+a full 40-year cache, so it is off by default; the comparison uses
+the cached or bundled manifest and never touches the network.
 \item \code{brfss_cache_clear()} deletes cached survey years, all of them by
 default, and reports what it removed. The manifest and catalogs are
 kept unless \code{catalogs = TRUE}, so offline use of \code{\link[=brfss_vars]{brfss_vars()}} and

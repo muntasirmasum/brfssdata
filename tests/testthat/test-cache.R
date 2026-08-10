@@ -206,3 +206,22 @@ test_that("malformed years never reach the delete filter", {
   )
   expect_true(file.exists(target))
 })
+
+test_that("brfss_cache_info(verify = TRUE) reports the tri-state verdict", {
+  dir <- local_brfss_cache(2023)
+  # a foreign file the manifest knows nothing about
+  writeLines("not ours", file.path(dir, "notes.txt"))
+  plain <- brfss_cache_info()
+  expect_false("verified" %in% names(plain))
+  info <- brfss_cache_info(verify = TRUE)
+  expect_true(info$verified[info$file == "brfss_2023.parquet"])
+  expect_true(is.na(info$verified[info$file == "manifest.json"]))
+  expect_true(is.na(info$verified[info$file == "notes.txt"]))
+  # corrupt the year file preserving size: FALSE, not NA
+  path <- file.path(dir, "brfss_2023.parquet")
+  bytes <- readBin(path, "raw", file.size(path))
+  bytes[seq_len(min(100L, length(bytes)))] <- as.raw(0L)
+  writeBin(bytes, path)
+  info2 <- brfss_cache_info(verify = TRUE)
+  expect_false(info2$verified[info2$file == "brfss_2023.parquet"])
+})
