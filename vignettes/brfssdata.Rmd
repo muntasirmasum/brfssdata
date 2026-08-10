@@ -375,21 +375,27 @@ codes arrive as `NA` here by default (`na = TRUE`), which is why the
 filter above is on `is.na()` and not on code ranges; pass `na = FALSE`
 for the raw codes.
 
-Two behaviors are worth knowing about up front. Because BRFSS public-use
-files make each respondent their own primary sampling unit, single-PSU
-strata are common and would otherwise make variance estimation fail, so
-`brfss_design()` sets `options(survey.lonely.psu = "adjust")` if the
-option is unset, and says so once per session. Any value you set other
-than `"fail"` is respected as yours; `"fail"` is what the survey package
-itself installs on load, so it reads as unset, and
+A few behaviors are worth knowing about up front. Because BRFSS
+public-use files make each respondent their own primary sampling unit,
+single-PSU strata are common and would otherwise make variance
+estimation fail, so `brfss_design()` sets
+`options(survey.lonely.psu = "adjust")` if the option is unset, and
+says so once per session. Any value you set other than `"fail"` is
+respected as yours; `"fail"` is what the survey package itself installs
+on load, so it reads as unset, and
 `options(brfssdata.lonely_psu = ...)` is the way to pin any handling,
-`"fail"` included. And when you request several years, weights are
-divided by the number of years, so pooled estimates describe an average
-year rather than a summed population, while the strata become the
+`"fail"` included. When you request several years, weights are divided
+by the number of years, so pooled estimates describe an average year
+rather than a summed population, while the strata become the
 year-by-stratum interaction, which treats each annual survey as an
 independent sample. Pass `pool_weights = FALSE` to leave the weights
 undivided; if state participation differs across the pooled years, a
-warning names the states involved.
+warning names the states involved. And when a requested variable has
+data almost only where a module weight such as `_CLLCPWT` does, a
+warning suggests that weight, because a module analysis under the
+full-sample default is very likely wrong; disable the check with
+`options(brfssdata.module_weight_check = FALSE)` if a state-optional
+module legitimately uses the core weight.
 
 ### The 2011 boundary
 

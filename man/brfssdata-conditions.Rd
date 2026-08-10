@@ -49,7 +49,8 @@ refusal.}
 \code{TRUE}, \code{FALSE}, or \code{"both"}.}
 \item{\code{brfssdata_bad_na_arg}}{\code{na} is not \code{TRUE} or \code{FALSE}.}
 \item{\code{brfssdata_bad_option}}{\code{options(brfssdata.lonely_psu)} is
-not a single string.}
+not a single string, or \code{options(brfssdata.module_weight_check)}
+is not \code{TRUE} or \code{FALSE}.}
 \item{\code{brfssdata_bad_design_var}}{A design variable (era weight,
 \verb{_STSTR}, \verb{_PSU}) is absent or carries missing or invalid
 values, so no valid design can be built; for a final analysis
@@ -92,6 +93,13 @@ weight), requested deliberately via \code{unsafe_weight = TRUE}.}
 \code{\link[=brfss_design]{brfss_design()}}, requested via \code{unsafe_weight = TRUE}, names a
 column that is neither a final analysis weight nor a known
 pipeline stage; the estimates are calibrated to nothing.}
+\item{\code{brfssdata_module_weight_warning}}{A requested analysis
+variable has data almost only where a module weight
+(\verb{_CLLCPWT} and kin) is non-missing, but the design uses a
+full-sample weight: very likely a module analysis under the
+wrong weight. State-optional modules that CDC assigns to the
+core weight are the legitimate exception. Disable with
+\code{options(brfssdata.module_weight_check = FALSE)}.}
 \item{\code{brfssdata_pooled_states_warning}}{Pooled years differ in
 state participation, so totals mix coverage. Participation is
 counted over the rows a user-supplied \code{weight} covers, the

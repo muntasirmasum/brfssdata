@@ -54,6 +54,17 @@
 #' the build. A user-supplied weight is used for every requested year
 #' and still divides by the year count under `pool_weights`.
 #'
+#' The reverse mistake, a module variable analyzed under a full-sample
+#' weight, is caught by a confinement check: when a requested variable
+#' has data almost only where a module weight is non-missing (2023
+#' child asthma `CASTHDX2` sits inside `_CLLCPWT`'s records for 99.7%
+#' of its answers), a `brfssdata_module_weight_warning` names the
+#' module weight to consider. It warns rather than fails because
+#' state-optional modules that CDC assigns to the core weight produce
+#' the same shape; the year's module-analysis documentation settles
+#' those. The check runs only when `vars` is given and can be disabled
+#' with `options(brfssdata.module_weight_check = FALSE)`.
+#'
 #' CDC states that estimates from 2011 onward are not directly comparable
 #' to earlier years, because 2011 added cell-phone-only respondents and
 #' replaced post-stratification with raking. Requests that pool years from
@@ -338,6 +349,19 @@ brfss_design <- function(
     weight_vars <- auto_weights
   }
   design_vars <- c(weight_vars, DESIGN_STRATA, DESIGN_PSU)
+
+  # Requested analysis variables, canonical case, minus everything that
+  # is a design column or a weight: what the confinement check judges.
+  if (!is.null(vars)) {
+    warn_module_weight_confinement(
+      years,
+      setdiff(
+        match_vars_ci(vars, names(dat)),
+        c(design_vars, LABEL_EXCLUDE)
+      ),
+      effective_weights = weight_vars
+    )
+  }
 
   missing_cols <- setdiff(design_vars, names(dat))
   if (length(missing_cols) > 0) {
@@ -669,6 +693,33 @@ brfss_design <- function(
   }
 }
 
+# Cached parquet paths for the requested years, existing files only.
+# Shared by the two best-effort diagnostics below.
+cached_year_paths <- function(years) {
+  paths <- cache_path(year_asset(years))
+  paths[file.exists(paths)]
+}
+
+# One aggregate query over cached year files, degrading to NULL on any
+# error. Both diagnostics built on this are best-effort: a query
+# failure must never turn a working design call into an error. The
+# format string receives the bracketed file list as its only %s.
+try_parquet_aggregate <- function(paths, sql_fmt) {
+  tryCatch(
+    {
+      con <- duckdb_connect()
+      on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
+      files_sql <- paste0(
+        "[",
+        paste(quote_literal(paths), collapse = ", "),
+        "]"
+      )
+      DBI::dbGetQuery(con, sprintf(sql_fmt, files_sql))
+    },
+    error = function(e) NULL
+  )
+}
+
 # Dividing pooled weights by the year count treats every year as
 # covering the same states. When participation differs, totals mix
 # coverage; say so. One cheap columnar query over the already-cached
@@ -691,46 +742,32 @@ warn_unequal_state_participation <- function(
   states = NULL,
   weight = NULL
 ) {
-  paths <- cache_path(year_asset(years))
-  paths <- paths[file.exists(paths)]
+  paths <- cached_year_paths(years)
   if (length(paths) < 2) {
     return(invisible())
   }
-  sets <- tryCatch(
-    {
-      con <- duckdb_connect()
-      on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
-      files_sql <- paste0(
-        "[",
-        paste(quote_literal(paths), collapse = ", "),
-        "]"
-      )
-      where_sql <- if (is.null(weight)) {
-        ""
-      } else {
-        sprintf(" WHERE %s IS NOT NULL", quote_ident(weight))
-      }
-      q <- DBI::dbGetQuery(
-        con,
-        sprintf(
-          'SELECT year, "_STATE" AS state
-           FROM read_parquet(%s, union_by_name = true)%s
-           GROUP BY 1, 2',
-          files_sql,
-          where_sql
-        )
-      )
-      if (anyNA(q$state)) {
-        NULL
-      } else {
-        if (!is.null(states)) {
-          q <- q[q$state %in% states, , drop = FALSE]
-        }
-        lapply(split(q$state, q$year), function(s) sort(unique(s)))
-      }
-    },
-    error = function(e) NULL
+  where_sql <- if (is.null(weight)) {
+    ""
+  } else {
+    sprintf(" WHERE %s IS NOT NULL", quote_ident(weight))
+  }
+  q <- try_parquet_aggregate(
+    paths,
+    paste0(
+      'SELECT year, "_STATE" AS state
+       FROM read_parquet(%s, union_by_name = true)',
+      where_sql,
+      " GROUP BY 1, 2"
+    )
   )
+  sets <- if (is.null(q) || anyNA(q$state)) {
+    NULL
+  } else {
+    if (!is.null(states)) {
+      q <- q[q$state %in% states, , drop = FALSE]
+    }
+    lapply(split(q$state, q$year), function(s) sort(unique(s)))
+  }
   if (is.null(sets) || length(sets) < 2) {
     return(invisible())
   }
@@ -757,4 +794,134 @@ warn_unequal_state_participation <- function(
     ),
     class = "brfssdata_pooled_states_warning"
   )
+}
+
+# A requested variable answered almost only where a domain weight is
+# non-missing is very likely a module analysis running under the wrong
+# weight: 2023 child asthma (CASTHDX2) sits 99.7% inside _CLLCPWT's
+# domain, while a core variable sits at the domain's 11.4% base rate.
+# The review measured the cost of missing this at half a point of
+# prevalence with no signal. One aggregate over the cached files,
+# because when vars is supplied the candidate weight columns are not in
+# the loaded frame. Warns, never errors: state-optional modules that
+# CDC assigns to the core weight produce the same confinement shape,
+# and only CDC's annual module documentation settles those. Thresholds:
+# flagged when every requested year with any data is >= 95% confined
+# (99.7% observed against an 11.4% base rate leaves a wide corridor);
+# skipped when the candidate's domain covers > 95% of any year's file,
+# because a degenerate domain separates nothing. A year predating the
+# candidate weight contributes zero confinement, so cross-era pools
+# never warn. State-free rather than once-per-session, so tests stay
+# order-independent; degrades silently on any query failure, like the
+# participation diagnostic above.
+warn_module_weight_confinement <- function(years, vars, effective_weights) {
+  check <- getOption("brfssdata.module_weight_check")
+  if (!is.null(check)) {
+    if (!isTRUE(check) && !isFALSE(check)) {
+      cli::cli_abort(
+        "{.code options(brfssdata.module_weight_check)} must be TRUE or
+         FALSE; see {.help brfssdata::brfss_design}.",
+        class = "brfssdata_bad_option"
+      )
+    }
+    if (isFALSE(check)) {
+      return(invisible())
+    }
+  }
+  if (length(vars) == 0) {
+    return(invisible())
+  }
+  domain <- FINAL_WEIGHTS[!FINAL_WEIGHTS$full_sample, , drop = FALSE]
+  active <- vapply(
+    seq_len(nrow(domain)),
+    function(i) {
+      hi <- domain$last_year[[i]]
+      any(years >= domain$first_year[[i]] & (is.na(hi) | years <= hi))
+    },
+    logical(1)
+  )
+  candidates <- setdiff(domain$weight[active], toupper(effective_weights))
+  if (length(candidates) == 0) {
+    return(invisible())
+  }
+  paths <- cached_year_paths(years)
+  if (length(paths) == 0) {
+    return(invisible())
+  }
+  sel <- c("year", "count(*) AS n_total")
+  for (i in seq_along(candidates)) {
+    sel <- c(
+      sel,
+      sprintf("count(%s) AS w_%d", quote_ident(candidates[[i]]), i)
+    )
+  }
+  for (j in seq_along(vars)) {
+    sel <- c(sel, sprintf("count(%s) AS v_%d", quote_ident(vars[[j]]), j))
+    for (i in seq_along(candidates)) {
+      sel <- c(
+        sel,
+        sprintf(
+          "count(*) FILTER (%s IS NOT NULL AND %s IS NOT NULL) AS vw_%d_%d",
+          quote_ident(vars[[j]]),
+          quote_ident(candidates[[i]]),
+          j,
+          i
+        )
+      )
+    }
+  }
+  q <- try_parquet_aggregate(
+    paths,
+    paste0(
+      "SELECT ",
+      paste(sel, collapse = ", "),
+      " FROM read_parquet(%s, union_by_name = true) GROUP BY year"
+    )
+  )
+  if (is.null(q) || nrow(q) == 0) {
+    return(invisible())
+  }
+  for (i in seq_along(candidates)) {
+    n_w <- q[[sprintf("w_%d", i)]]
+    if (any(n_w / q$n_total > 0.95)) {
+      next
+    }
+    flagged <- character(0)
+    min_pct <- 100
+    for (j in seq_along(vars)) {
+      n_v <- q[[sprintf("v_%d", j)]]
+      if (all(n_v == 0)) {
+        next
+      }
+      n_vw <- q[[sprintf("vw_%d_%d", j, i)]]
+      ratio <- n_vw[n_v > 0] / n_v[n_v > 0]
+      if (all(ratio >= 0.95)) {
+        flagged <- c(flagged, vars[[j]])
+        min_pct <- min(min_pct, floor(100 * min(ratio)))
+      }
+    }
+    if (length(flagged) == 0) {
+      next
+    }
+    w <- candidates[[i]]
+    n_flag <- length(flagged)
+    cli::cli_warn(
+      c(
+        "{cli::qty(n_flag)}Variable{?s} {.val {flagged}}
+         {cli::qty(n_flag)}{?has/have} data almost only where the
+         {.val {w}} module weight does (at least {min_pct}% of
+         nonmissing responses in every requested year).",
+        "x" = "This design uses {.val {effective_weights}}, which
+               covers the full sample, not the module's records.",
+        "i" = "If this is a {.val {w}} module analysis, pass
+               {.code weight = \"{w}\"}. State-optional modules that
+               CDC assigns to the core weight are the exception, which
+               is why this warns instead of failing.",
+        "i" = "Disable the check with
+               {.code options(brfssdata.module_weight_check = FALSE)}."
+      ),
+      class = "brfssdata_module_weight_warning"
+    )
+  }
+  invisible()
 }

@@ -171,6 +171,16 @@ Initial CRAN release.
   instead of silently subsetting the design. All weight columns, final
   and intermediate, are excluded from labeling and `na` recoding on
   every path.
+* `brfss_design()` detects the reverse weight mistake too: a requested
+  variable whose answers sit almost entirely inside a module weight's
+  records (95% or more in every requested year) while the design uses
+  a full-sample weight draws a `brfssdata_module_weight_warning`
+  naming the weight to consider. The live case: 2023 child asthma
+  (`CASTHDX2`, 99.7% confined to `_CLLCPWT`'s records) under the
+  default `_LLCPWT` estimated 10.86% against the correct 10.36%, with
+  no signal. It warns rather than fails because state-optional modules
+  that CDC assigns to the core weight produce the same confinement
+  shape; `options(brfssdata.module_weight_check = FALSE)` disables it.
 * `quiet = TRUE` governs progress and housekeeping output only:
   download progress, cache notes, the full-load hint, and the recode
   tally. Signals about what the data mean fire regardless of `quiet`:

@@ -209,7 +209,14 @@ child interviews, about 50,000 of 2023's 433,323 rows), so the design
 subsets to the rows the requested weight covers and reports what it
 dropped, which is CDC's own module-analysis guidance; the automatic
 era weight, by contrast, must cover everyone, and a missing value
-there stops the build. The
+there stops the build. The reverse mistake is caught too: requesting a
+variable whose answers sit almost entirely inside a module weight's
+records while the design uses the full-sample default draws a
+`brfssdata_module_weight_warning` naming the weight to consider (2023
+child asthma under `_LLCPWT` instead of `_CLLCPWT` shifts prevalence
+by half a point). It warns rather than fails because state-optional
+modules that CDC assigns to the core weight produce the same shape;
+`options(brfssdata.module_weight_check = FALSE)` turns it off. The
 missing-code handling is also on by default here (`na = TRUE`): the
 don't-know and refused codes arrive as `NA`, so denominators cover
 substantive answers, with `brfss_missing_codes()` as the audit trail

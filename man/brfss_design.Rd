@@ -159,6 +159,17 @@ respondent, and a missing value there means a damaged file and stops
 the build. A user-supplied weight is used for every requested year
 and still divides by the year count under \code{pool_weights}.
 
+The reverse mistake, a module variable analyzed under a full-sample
+weight, is caught by a confinement check: when a requested variable
+has data almost only where a module weight is non-missing (2023
+child asthma \code{CASTHDX2} sits inside \verb{_CLLCPWT}'s records for 99.7\%
+of its answers), a \code{brfssdata_module_weight_warning} names the
+module weight to consider. It warns rather than fails because
+state-optional modules that CDC assigns to the core weight produce
+the same shape; the year's module-analysis documentation settles
+those. The check runs only when \code{vars} is given and can be disabled
+with \code{options(brfssdata.module_weight_check = FALSE)}.
+
 CDC states that estimates from 2011 onward are not directly comparable
 to earlier years, because 2011 added cell-phone-only respondents and
 replaced post-stratification with raking. Requests that pool years from

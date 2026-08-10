@@ -13,7 +13,8 @@ write_fixture_year <- function(
   states = 1,
   child_states = NULL,
   add_cols = NULL,
-  chr_cols = NULL
+  chr_cols = NULL,
+  module_cols = NULL
 ) {
   # The column name for the era weight comes from the package constants;
   # tests/testthat/test-constants.R anchors those against a hand-written
@@ -77,6 +78,19 @@ write_fixture_year <- function(
   }
   if (!is.null(extra)) {
     df[[extra]] <- as.numeric(sample(0:1, n, replace = TRUE))
+  }
+  # Module-shaped columns: data only where the child weight's domain is
+  # (alt_weights defines the covered mask), NA everywhere else, like a
+  # real module question. For the module-weight confinement detector.
+  if (!is.null(module_cols)) {
+    stopifnot(alt_weights)
+    for (nm in module_cols) {
+      df[[nm]] <- ifelse(
+        covered,
+        as.numeric(sample(1:2, n, replace = TRUE)),
+        NA_real_
+      )
+    }
   }
   # Named list of extra columns with explicit values, recycled to n;
   # for tests that need specific codes present (a 100000 code, a 9
@@ -178,6 +192,14 @@ local_lonely_psu <- function(env) {
   withr::local_options(survey.lonely.psu = NULL, .local_envir = env)
 }
 
+# A developer session's brfssdata.module_weight_check must never leak
+# into the suite (a FALSE would silently skip every detector test), so
+# both fixture helpers clear it per test. A test that wants a specific
+# value sets it after the fixture helper runs, and so still wins.
+local_module_weight_check <- function(env) {
+  withr::local_options(brfssdata.module_weight_check = NULL, .local_envir = env)
+}
+
 guard_network <- function(env) {
   testthat::local_mocked_bindings(
     download_to_cache = function(url, ...) {
@@ -262,12 +284,14 @@ local_brfss_cache <- function(
   child_states = list(),
   add_cols = list(),
   chr_cols = list(),
+  module_cols = list(),
   schema = 2,
   env = parent.frame()
 ) {
   dir <- withr::local_tempdir(.local_envir = env)
   withr::local_options(brfssdata.cache_dir = dir, .local_envir = env)
   local_lonely_psu(env)
+  local_module_weight_check(env)
   local_manifest_state(env)
   guard_network(env)
   for (y in years) {
@@ -280,7 +304,8 @@ local_brfss_cache <- function(
       states = states[[as.character(y)]] %||% 1,
       child_states = child_states[[as.character(y)]],
       add_cols = add_cols[[as.character(y)]],
-      chr_cols = chr_cols[[as.character(y)]]
+      chr_cols = chr_cols[[as.character(y)]],
+      module_cols = module_cols[[as.character(y)]]
     )
   }
   if (catalog) {
@@ -319,6 +344,7 @@ local_brfss_manifest <- function(years, schema = 2, env = parent.frame()) {
   dir <- withr::local_tempdir(.local_envir = env)
   withr::local_options(brfssdata.cache_dir = dir, .local_envir = env)
   local_lonely_psu(env)
+  local_module_weight_check(env)
   local_manifest_state(env)
   guard_network(env)
   write_fixture_manifest(dir, years, schema = schema)
