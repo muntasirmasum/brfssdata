@@ -158,3 +158,21 @@ test_that("an ordinary crosswalk failure says so and still returns a card", {
   expect_true(is.na(cb$concept))
   expect_identical(cb$related[[1]], character(0))
 })
+
+test_that("malformed years are rejected with the years class", {
+  # Inf used to slip past the trunc guard, empty the catalog, and then
+  # blame the variable with a misleading brfssdata_bad_var.
+  local_brfss_cache(2023)
+  expect_error(
+    brfss_codebook("GENHLTH", years = "recent"),
+    class = "brfssdata_bad_years_arg"
+  )
+  expect_error(
+    brfss_codebook("GENHLTH", years = 2023.5),
+    class = "brfssdata_bad_years_arg"
+  )
+  expect_error(
+    brfss_codebook("GENHLTH", years = Inf),
+    class = "brfssdata_bad_years_arg"
+  )
+})

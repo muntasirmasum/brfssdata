@@ -15,7 +15,9 @@ brfss_cache_clear(years = NULL, catalogs = FALSE)
 \arguments{
 \item{years}{Optional integer vector. If supplied to
 \code{brfss_cache_clear()}, only those survey years are removed;
-\code{integer(0)} removes none (useful with \code{catalogs = TRUE}).}
+\code{integer(0)} removes none (useful with \code{catalogs = TRUE}).
+Fractional, infinite, missing, or non-numeric years are rejected
+(\code{brfssdata_bad_years_arg}) before anything is deleted.}
 
 \item{catalogs}{If \code{TRUE}, \code{brfss_cache_clear()} also removes the
 manifest and the variable and label catalogs.}

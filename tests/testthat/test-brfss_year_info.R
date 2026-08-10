@@ -40,4 +40,13 @@ test_that("malformed years are rejected", {
     brfss_year_info("recent"),
     class = "brfssdata_bad_years_arg"
   )
+  # Inf used to pass, warn on coercion, and empty-result on year NA
+  expect_error(
+    brfss_year_info(Inf),
+    class = "brfssdata_bad_years_arg"
+  )
+  expect_error(
+    brfss_year_info(numeric(0)),
+    class = "brfssdata_bad_years_arg"
+  )
 })

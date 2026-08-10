@@ -123,10 +123,25 @@ year_url <- function(year) {
   release_url(sprintf("data-%d", year), year_asset(year))
 }
 
-validate_years <- function(years, download = TRUE, call = rlang::caller_env()) {
+# Shared argument-shape validation for every user-facing `years`
+# argument: numeric, non-empty (unless allow_empty), no NA, whole, and
+# inside integer range. The abs() bound is the only guard that rejects
+# Inf, because Inf == trunc(Inf). Returns years sorted, deduplicated,
+# and as integers, so callers filter without their own as.integer()
+# (whose silent truncation is exactly the bug this closes:
+# brfss_cache_clear(2024.9) used to delete the 2024 file).
+# validate_years() layers the published-years check on top for the
+# download paths; catalog-filtering entry points call this directly.
+# allow_empty = TRUE serves brfss_cache_clear(), where integer(0) is
+# the documented remove-nothing request.
+check_years_arg <- function(
+  years,
+  allow_empty = FALSE,
+  call = rlang::caller_env()
+) {
   if (
     !is.numeric(years) ||
-      length(years) == 0 ||
+      (!allow_empty && length(years) == 0) ||
       anyNA(years) ||
       any(years != trunc(years)) ||
       any(abs(years) > .Machine$integer.max)
@@ -141,7 +156,11 @@ validate_years <- function(years, download = TRUE, call = rlang::caller_env()) {
       call = call
     )
   }
-  years <- sort(unique(as.integer(years)))
+  sort(unique(as.integer(years)))
+}
+
+validate_years <- function(years, download = TRUE, call = rlang::caller_env()) {
+  years <- check_years_arg(years, call = call)
 
   # Fully cached requests are honored as-is: no manifest lookup, no
   # network, keeping the documented offline contract.

@@ -70,4 +70,18 @@ test_that("a malformed years argument is rejected", {
     brfss_vars(years = NA_real_),
     class = "brfssdata_bad_years_arg"
   )
+  # 2024.9 used to truncate silently to 2024; Inf used to raise a base
+  # coercion warning and return an empty tibble with no signal.
+  expect_error(
+    brfss_vars(years = 2024.9),
+    class = "brfssdata_bad_years_arg"
+  )
+  expect_error(
+    brfss_vars(years = Inf),
+    class = "brfssdata_bad_years_arg"
+  )
+  expect_error(
+    brfss_vars(years = numeric(0)),
+    class = "brfssdata_bad_years_arg"
+  )
 })

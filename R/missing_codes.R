@@ -41,6 +41,11 @@ brfss_missing_codes <- function(
   download = TRUE,
   quiet = TRUE
 ) {
+  # Validated here, not just in the delegation, so a malformed years
+  # error names this function rather than brfss_labels().
+  if (!is.null(years)) {
+    years <- check_years_arg(years)
+  }
   catalog <- brfss_labels(
     vars = vars,
     years = years,

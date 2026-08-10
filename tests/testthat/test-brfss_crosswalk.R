@@ -33,6 +33,14 @@ test_that("malformed arguments are rejected", {
     brfss_crosswalk("X", years = "recent"),
     class = "brfssdata_bad_years_arg"
   )
+  expect_error(
+    brfss_crosswalk("X", years = Inf),
+    class = "brfssdata_bad_years_arg"
+  )
+  expect_error(
+    brfss_crosswalk("X", years = numeric(0)),
+    class = "brfssdata_bad_years_arg"
+  )
 })
 
 test_that("a rename-trap read points at the crosswalk", {

@@ -23,18 +23,11 @@
 #' @export
 brfss_citation <- function(years = NULL) {
   if (!is.null(years)) {
-    if (
-      !is.numeric(years) ||
-        length(years) == 0 ||
-        anyNA(years) ||
-        any(years != trunc(years))
-    ) {
-      cli::cli_abort(
-        "{.arg years} must be a numeric vector of one or more survey years.",
-        class = "brfssdata_bad_years_arg"
-      )
-    }
-    years <- sort(unique(as.integer(years)))
+    # The Inf guard matters here: as.integer(Inf) coerces to NA with a
+    # base warning, and sort() then drops the NA, so brfss_citation(Inf)
+    # used to return only the package entry with no signal that the
+    # data citation was silently gone.
+    years <- check_years_arg(years)
     published <- sort(as.integer(read_manifest_cached()$years))
     unknown <- setdiff(years, published)
     if (length(published) > 0 && length(unknown) > 0) {

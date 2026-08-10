@@ -358,3 +358,14 @@ test_that("a malformed na argument is rejected", {
     class = "brfssdata_bad_na_arg"
   )
 })
+
+test_that("a malformed years argument names brfss_missing_codes()", {
+  # Validated before the brfss_labels() delegation, so the error is
+  # attributed to the function the user called.
+  local_brfss_cache(2023)
+  err <- expect_error(
+    brfss_missing_codes("GENHLTH", years = Inf),
+    class = "brfssdata_bad_years_arg"
+  )
+  expect_match(conditionMessage(err), "years")
+})

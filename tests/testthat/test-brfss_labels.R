@@ -252,6 +252,15 @@ test_that("a malformed years argument is rejected", {
     brfss_labels("GENHLTH", years = "recent"),
     class = "brfssdata_bad_years_arg"
   )
+  # Inf slipped past the old trunc-based guard (Inf == trunc(Inf))
+  expect_error(
+    brfss_labels("GENHLTH", years = Inf),
+    class = "brfssdata_bad_years_arg"
+  )
+  expect_error(
+    brfss_labels("GENHLTH", years = numeric(0)),
+    class = "brfssdata_bad_years_arg"
+  )
 })
 
 test_that("an empty lookup returns zero rows and says so", {

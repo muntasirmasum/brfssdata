@@ -19,6 +19,8 @@
 #' @param years Optional integer vector. If supplied to
 #'   `brfss_cache_clear()`, only those survey years are removed;
 #'   `integer(0)` removes none (useful with `catalogs = TRUE`).
+#'   Fractional, infinite, missing, or non-numeric years are rejected
+#'   (`brfssdata_bad_years_arg`) before anything is deleted.
 #' @param catalogs If `TRUE`, `brfss_cache_clear()` also removes the
 #'   manifest and the variable and label catalogs.
 #'
@@ -155,6 +157,12 @@ brfss_download <- function(years = NULL, catalogs = TRUE, quiet = FALSE) {
 #' @rdname brfss_cache_dir
 #' @export
 brfss_cache_clear <- function(years = NULL, catalogs = FALSE) {
+  # Validated before anything is touched: as.integer() truncation here
+  # meant brfss_cache_clear(2024.9) silently deleted the 2024 file.
+  # integer(0) stays the documented remove-nothing request.
+  if (!is.null(years)) {
+    years <- check_years_arg(years, allow_empty = TRUE)
+  }
   dir <- brfss_cache_dir()
   files <- list.files(dir, full.names = TRUE)
   file_year <- cached_file_year(basename(files))
@@ -164,7 +172,7 @@ brfss_cache_clear <- function(years = NULL, catalogs = FALSE) {
   # file that happens to sit in the cache directory is never touched.
   is_year <- !is.na(file_year)
   if (!is.null(years)) {
-    is_year <- is_year & file_year %in% as.integer(years)
+    is_year <- is_year & file_year %in% years
   }
   is_meta <- isTRUE(catalogs) & basename(files) %in% CACHE_META_FILES
   files <- files[is_year | is_meta]

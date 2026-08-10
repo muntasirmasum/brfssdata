@@ -50,4 +50,8 @@ test_that("unpublished years and malformed input are rejected", {
   expect_error(brfss_citation(2023.5), class = "brfssdata_bad_years_arg")
   # A zero-length request used to slip through and return a bare list.
   expect_error(brfss_citation(integer(0)), class = "brfssdata_bad_years_arg")
+  # Inf used to slip past the trunc guard, coerce to NA with a base
+  # warning, and be dropped by sort(), silently returning only the
+  # package entry with no data citations at all.
+  expect_error(brfss_citation(Inf), class = "brfssdata_bad_years_arg")
 })

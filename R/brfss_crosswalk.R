@@ -100,14 +100,8 @@ brfss_crosswalk <- function(
       class = "brfssdata_bad_vars_arg"
     )
   }
-  if (
-    !is.null(years) &&
-      (!is.numeric(years) || anyNA(years) || any(years != trunc(years)))
-  ) {
-    cli::cli_abort(
-      "{.arg years} must be a numeric vector of survey years.",
-      class = "brfssdata_bad_years_arg"
-    )
+  if (!is.null(years)) {
+    years <- check_years_arg(years)
   }
   xwalk <- crosswalk_catalog(download = download, quiet = quiet)
   if (!is.null(vars)) {
@@ -117,7 +111,7 @@ brfss_crosswalk <- function(
     xwalk <- xwalk[xwalk$concept %in% concepts, , drop = FALSE]
   }
   if (!is.null(years)) {
-    xwalk <- xwalk[xwalk$year %in% as.integer(years), , drop = FALSE]
+    xwalk <- xwalk[xwalk$year %in% years, , drop = FALSE]
   }
   if (nrow(xwalk) == 0 && (!is.null(vars) || !is.null(years))) {
     cli::cli_inform(

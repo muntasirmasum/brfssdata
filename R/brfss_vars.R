@@ -32,6 +32,9 @@ brfss_vars <- function(
   download = TRUE,
   quiet = TRUE
 ) {
+  if (!is.null(years)) {
+    years <- check_years_arg(years)
+  }
   path <- ensure_catalog_cached(
     "brfss_variables.parquet",
     what = "variable catalog",
@@ -42,13 +45,7 @@ brfss_vars <- function(
   catalog <- query_parquet(path)
 
   if (!is.null(years)) {
-    if (!is.numeric(years) || anyNA(years)) {
-      cli::cli_abort(
-        "{.arg years} must be a numeric vector of survey years.",
-        class = "brfssdata_bad_years_arg"
-      )
-    }
-    catalog <- catalog[catalog$year %in% as.integer(years), , drop = FALSE]
+    catalog <- catalog[catalog$year %in% years, , drop = FALSE]
   }
   if (!is.null(pattern)) {
     if (!is.character(pattern) || length(pattern) != 1L || is.na(pattern)) {

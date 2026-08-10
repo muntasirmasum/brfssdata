@@ -57,14 +57,8 @@ brfss_codebook <- function(
       class = "brfssdata_bad_vars_arg"
     )
   }
-  if (
-    !is.null(years) &&
-      (!is.numeric(years) || anyNA(years) || any(years != trunc(years)))
-  ) {
-    cli::cli_abort(
-      "{.arg years} must be a numeric vector of survey years.",
-      class = "brfssdata_bad_years_arg"
-    )
+  if (!is.null(years)) {
+    years <- check_years_arg(years)
   }
 
   path <- ensure_catalog_cached(
@@ -107,8 +101,8 @@ brfss_codebook <- function(
     }
   )
   if (!is.null(years)) {
-    catalog <- catalog[catalog$year %in% as.integer(years), , drop = FALSE]
-    labels <- labels[labels$year %in% as.integer(years), , drop = FALSE]
+    catalog <- catalog[catalog$year %in% years, , drop = FALSE]
+    labels <- labels[labels$year %in% years, , drop = FALSE]
   }
 
   requested <- unique(vars)

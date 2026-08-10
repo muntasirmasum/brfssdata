@@ -6,6 +6,22 @@ test_that("validate_years rejects malformed input", {
   expect_error(validate_years(NA_integer_))
 })
 
+test_that("check_years_arg is the one strict shape gate", {
+  for (bad in list("2024", NaN, Inf, -Inf, 2024.9, NA_real_, numeric(0))) {
+    expect_error(check_years_arg(bad), class = "brfssdata_bad_years_arg")
+  }
+  expect_identical(check_years_arg(c(2023, 2022, 2023)), c(2022L, 2023L))
+  # brfss_cache_clear()'s documented remove-nothing request
+  expect_identical(
+    check_years_arg(numeric(0), allow_empty = TRUE),
+    integer(0)
+  )
+  expect_error(
+    check_years_arg(Inf, allow_empty = TRUE),
+    class = "brfssdata_bad_years_arg"
+  )
+})
+
 test_that("validate_years rejects unpublished years", {
   local_brfss_manifest(2020:2023)
   expect_error(validate_years(1999), class = "brfssdata_bad_year")

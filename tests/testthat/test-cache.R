@@ -183,3 +183,26 @@ test_that("an empty download is treated as a failure", {
   expect_false(file.exists(dest))
   expect_length(list.files(dir, pattern = "\\.tmp$"), 0)
 })
+
+test_that("malformed years never reach the delete filter", {
+  # brfss_cache_clear(2024.9) used to truncate to 2024 and silently
+  # delete that year's file; "2024" coerced and deleted it too.
+  local_brfss_cache(2024)
+  target <- file.path(brfss_cache_dir(), "brfss_2024.parquet")
+  expect_true(file.exists(target))
+  expect_error(
+    brfss_cache_clear(2024.9),
+    class = "brfssdata_bad_years_arg"
+  )
+  expect_true(file.exists(target))
+  expect_error(
+    brfss_cache_clear("2024"),
+    class = "brfssdata_bad_years_arg"
+  )
+  expect_true(file.exists(target))
+  expect_error(
+    brfss_cache_clear(Inf),
+    class = "brfssdata_bad_years_arg"
+  )
+  expect_true(file.exists(target))
+})

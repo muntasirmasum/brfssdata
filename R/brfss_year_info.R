@@ -23,14 +23,8 @@
 #'   numbers in prose.
 #' @export
 brfss_year_info <- function(years = NULL, download = TRUE, quiet = TRUE) {
-  if (
-    !is.null(years) &&
-      (!is.numeric(years) || anyNA(years) || any(years != trunc(years)))
-  ) {
-    cli::cli_abort(
-      "{.arg years} must be a numeric vector of survey years.",
-      class = "brfssdata_bad_years_arg"
-    )
+  if (!is.null(years)) {
+    years <- check_years_arg(years)
   }
   path <- ensure_catalog_cached(
     "brfss_year_info.parquet",
@@ -40,8 +34,8 @@ brfss_year_info <- function(years = NULL, download = TRUE, quiet = TRUE) {
   )
   info <- query_parquet(path)
   if (!is.null(years)) {
-    info <- info[info$year %in% as.integer(years), , drop = FALSE]
-    missing <- setdiff(as.integer(years), info$year)
+    info <- info[info$year %in% years, , drop = FALSE]
+    missing <- setdiff(years, info$year)
     if (length(missing) > 0) {
       cli::cli_inform(
         c(
