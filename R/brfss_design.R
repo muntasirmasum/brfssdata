@@ -14,14 +14,25 @@
 #' the exact codes and the `na` entry under Arguments for details.
 #'
 #' @section Choosing a weight:
-#' `_LLCPWT` is the final weight for the combined landline-and-cell
-#' sample and is correct for core-questionnaire analyses; `_FINALWT` is
-#' its pre-2011 counterpart. The files also carry the intermediate
-#' stages of CDC's weighting pipeline, such as `_STRWT`, `_WT2RAKE`,
-#' and `_LLCPWT2` (the truncated design weight, computed before
-#' raking). None of those is an analysis weight, estimates computed
-#' with one are not calibrated to CDC's population totals, and
-#' requesting one via `weight` triggers a classed warning.
+#' `weight` accepts CDC's final analysis weights: the full-sample
+#' weights `_FINALWT` (1985-2010) and `_LLCPWT` (2011 on), the domain
+#' weights `_CLLCPWT` (2011 on) and, for 2006-2010, `_CHILDWT` and
+#' `_HOUSEWT`, and the 2007 questionnaire-version weights `_FINALQ1`,
+#' `_FINALQ2`, `_CHILDQ1`, and `_CHILDQ2`. `_LLCPWT` is correct for
+#' core-questionnaire analyses of the combined landline-and-cell
+#' sample; `_FINALWT` is its pre-2011 counterpart. A final weight
+#' requested for years outside its published span fails before
+#' anything is downloaded, with the span named.
+#'
+#' The files also carry the intermediate stages of CDC's weighting
+#' pipeline, such as `_STRWT`, `_WT2RAKE`, and `_LLCPWT2` (the
+#' truncated design weight, computed before raking). None of those is
+#' an analysis weight, and estimates computed with one are not
+#' calibrated to CDC's population totals, so requesting one, or any
+#' other column that is not a final weight, is a classed error
+#' (`brfssdata_unrecognized_weight`) unless `unsafe_weight = TRUE`
+#' says you mean it. The override still warns with a pointed class,
+#' and the weight values must be positive and finite either way.
 #'
 #' Optional modules asked in states that fielded several questionnaire
 #' versions are published by CDC as separate version datasets
@@ -31,18 +42,17 @@
 #' downloads. The year's CDC module-analysis documentation ("Complex
 #' Sampling Weights and Preparing Module Data for Analysis") says which
 #' modules belong to the combined dataset, where the default `_LLCPWT`
-#' is correct. The `weight` argument overrides the era default for the
-#' final weights that do live in these files, e.g. `_CLLCPWT` for the
-#' child-level modules. A user-supplied weight defines its analytic
+#' is correct. A user-supplied domain weight defines its analytic
 #' domain: a module weight exists only for the records its module
 #' applies to (completed child interviews for `_CLLCPWT`, so most rows
 #' carry `NA` there), and the design subsets to the rows the weight
 #' covers, reporting the drop with a `brfssdata_weight_subset_note`
-#' message, which matches CDC's module-analysis guidance. The automatic
-#' era weight gets no such treatment; a missing value there means a
-#' damaged file and stops the build. A user-supplied weight is used for
-#' every requested year and still divides by the year count under
-#' `pool_weights`.
+#' message, which matches CDC's module-analysis guidance. An explicitly
+#' named full-sample weight (`_FINALWT`, `_LLCPWT`) gets the same
+#' treatment as the automatic era weight instead: it must cover every
+#' respondent, and a missing value there means a damaged file and stops
+#' the build. A user-supplied weight is used for every requested year
+#' and still divides by the year count under `pool_weights`.
 #'
 #' CDC states that estimates from 2011 onward are not directly comparable
 #' to earlier years, because 2011 added cell-phone-only respondents and
@@ -106,7 +116,14 @@
 #'   never the data (see the *Survey design in BRFSS* article).
 #' @param weight Optional name of the weight column to use instead of
 #'   the automatic era weight, e.g. `"_CLLCPWT"` for the child-level
-#'   modules; matched case-insensitively. See *Choosing a weight*.
+#'   modules; matched case-insensitively. Must be one of CDC's final
+#'   analysis weights unless `unsafe_weight = TRUE`. See *Choosing a
+#'   weight*.
+#' @param unsafe_weight Set to `TRUE` to allow a `weight` that is not
+#'   one of CDC's final analysis weights (an intermediate pipeline
+#'   stage, or any other numeric column). The design still warns with
+#'   a pointed class, and the values must be positive and finite. Has
+#'   no effect when `weight` names a final weight.
 #' @param allow_break Set to `TRUE` to permit pooling years across the
 #'   2011 methodology change. A warning is still issued.
 #' @param pool_weights If `TRUE` and more than one year is requested,
@@ -137,6 +154,7 @@ brfss_design <- function(
   vars = NULL,
   states = NULL,
   weight = NULL,
+  unsafe_weight = FALSE,
   allow_break = FALSE,
   pool_weights = TRUE,
   download = TRUE,
@@ -157,6 +175,12 @@ brfss_design <- function(
       class = "brfssdata_bad_weight"
     )
   }
+  if (!isTRUE(unsafe_weight) && !isFALSE(unsafe_weight)) {
+    cli::cli_abort(
+      "{.arg unsafe_weight} must be TRUE or FALSE.",
+      class = "brfssdata_bad_unsafe_weight_arg"
+    )
+  }
   if (!isTRUE(na) && !isFALSE(na)) {
     cli::cli_abort(
       "{.arg na} must be TRUE or FALSE.",
@@ -166,6 +190,68 @@ brfss_design <- function(
   # Validated eagerly: passed lazily, an invalid labels value would only
   # surface if some variable actually converted.
   labels_mode <- if (isFALSE(labels)) NULL else labels_how(labels)
+
+  # The gate runs before anything is downloaded or read. A weight that
+  # is not one of CDC's final analysis weights is refused unless
+  # unsafe_weight = TRUE says the caller knows; an allowlisted weight
+  # requested outside its published span fails here too, with the span
+  # named, instead of surfacing later as a missing column.
+  if (!is.null(weight)) {
+    final_idx <- match(toupper(weight), toupper(FINAL_WEIGHTS$weight))
+    if (is.na(final_idx) && !unsafe_weight) {
+      cli::cli_abort(
+        c(
+          "{.val {weight}} is not one of CDC's final analysis weights.",
+          "x" = "brfss_design() accepts the full-sample weights
+                 {.val _FINALWT} (1985-2010) and {.val _LLCPWT} (2011
+                 on), the domain weights {.val _CLLCPWT},
+                 {.val _CHILDWT}, and {.val _HOUSEWT}, and the 2007
+                 questionnaire-version weights {.val _FINALQ1},
+                 {.val _FINALQ2}, {.val _CHILDQ1}, and
+                 {.val _CHILDQ2}.",
+          if (toupper(weight) %in% toupper(INTERMEDIATE_WEIGHTS)) {
+            c(
+              "i" = "{.val {weight}} is an intermediate stage of CDC's
+                     weighting pipeline; estimates weighted by it are
+                     not calibrated to CDC's population totals."
+            )
+          },
+          "i" = "Set {.code unsafe_weight = TRUE} to use it anyway, at
+                 your own risk; the era default needs no {.arg weight}
+                 at all."
+        ),
+        class = c("brfssdata_unrecognized_weight", "brfssdata_bad_weight")
+      )
+    }
+    if (!is.na(final_idx)) {
+      # Canonical CDC casing for everything downstream.
+      weight <- FINAL_WEIGHTS$weight[[final_idx]]
+      span_first <- FINAL_WEIGHTS$first_year[[final_idx]]
+      span_last <- FINAL_WEIGHTS$last_year[[final_idx]]
+      outside <- years[
+        years < span_first | (!is.na(span_last) & years > span_last)
+      ]
+      if (length(outside) > 0) {
+        span_txt <- if (is.na(span_last)) {
+          sprintf("%d on", span_first)
+        } else if (span_first == span_last) {
+          sprintf("%d only", span_first)
+        } else {
+          sprintf("%d to %d", span_first, span_last)
+        }
+        cli::cli_abort(
+          c(
+            "Weight {.val {weight}} is published for {span_txt};
+             requested year{?s} {.val {as.character(outside)}}
+             {?falls/fall} outside that.",
+            "i" = "Use {.fun brfss_vars} to check availability, or
+                   request only the years that carry it."
+          ),
+          class = "brfssdata_bad_weight"
+        )
+      }
+    }
+  }
 
   pre <- years[years < BREAK_YEAR]
   post <- years[years >= BREAK_YEAR]
@@ -218,6 +304,8 @@ brfss_design <- function(
       )
     }
     if (weight %in% INTERMEDIATE_WEIGHTS) {
+      # Reachable only under unsafe_weight = TRUE; the gate above
+      # refuses intermediates otherwise.
       cli::cli_warn(
         c(
           "{.val {weight}} is an intermediate stage of CDC's weighting
@@ -231,6 +319,18 @@ brfss_design <- function(
                  section of {.help brfssdata::brfss_design}."
         ),
         class = "brfssdata_intermediate_weight_warning"
+      )
+    } else if (!toupper(weight) %in% toupper(FINAL_WEIGHTS$weight)) {
+      # Also unsafe_weight-only: a column that is neither a final
+      # analysis weight nor a known pipeline stage.
+      cli::cli_warn(
+        c(
+          "Weighting by {.val {weight}}, which is not a CDC final
+           analysis weight.",
+          "x" = "Estimates are calibrated to nothing; treat them as
+                 exploratory."
+        ),
+        class = "brfssdata_unsafe_weight_warning"
       )
     }
     weight_vars <- weight
@@ -279,15 +379,21 @@ brfss_design <- function(
         class = "brfssdata_bad_weight"
       )
     }
-    # A user-supplied weight defines its analytic domain: a module
-    # weight such as _CLLCPWT exists only for the records its module
-    # applies to (completed child interviews there), so in the real
-    # files most rows carry NA. Those rows cannot enter this design and
-    # are dropped, which is CDC's own module-analysis guidance
-    # (subset to the module's records). The automatic era weight below
-    # gets no such treatment: it must cover every respondent, and a
-    # missing value there means a damaged file, caught further down.
-    drop <- is.na(dat[[weight]])
+    # A user-supplied DOMAIN weight defines its analytic domain: a
+    # module weight such as _CLLCPWT exists only for the records its
+    # module applies to (completed child interviews there), so in the
+    # real files most rows carry NA. Those rows cannot enter this
+    # design and are dropped, which is CDC's own module-analysis
+    # guidance (subset to the module's records). An explicitly named
+    # FULL-SAMPLE weight (_FINALWT, _LLCPWT) gets the same treatment as
+    # the automatic era weight instead: it must cover every respondent,
+    # so a missing value means a damaged file and falls through to the
+    # missing-final-weight abort further down, identically to the
+    # automatic path. Unsafe weights subset like domain weights.
+    full_sample <- isTRUE(
+      FINAL_WEIGHTS$full_sample[match(weight, FINAL_WEIGHTS$weight)]
+    )
+    drop <- if (full_sample) FALSE else is.na(dat[[weight]])
     if (any(drop)) {
       # Not gated on quiet: the design now estimates a different
       # population, which is an analytical signal, not progress output.
@@ -314,6 +420,40 @@ brfss_design <- function(
       dat <- dat[!drop, , drop = FALSE]
     }
     wt <- dat[[weight]]
+    # A survey weight must be a positive, finite number. Checked on the
+    # explicit path only, after the domain subset so only in-domain
+    # rows are judged; the automatic era weight keeps its NA-only abort
+    # below, because a hosted year with a legitimate edge value must
+    # not start failing on a guess (spot checks found none, but 10 of
+    # 40 years is not proof).
+    bad_vals <- !is.na(wt) & (!is.finite(wt) | wt <= 0)
+    if (any(bad_vals)) {
+      n_bad <- sum(bad_vals)
+      bad_years <- sort(unique(dat$year[bad_vals]))
+      if (toupper(weight) %in% toupper(FINAL_WEIGHTS$weight)) {
+        cli::cli_abort(
+          c(
+            "Weight {.val {weight}} has {n_bad} value{?s} that
+             {?is/are} zero, negative, or not finite.",
+            "x" = "Affected year{?s}: {.val {as.character(bad_years)}}.",
+            "i" = "A final analysis weight is strictly positive; this
+                   points at a damaged file. Clear and re-download it
+                   with {.fun brfss_cache_clear}."
+          ),
+          class = "brfssdata_bad_design_var"
+        )
+      }
+      cli::cli_abort(
+        c(
+          "Weight {.val {weight}} has {n_bad} value{?s} that
+           {?is/are} zero, negative, or not finite.",
+          "x" = "Affected year{?s}: {.val {as.character(bad_years)}}.",
+          "i" = "A survey weight must be a positive, finite number;
+                 {.val {weight}} cannot weight a design."
+        ),
+        class = "brfssdata_bad_weight"
+      )
+    }
   } else if (spans_break) {
     wt <- ifelse(
       dat$year >= BREAK_YEAR,

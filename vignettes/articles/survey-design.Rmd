@@ -190,8 +190,10 @@ column and cannot quietly pick up the wrong one.
 The files also carry the intermediate stages of CDC's weighting
 pipeline, `_STRWT`, `_RAWRAKE`, `_WT2RAKE`, and `_LLCPWT2` (the
 truncated design weight, computed before raking). None of them is an
-analysis weight, an estimate computed with one is calibrated to
-nothing, and `brfss_design()` warns when a `weight` request names one.
+analysis weight and an estimate computed with one is calibrated to
+nothing, so `brfss_design()` refuses any `weight` that is not one of
+CDC's final analysis weights; `unsafe_weight = TRUE` is the deliberate
+override, and it still warns.
 For optional modules the question is which dataset, not which column.
 When a state fielded several questionnaire versions, CDC publishes
 separate version datasets (`LLCP23V1` through `LLCP23V3` in 2023) with

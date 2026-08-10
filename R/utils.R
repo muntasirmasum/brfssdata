@@ -10,34 +10,98 @@ DESIGN_STRATA <- "_STSTR"
 WEIGHT_PRE <- "_FINALWT"
 WEIGHT_POST <- "_LLCPWT"
 
-# Columns that keep their numeric codes on every labeling and
-# missing-code path, on both the read and the design routes: a factor
-# _STATE would make `_STATE == 6` silently match nothing, and a labeled
-# weight or design variable would corrupt the survey design.
-LABEL_EXCLUDE <- c(
-  "_STATE",
-  DESIGN_PSU,
-  DESIGN_STRATA,
-  WEIGHT_PRE,
-  WEIGHT_POST,
-  "_LLCPWT2",
-  "_CLLCPWT",
-  "_WT2RAKE",
-  "_STRWT",
-  "year"
+# CDC's final analysis weights, the only columns brfss_design() accepts
+# as `weight` without unsafe_weight = TRUE. Membership is by name from
+# the hosted variable catalog and CDC's annual codebooks, never by
+# label rule (_FINALWT's pre-1999 catalog label is "PRODUCT OF _POSTSTR
+# AND _WT1", which no text rule would keep). The spans are anchored
+# independently in tests/testthat/test-constants.R; last_year NA means
+# still published. full_sample separates weights that must cover every
+# respondent (a missing value there means a damaged file) from domain
+# weights that cover only their module's records (missing values there
+# subset the design to the domain).
+FINAL_WEIGHTS <- data.frame(
+  weight = c(
+    "_FINALWT",
+    "_LLCPWT",
+    "_CLLCPWT",
+    "_CHILDWT",
+    "_HOUSEWT",
+    "_FINALQ1",
+    "_FINALQ2",
+    "_CHILDQ1",
+    "_CHILDQ2"
+  ),
+  first_year = c(
+    1985L,
+    2011L,
+    2011L,
+    2006L,
+    2006L,
+    2007L,
+    2007L,
+    2007L,
+    2007L
+  ),
+  last_year = c(2010L, NA, NA, 2010L, 2010L, 2007L, 2007L, 2007L, 2007L),
+  full_sample = c(TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE),
+  stringsAsFactors = FALSE
 )
 
 # Intermediate stages of CDC's weighting pipeline that ship in the files
 # but are not final analysis weights. Their own catalog labels say so:
 # stratum weight, post-stratification weight, raw weighting factor,
-# design weight used in raking, truncated design weight (pre-raking).
-# brfss_design() warns when one is requested as `weight`.
+# design weight, density and area-code stratum weights, probability of
+# selection, and the 2007 questionnaire-version variants of each.
+# brfss_design() refuses them unless unsafe_weight = TRUE, and then
+# warns with the pointed class.
 INTERMEDIATE_WEIGHTS <- c(
   "_STRWT",
   "_POSTSTR",
   "_RAWRAKE",
   "_WT2RAKE",
-  "_LLCPWT2"
+  "_LLCPWT2",
+  "_WT1",
+  "_WT2",
+  "_RAW",
+  "_CSA",
+  "_WT2CH",
+  "_WT2HH",
+  "_RAWCH",
+  "_RAWHH",
+  "_POSTCH",
+  "_POSTHH",
+  "_DENWT",
+  "_GEOWT",
+  "_ACPRWT",
+  "BPSELWT",
+  "_WT2Q1",
+  "_WT2Q2",
+  "_WT2CH1",
+  "_WT2CH2",
+  "_POSTQ1",
+  "_POSTQ2",
+  "_POSTCH1",
+  "_POSTCH2",
+  "_RAWQ1",
+  "_RAWQ2",
+  "_RAWCH1",
+  "_RAWCH2"
+)
+
+# Columns that keep their numeric codes on every labeling and
+# missing-code path, on both the read and the design routes: a factor
+# _STATE would make `_STATE == 6` silently match nothing, and a labeled
+# weight or design variable would corrupt the survey design. Built from
+# the weight tables above so no weight, final or intermediate, is ever
+# labeled or na-recoded.
+LABEL_EXCLUDE <- c(
+  "_STATE",
+  DESIGN_PSU,
+  DESIGN_STRATA,
+  FINAL_WEIGHTS$weight,
+  INTERMEDIATE_WEIGHTS,
+  "year"
 )
 
 brfss_repo <- function() {

@@ -364,8 +364,10 @@ The weight is chosen to match the survey era: `_FINALWT` for years before
 final weight, such as the child weight `_CLLCPWT`, when CDC's
 documentation calls for it; a module weight like that exists only for
 its module's records, so the design subsets to the rows it covers and
-says how many were dropped; see `?brfss_design` for that and for why the
-intermediate pipeline weights like `_LLCPWT2` warn). The design is built on three added
+says how many were dropped; anything that is not a CDC final analysis
+weight, including intermediate pipeline stages like `_LLCPWT2`, is
+refused unless `unsafe_weight = TRUE` says you mean it; see
+`?brfss_design`). The design is built on three added
 columns, `brfss_wt`, `brfss_psu`, and `brfss_strata`, because CDC's names
 are not syntactic and cannot enter a model formula; the original CDC
 columns are kept alongside them, unchanged. The don't-know and refused

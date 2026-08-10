@@ -318,19 +318,164 @@ test_that("a user-supplied weight matches case-insensitively", {
   expect_identical(des$variables$brfss_wt, des$variables$`_CLLCPWT`)
 })
 
-test_that("an intermediate pipeline weight warns with the pointed class", {
+test_that("an intermediate pipeline weight is refused without the override", {
+  # Contract change from the warn-not-block behavior: the review showed
+  # weight = "_WT1" building a design over a non-analysis weight with
+  # no more than a warning. Anything that is not a final analysis
+  # weight now requires unsafe_weight = TRUE.
+  local_brfss_cache(2023, alt_weights = 2023)
+  err <- expect_error(
+    brfss_design(2023, vars = "GENHLTH", weight = "_LLCPWT2", quiet = TRUE),
+    class = "brfssdata_unrecognized_weight"
+  )
+  # parented on brfssdata_bad_weight, so one handler catches every
+  # weight refusal
+  expect_s3_class(err, "brfssdata_bad_weight")
+  expect_match(conditionMessage(err), "unsafe_weight")
+})
+
+test_that("unsafe_weight = TRUE honors an intermediate weight and warns", {
   local_brfss_cache(2023, alt_weights = 2023)
   expect_warning(
     des <- brfss_design(
       2023,
       vars = "GENHLTH",
       weight = "_LLCPWT2",
+      unsafe_weight = TRUE,
       quiet = TRUE
     ),
     class = "brfssdata_intermediate_weight_warning"
   )
-  # the override is still honored: warned, not blocked
+  # the override is honored: warned, not blocked
   expect_identical(des$variables$brfss_wt, des$variables$`_LLCPWT2`)
+})
+
+test_that("a malformed unsafe_weight argument is rejected", {
+  local_brfss_cache(2023)
+  expect_error(
+    brfss_design(2023, vars = "GENHLTH", unsafe_weight = NA),
+    class = "brfssdata_bad_unsafe_weight_arg"
+  )
+  expect_error(
+    brfss_design(2023, vars = "GENHLTH", unsafe_weight = "yes"),
+    class = "brfssdata_bad_unsafe_weight_arg"
+  )
+})
+
+test_that("an unsafe non-weight column warns and builds", {
+  # The review's live example: weight = "GENHLTH" built a 2023 design
+  # with no signal under quiet = TRUE and shifted the estimated female
+  # share by 1.8 points. It now requires the override and warns.
+  local_brfss_cache(2023)
+  expect_warning(
+    des <- brfss_design(
+      2023,
+      vars = "GENHLTH",
+      weight = "GENHLTH",
+      unsafe_weight = TRUE,
+      quiet = TRUE,
+      na = FALSE
+    ),
+    class = "brfssdata_unsafe_weight_warning"
+  )
+  expect_identical(des$variables$brfss_wt, des$variables$GENHLTH)
+})
+
+test_that("an explicit full-sample weight aborts on missing values", {
+  # Completeness symmetry: the review showed explicit _LLCPWT silently
+  # dropping rows where the automatic path aborted. Both now abort
+  # identically, and no subset note fires on the way.
+  local_brfss_cache(2023)
+  local_mocked_bindings(
+    read_brfss = function(...) {
+      out <- tibble::tibble(
+        year = rep(2023L, 4L),
+        GENHLTH = c(1, 2, 1, 2),
+        `_LLCPWT` = c(100, NA, 250, 300),
+        `_STSTR` = c(1, 1, 2, 2),
+        `_PSU` = c(1, 2, 3, 4)
+      )
+      names(out) <- c("year", "GENHLTH", "_LLCPWT", "_STSTR", "_PSU")
+      out
+    }
+  )
+  expect_no_message(
+    expect_error(
+      brfss_design(2023, vars = "GENHLTH", weight = "_LLCPWT", quiet = TRUE),
+      class = "brfssdata_bad_design_var"
+    ),
+    class = "brfssdata_weight_subset_note"
+  )
+})
+
+test_that("an explicit full-sample weight equals the automatic design", {
+  local_brfss_cache(2023)
+  auto <- brfss_design(2023, vars = "GENHLTH", quiet = TRUE)
+  explicit <- brfss_design(
+    2023,
+    vars = "GENHLTH",
+    weight = "_LLCPWT",
+    quiet = TRUE
+  )
+  expect_identical(explicit$variables$brfss_wt, auto$variables$brfss_wt)
+  expect_identical(nrow(explicit$variables), nrow(auto$variables))
+})
+
+test_that("a final weight outside its span fails before any download", {
+  # 2023 sits outside _FINALWT's 1985-2010 span. Nothing is cached and
+  # guard_network() is active inside the fixture, so reaching the read
+  # path would fail loudly; the classed error proves the gate runs
+  # pre-load.
+  local_brfss_manifest(2023)
+  err <- expect_error(
+    brfss_design(2023, vars = "GENHLTH", weight = "_FINALWT"),
+    class = "brfssdata_bad_weight"
+  )
+  expect_match(conditionMessage(err), "1985 to 2010")
+})
+
+test_that("weight values must be positive and finite", {
+  local_brfss_cache(
+    2023,
+    add_cols = list("2023" = list(BADWT = c(-1, 2)))
+  )
+  expect_error(
+    suppressWarnings(brfss_design(
+      2023,
+      vars = "GENHLTH",
+      weight = "BADWT",
+      unsafe_weight = TRUE,
+      quiet = TRUE,
+      na = FALSE
+    )),
+    class = "brfssdata_bad_weight"
+  )
+})
+
+test_that("a zero in a final weight is a damaged file, not a subset", {
+  local_brfss_cache(2023, alt_weights = 2023)
+  local_mocked_bindings(
+    read_brfss = function(...) {
+      out <- tibble::tibble(
+        year = rep(2023L, 4L),
+        GENHLTH = c(1, 2, 1, 2),
+        `_CLLCPWT` = c(100, 0, 250, NA),
+        `_STSTR` = c(1, 1, 2, 2),
+        `_PSU` = c(1, 2, 3, 4)
+      )
+      names(out) <- c("year", "GENHLTH", "_CLLCPWT", "_STSTR", "_PSU")
+      out
+    }
+  )
+  # the NA row leaves via the domain subset; the zero survives it and
+  # is invalid in a final analysis weight
+  expect_error(
+    suppressMessages(
+      brfss_design(2023, vars = "GENHLTH", weight = "_CLLCPWT", quiet = TRUE),
+      classes = "brfssdata_weight_subset_note"
+    ),
+    class = "brfssdata_bad_design_var"
+  )
 })
 
 test_that("a weight absent from a requested year names that year", {

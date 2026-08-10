@@ -9,6 +9,7 @@ brfss_design(
   vars = NULL,
   states = NULL,
   weight = NULL,
+  unsafe_weight = FALSE,
   allow_break = FALSE,
   pool_weights = TRUE,
   download = TRUE,
@@ -40,7 +41,15 @@ never the data (see the \emph{Survey design in BRFSS} article).}
 
 \item{weight}{Optional name of the weight column to use instead of
 the automatic era weight, e.g. \code{"_CLLCPWT"} for the child-level
-modules; matched case-insensitively. See \emph{Choosing a weight}.}
+modules; matched case-insensitively. Must be one of CDC's final
+analysis weights unless \code{unsafe_weight = TRUE}. See \emph{Choosing a
+weight}.}
+
+\item{unsafe_weight}{Set to \code{TRUE} to allow a \code{weight} that is not
+one of CDC's final analysis weights (an intermediate pipeline
+stage, or any other numeric column). The design still warns with
+a pointed class, and the values must be positive and finite. Has
+no effect when \code{weight} names a final weight.}
 
 \item{allow_break}{Set to \code{TRUE} to permit pooling years across the
 2011 methodology change. A warning is still issued.}
@@ -110,14 +119,25 @@ the exact codes and the \code{na} entry under Arguments for details.
 }
 \section{Choosing a weight}{
 
-\verb{_LLCPWT} is the final weight for the combined landline-and-cell
-sample and is correct for core-questionnaire analyses; \verb{_FINALWT} is
-its pre-2011 counterpart. The files also carry the intermediate
-stages of CDC's weighting pipeline, such as \verb{_STRWT}, \verb{_WT2RAKE},
-and \verb{_LLCPWT2} (the truncated design weight, computed before
-raking). None of those is an analysis weight, estimates computed
-with one are not calibrated to CDC's population totals, and
-requesting one via \code{weight} triggers a classed warning.
+\code{weight} accepts CDC's final analysis weights: the full-sample
+weights \verb{_FINALWT} (1985-2010) and \verb{_LLCPWT} (2011 on), the domain
+weights \verb{_CLLCPWT} (2011 on) and, for 2006-2010, \verb{_CHILDWT} and
+\verb{_HOUSEWT}, and the 2007 questionnaire-version weights \verb{_FINALQ1},
+\verb{_FINALQ2}, \verb{_CHILDQ1}, and \verb{_CHILDQ2}. \verb{_LLCPWT} is correct for
+core-questionnaire analyses of the combined landline-and-cell
+sample; \verb{_FINALWT} is its pre-2011 counterpart. A final weight
+requested for years outside its published span fails before
+anything is downloaded, with the span named.
+
+The files also carry the intermediate stages of CDC's weighting
+pipeline, such as \verb{_STRWT}, \verb{_WT2RAKE}, and \verb{_LLCPWT2} (the
+truncated design weight, computed before raking). None of those is
+an analysis weight, and estimates computed with one are not
+calibrated to CDC's population totals, so requesting one, or any
+other column that is not a final weight, is a classed error
+(\code{brfssdata_unrecognized_weight}) unless \code{unsafe_weight = TRUE}
+says you mean it. The override still warns with a pointed class,
+and the weight values must be positive and finite either way.
 
 Optional modules asked in states that fielded several questionnaire
 versions are published by CDC as separate version datasets
@@ -127,18 +147,17 @@ annual files, so version-specific module analyses need CDC's own
 downloads. The year's CDC module-analysis documentation ("Complex
 Sampling Weights and Preparing Module Data for Analysis") says which
 modules belong to the combined dataset, where the default \verb{_LLCPWT}
-is correct. The \code{weight} argument overrides the era default for the
-final weights that do live in these files, e.g. \verb{_CLLCPWT} for the
-child-level modules. A user-supplied weight defines its analytic
+is correct. A user-supplied domain weight defines its analytic
 domain: a module weight exists only for the records its module
 applies to (completed child interviews for \verb{_CLLCPWT}, so most rows
 carry \code{NA} there), and the design subsets to the rows the weight
 covers, reporting the drop with a \code{brfssdata_weight_subset_note}
-message, which matches CDC's module-analysis guidance. The automatic
-era weight gets no such treatment; a missing value there means a
-damaged file and stops the build. A user-supplied weight is used for
-every requested year and still divides by the year count under
-\code{pool_weights}.
+message, which matches CDC's module-analysis guidance. An explicitly
+named full-sample weight (\verb{_FINALWT}, \verb{_LLCPWT}) gets the same
+treatment as the automatic era weight instead: it must cover every
+respondent, and a missing value there means a damaged file and stops
+the build. A user-supplied weight is used for every requested year
+and still divides by the year count under \code{pool_weights}.
 
 CDC states that estimates from 2011 onward are not directly comparable
 to earlier years, because 2011 added cell-phone-only respondents and

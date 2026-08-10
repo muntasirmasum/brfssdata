@@ -35,15 +35,25 @@ jurisdiction; see \link{brfss_states}.}
 \item{\code{brfssdata_bad_pattern}}{\code{pattern} in \code{\link[=brfss_vars]{brfss_vars()}} is not a
 valid regular expression.}
 \item{\code{brfssdata_bad_weight}}{\code{weight} in \code{\link[=brfss_design]{brfss_design()}} is
-malformed, or the column is absent from a requested year.}
+malformed, requested outside the weight's published span, absent
+from a requested year, or carries values that are not positive
+and finite.}
+\item{\code{brfssdata_unrecognized_weight}}{\code{weight} in \code{\link[=brfss_design]{brfss_design()}}
+names a column that is not one of CDC's final analysis weights
+and \code{unsafe_weight = TRUE} was not set. Also carries
+\code{brfssdata_bad_weight}, so one handler catches every weight
+refusal.}
+\item{\code{brfssdata_bad_unsafe_weight_arg}}{\code{unsafe_weight} is not
+\code{TRUE} or \code{FALSE}.}
 \item{\code{brfssdata_bad_labels_arg}}{\code{labels} is something other than
 \code{TRUE}, \code{FALSE}, or \code{"both"}.}
 \item{\code{brfssdata_bad_na_arg}}{\code{na} is not \code{TRUE} or \code{FALSE}.}
 \item{\code{brfssdata_bad_option}}{\code{options(brfssdata.lonely_psu)} is
 not a single string.}
 \item{\code{brfssdata_bad_design_var}}{A design variable (era weight,
-\verb{_STSTR}, \verb{_PSU}) is absent or carries missing values, so no
-valid design can be built.}
+\verb{_STSTR}, \verb{_PSU}) is absent or carries missing or invalid
+values, so no valid design can be built; for a final analysis
+weight this points at a damaged file.}
 \item{\code{brfssdata_no_eligible_rows}}{No rows are left to build a
 survey design: a \code{states} filter, or the domain of a
 user-supplied \code{weight}, emptied the frame. \code{\link[=read_brfss]{read_brfss()}} still
@@ -77,7 +87,11 @@ with \code{allow_break = TRUE}.}
 \item{\code{brfssdata_intermediate_weight_warning}}{\code{weight} in
 \code{\link[=brfss_design]{brfss_design()}} names an intermediate stage of CDC's weighting
 pipeline (e.g. \verb{_LLCPWT2}, the truncated pre-raking design
-weight), not a final analysis weight.}
+weight), requested deliberately via \code{unsafe_weight = TRUE}.}
+\item{\code{brfssdata_unsafe_weight_warning}}{\code{weight} in
+\code{\link[=brfss_design]{brfss_design()}}, requested via \code{unsafe_weight = TRUE}, names a
+column that is neither a final analysis weight nor a known
+pipeline stage; the estimates are calibrated to nothing.}
 \item{\code{brfssdata_pooled_states_warning}}{Pooled years differ in
 state participation, so totals mix coverage. Participation is
 counted over the rows a user-supplied \code{weight} covers, the

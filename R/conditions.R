@@ -32,15 +32,25 @@
 #'   \item{`brfssdata_bad_pattern`}{`pattern` in [brfss_vars()] is not a
 #'     valid regular expression.}
 #'   \item{`brfssdata_bad_weight`}{`weight` in [brfss_design()] is
-#'     malformed, or the column is absent from a requested year.}
+#'     malformed, requested outside the weight's published span, absent
+#'     from a requested year, or carries values that are not positive
+#'     and finite.}
+#'   \item{`brfssdata_unrecognized_weight`}{`weight` in [brfss_design()]
+#'     names a column that is not one of CDC's final analysis weights
+#'     and `unsafe_weight = TRUE` was not set. Also carries
+#'     `brfssdata_bad_weight`, so one handler catches every weight
+#'     refusal.}
+#'   \item{`brfssdata_bad_unsafe_weight_arg`}{`unsafe_weight` is not
+#'     `TRUE` or `FALSE`.}
 #'   \item{`brfssdata_bad_labels_arg`}{`labels` is something other than
 #'     `TRUE`, `FALSE`, or `"both"`.}
 #'   \item{`brfssdata_bad_na_arg`}{`na` is not `TRUE` or `FALSE`.}
 #'   \item{`brfssdata_bad_option`}{`options(brfssdata.lonely_psu)` is
 #'     not a single string.}
 #'   \item{`brfssdata_bad_design_var`}{A design variable (era weight,
-#'     `_STSTR`, `_PSU`) is absent or carries missing values, so no
-#'     valid design can be built.}
+#'     `_STSTR`, `_PSU`) is absent or carries missing or invalid
+#'     values, so no valid design can be built; for a final analysis
+#'     weight this points at a damaged file.}
 #'   \item{`brfssdata_no_eligible_rows`}{No rows are left to build a
 #'     survey design: a `states` filter, or the domain of a
 #'     user-supplied `weight`, emptied the frame. [read_brfss()] still
@@ -72,7 +82,11 @@
 #'   \item{`brfssdata_intermediate_weight_warning`}{`weight` in
 #'     [brfss_design()] names an intermediate stage of CDC's weighting
 #'     pipeline (e.g. `_LLCPWT2`, the truncated pre-raking design
-#'     weight), not a final analysis weight.}
+#'     weight), requested deliberately via `unsafe_weight = TRUE`.}
+#'   \item{`brfssdata_unsafe_weight_warning`}{`weight` in
+#'     [brfss_design()], requested via `unsafe_weight = TRUE`, names a
+#'     column that is neither a final analysis weight nor a known
+#'     pipeline stage; the estimates are calibrated to nothing.}
 #'   \item{`brfssdata_pooled_states_warning`}{Pooled years differ in
 #'     state participation, so totals mix coverage. Participation is
 #'     counted over the rows a user-supplied `weight` covers, the

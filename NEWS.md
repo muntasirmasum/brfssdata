@@ -144,10 +144,7 @@ Initial CRAN release.
   own PSU, and the design drops the nominal cluster term for identical
   estimates at a fraction of the cost. A `weight` argument selects
   another final weight, such as the child weight `_CLLCPWT`, when CDC's
-  documentation calls for it; requesting an intermediate stage of CDC's
-  weighting pipeline (such as `_LLCPWT2`, the truncated design weight
-  computed before raking) triggers a classed warning, because those
-  columns are not analysis weights. Module analyses that require CDC's
+  documentation calls for it. Module analyses that require CDC's
   questionnaire-version datasets and their `_LCPWTV1` to `_LCPWTV3`
   final weights are not supported by the hosted annual files.
 * By default, `brfss_design()` sets the codes CDC uses for don't-know,
@@ -155,6 +152,25 @@ Initial CRAN release.
   proportions cover substantive answers; `read_brfss()` defaults to
   `na = FALSE` and returns the file as published. The exported
   `brfss_missing_codes()` lists exactly which codes are affected.
+* `brfss_design(weight = )` accepts CDC's final analysis weights only:
+  `_FINALWT` (1985-2010) and `_LLCPWT` (2011 on) for the full sample,
+  the domain weights `_CLLCPWT`, `_CHILDWT`, and `_HOUSEWT`, and the
+  2007 questionnaire-version weights `_FINALQ1`, `_FINALQ2`,
+  `_CHILDQ1`, and `_CHILDQ2`. Anything else, an intermediate pipeline
+  stage or an arbitrary column, is a classed error
+  (`brfssdata_unrecognized_weight`) unless `unsafe_weight = TRUE` says
+  it is deliberate, and the override still warns. Previously only five
+  modern intermediates drew a warning and everything else passed
+  silently: the review built designs with `weight = "GENHLTH"` (female
+  share shifted 1.8 points) and the 1985-2000 design weight `_WT1`
+  (fair/poor health shifted 0.95 points) without a signal. Weight
+  values must now be positive and finite, a final weight requested
+  outside its published span fails before anything downloads, and an
+  explicitly named full-sample weight obeys the same completeness rule
+  as the automatic path: missing values abort as a damaged file
+  instead of silently subsetting the design. All weight columns, final
+  and intermediate, are excluded from labeling and `na` recoding on
+  every path.
 * `quiet = TRUE` governs progress and housekeeping output only:
   download progress, cache notes, the full-load hint, and the recode
   tally. Signals about what the data mean fire regardless of `quiet`:
