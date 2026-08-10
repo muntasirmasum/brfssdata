@@ -21,8 +21,8 @@ brfss_years(refresh = FALSE)
 ## Value
 
 An integer vector of available survey years. If the manifest cannot be
-refreshed, a message notes the fallback (cached or bundled copy) that
-was used instead.
+refreshed, or the cached copy is unreadable, a message notes the
+fallback (cached or bundled copy) that was used instead.
 
 ## Examples
 

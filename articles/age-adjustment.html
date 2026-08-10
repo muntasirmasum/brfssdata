@@ -122,24 +122,41 @@ age-adjust adult BRFSS estimates.</p>
 </h2>
 <p><code>_AGE_G</code> codes 1 through 6 correspond, in order, to the
 six rows of the <code>adult6</code> set, so the design carries
-everything standardization needs. One preparation step:
-<code>survey</code>’s post-stratification machinery wants syntactic,
-factor-typed grouping variables, and CDC’s names are neither, so make
-plain copies first (the same reason <code><a href="../reference/brfss_design.html">brfss_design()</a></code> builds
-itself on <code>brfss_wt</code> and friends).</p>
+everything standardization needs. Two preparation steps go in one
+<code><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate()</a></code>. <code>survey</code>’s post-stratification
+machinery wants syntactic, factor-typed grouping variables, and CDC’s
+names are neither, so make a plain copy of the age variable first (the
+same reason <code><a href="../reference/brfss_design.html">brfss_design()</a></code> builds itself on
+<code>brfss_wt</code> and friends). The outcome gets its own column at
+the same time, because <code><a href="https://rdrr.io/pkg/survey/man/svystandardize.html" class="external-link">svystandardize()</a></code> has to be told
+which variable the estimate will use (see Cautions).</p>
+<p>Take the factor labels from the standard-population table rather than
+writing them out. <code><a href="https://rdrr.io/pkg/survey/man/svystandardize.html" class="external-link">svystandardize()</a></code> matches
+<code>population</code> to the levels of <code>by</code> by position and
+never checks names, so a table sorted some other way is silently wrong
+rather than an error. What the whole pattern rests on is that
+<code>std</code> runs in ascending age order, which makes its row
+<em>i</em> the row for <code>_AGE_G</code> code <em>i</em>. The
+<code><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot()</a></code> below costs nothing and says so out loud, which
+matters if you filter or re-sort the table on the way in.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://gdfe.co/srvyr/" class="external-link">srvyr</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://r-survey.r-forge.r-project.org/survey/" class="external-link">survey</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">des</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/brfss_design.html">brfss_design</a></span><span class="op">(</span><span class="fl">2023</span>, vars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"GENHLTH"</span>, <span class="st">"_AGE_G"</span><span class="op">)</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>age_group <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">`_AGE_G`</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span></span>
+<span>    age_group <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">`_AGE_G`</span>, levels <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">6</span>, labels <span class="op">=</span> <span class="va">std</span><span class="op">$</span><span class="va">age_group</span><span class="op">)</span>,</span>
+<span>    fair_poor <span class="op">=</span> <span class="va">GENHLTH</span> <span class="op">&gt;=</span> <span class="fl">4</span></span>
+<span>  <span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/is.unsorted.html" class="external-link">is.unsorted</a></span><span class="op">(</span><span class="va">std</span><span class="op">$</span><span class="va">age_min</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>The crude estimate first. Codes CDC uses for don’t know and refused
 are already <code>NA</code> here (<code>na = TRUE</code> is the design
-default), so <code>GENHLTH &gt;= 4</code> is fair-or-poor health over
+default), so <code>fair_poor</code> is fair-or-poor health over
 substantive answers.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">des</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarize</a></span><span class="op">(</span>fair_poor <span class="op">=</span> <span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_mean.html" class="external-link">survey_mean</a></span><span class="op">(</span><span class="va">GENHLTH</span> <span class="op">&gt;=</span> <span class="fl">4</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarize</a></span><span class="op">(</span>fair_poor <span class="op">=</span> <span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_mean.html" class="external-link">survey_mean</a></span><span class="op">(</span><span class="va">fair_poor</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 2</span></span></span>
 <span><span class="co">#&gt;   fair_poor fair_poor_se</span></span>
 <span><span class="co">#&gt;       <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
@@ -153,14 +170,14 @@ before:</p>
 <span>  by <span class="op">=</span> <span class="op">~</span><span class="va">age_group</span>,</span>
 <span>  over <span class="op">=</span> <span class="op">~</span><span class="fl">1</span>,</span>
 <span>  population <span class="op">=</span> <span class="va">std</span><span class="op">$</span><span class="va">std_pop</span>,</span>
-<span>  excluding.missing <span class="op">=</span> <span class="op">~</span><span class="va">age_group</span></span>
+<span>  excluding.missing <span class="op">=</span> <span class="op">~</span> <span class="va">fair_poor</span> <span class="op">+</span> <span class="va">age_group</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/survey/man/surveysummary.html" class="external-link">svymean</a></span><span class="op">(</span><span class="op">~</span><span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="va">GENHLTH</span> <span class="op">&gt;=</span> <span class="fl">4</span><span class="op">)</span>, <span class="va">std_des</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt;                        mean     SE</span></span>
-<span><span class="co">#&gt; I(GENHLTH &gt;= 4)FALSE 0.8154 0.0014</span></span>
-<span><span class="co">#&gt; I(GENHLTH &gt;= 4)TRUE  0.1846 0.0014</span></span></code></pre></div>
-<p>For a single national year the two differ modestly, because the
+<span><span class="fu"><a href="https://rdrr.io/pkg/survey/man/surveysummary.html" class="external-link">svymean</a></span><span class="op">(</span><span class="op">~</span><span class="va">fair_poor</span>, <span class="va">std_des</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co">#&gt;                   mean     SE</span></span>
+<span><span class="co">#&gt; fair_poorFALSE 0.81538 0.0014</span></span>
+<span><span class="co">#&gt; fair_poorTRUE  0.18462 0.0014</span></span></code></pre></div>
+<p>Over the whole 2023 file the two differ modestly, because the
 sample’s weighted age distribution sits near the 2000 standard. The
 adjustment earns its keep in comparisons.</p>
 </div>
@@ -179,11 +196,17 @@ variance-exact because BRFSS strata nest within state.</p>
 <span>  states <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"FL"</span>, <span class="st">"UT"</span><span class="op">)</span>,</span>
 <span>  quiet <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>age_group <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">`_AGE_G`</span><span class="op">)</span>, state <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">`_STATE`</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span></span>
+<span>    age_group <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">`_AGE_G`</span>, levels <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">6</span>, labels <span class="op">=</span> <span class="va">std</span><span class="op">$</span><span class="va">age_group</span><span class="op">)</span>,</span>
+<span>    fair_poor <span class="op">=</span> <span class="va">GENHLTH</span> <span class="op">&gt;=</span> <span class="fl">4</span>,</span>
+<span>    state <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">`_STATE`</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/is.unsorted.html" class="external-link">is.unsorted</a></span><span class="op">(</span><span class="va">std</span><span class="op">$</span><span class="va">age_min</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">two</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">group_by</a></span><span class="op">(</span><span class="va">state</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarize</a></span><span class="op">(</span>fair_poor <span class="op">=</span> <span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_mean.html" class="external-link">survey_mean</a></span><span class="op">(</span><span class="va">GENHLTH</span> <span class="op">&gt;=</span> <span class="fl">4</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarize</a></span><span class="op">(</span>fair_poor <span class="op">=</span> <span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_mean.html" class="external-link">survey_mean</a></span><span class="op">(</span><span class="va">fair_poor</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 2 × 3</span></span></span>
 <span><span class="co">#&gt;   state fair_poor fair_poor_se</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
@@ -198,16 +221,13 @@ puts both on the 2000 age distribution:</p>
 <span>  by <span class="op">=</span> <span class="op">~</span><span class="va">age_group</span>,</span>
 <span>  over <span class="op">=</span> <span class="op">~</span><span class="va">state</span>,</span>
 <span>  population <span class="op">=</span> <span class="va">std</span><span class="op">$</span><span class="va">std_pop</span>,</span>
-<span>  excluding.missing <span class="op">=</span> <span class="op">~</span><span class="va">age_group</span></span>
+<span>  excluding.missing <span class="op">=</span> <span class="op">~</span> <span class="va">fair_poor</span> <span class="op">+</span> <span class="va">age_group</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/survey/man/svyby.html" class="external-link">svyby</a></span><span class="op">(</span><span class="op">~</span><span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="va">GENHLTH</span> <span class="op">&gt;=</span> <span class="fl">4</span><span class="op">)</span>, <span class="op">~</span><span class="va">state</span>, <span class="va">two_std</span>, <span class="va">svymean</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt;    state I(GENHLTH &gt;= 4)FALSE I(GENHLTH &gt;= 4)TRUE se.I(GENHLTH &gt;= 4)FALSE</span></span>
-<span><span class="co">#&gt; 12    12            0.8225493           0.1774507             0.007683139</span></span>
-<span><span class="co">#&gt; 49    49            0.8569787           0.1430213             0.004393409</span></span>
-<span><span class="co">#&gt;    se.I(GENHLTH &gt;= 4)TRUE</span></span>
-<span><span class="co">#&gt; 12            0.007683139</span></span>
-<span><span class="co">#&gt; 49            0.004393409</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/pkg/survey/man/svyby.html" class="external-link">svyby</a></span><span class="op">(</span><span class="op">~</span><span class="va">fair_poor</span>, <span class="op">~</span><span class="va">state</span>, <span class="va">two_std</span>, <span class="va">svymean</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co">#&gt;    state fair_poorFALSE fair_poorTRUE se.fair_poorFALSE se.fair_poorTRUE</span></span>
+<span><span class="co">#&gt; 12    12      0.8226126     0.1773874       0.007687164      0.007687164</span></span>
+<span><span class="co">#&gt; 49    49      0.8569790     0.1430210       0.004392674      0.004392674</span></span></code></pre></div>
 <p>Florida’s estimate drops by more than a point once its older age
 structure no longer counts against it, while Utah’s barely moves; about
 a third of the crude gap between the two states was age, not health.
@@ -217,17 +237,48 @@ number CDC’s own age-adjusted tables report.</p>
 <div class="section level2">
 <h2 id="cautions">Cautions<a class="anchor" aria-label="anchor" href="#cautions"></a>
 </h2>
-<p><code><a href="https://rdrr.io/pkg/survey/man/svystandardize.html" class="external-link">svystandardize()</a></code> needs a complete age variable;
-<code>_AGE_G</code> is imputed by CDC and is complete in modern files,
-and <code>excluding.missing</code> guards the call anyway. Standardize
-before estimating subgroups, and note that a subgroup’s standardized
-estimate uses the standard’s age distribution, not the subgroup’s own.
-CDC’s published age-adjusted figures occasionally use a measure-specific
-age grouping rather than the six-group standard, so when matching a
-published table exactly, check the measure’s documentation first; the
-<code>age19</code> set covers the finer groupings. Age adjustment is for
-comparison, not description. The crude estimate remains the actual
-burden in the population, and reports usually show both.</p>
+<p><code>excluding.missing</code> has to name every variable the
+estimate will use, the outcome included. <code><a href="https://rdrr.io/pkg/survey/man/svystandardize.html" class="external-link">svystandardize()</a></code>
+drops the rows that are missing on any variable in that formula and then
+computes the age weights over the survivors, so a variable left out of
+the formula is still carrying age weight at the moment
+<code>na.rm = TRUE</code> throws its row away. What comes back is then
+an average of the age-group means weighted by each group’s standard
+share times its weighted response rate, where direct standardization
+weights by the standard share alone. The two coincide only when item
+nonresponse is flat across the age groups, and it generally is not.
+Naming the age variable as well, as <code>~ fair_poor + age_group</code>
+does above, is also what makes the requirement of a complete age
+variable actually bite; <code>_AGE_G</code> is imputed by CDC and is
+complete in modern files, so nothing is dropped on that account
+here.</p>
+<p>The consequence is that a standardized design belongs to one outcome.
+Build a fresh <code>std_des</code> for each measure instead of reusing
+one across several, since the calibration is specific to the rows that
+measure answers. The discrepancy is small when an item is nearly
+complete and grows with age-patterned nonresponse, and it is largest for
+questions that sit behind a skip pattern and are put to only part of the
+sample. Standardizing such an outcome puts the eligible subpopulation on
+the standard age distribution, which is the comparison that was
+wanted.</p>
+<p>Standardize before estimating subgroups, and note that a subgroup’s
+standardized estimate uses the standard’s age distribution, not the
+subgroup’s own. CDC’s published age-adjusted figures occasionally use a
+measure-specific age grouping rather than the six-group standard, so
+when matching a published table exactly, check the measure’s
+documentation first; the <code>age19</code> set covers the finer
+groupings.</p>
+<p>The whole-file estimates above are not fifty-state figures. The 2023
+public-use file covers 52 reporting areas, 48 states plus the District
+of Columbia, Guam, Puerto Rico, and the U.S. Virgin Islands, with
+Kentucky and Pennsylvania absent that year.
+<code><a href="../reference/brfss_year_info.html">brfss_year_info()</a></code> reports the jurisdiction count for every
+year in its <code>states</code> column, and the <code>datasets</code>
+article traces how coverage moved across the series; pass
+<code>states =</code> when the write-up claims a specific universe.</p>
+<p>Age adjustment is for comparison, not description. The crude estimate
+remains the actual burden in the population, and reports usually show
+both.</p>
 </div>
 <div class="section level2">
 <h2 id="sources">Sources<a class="anchor" aria-label="anchor" href="#sources"></a>

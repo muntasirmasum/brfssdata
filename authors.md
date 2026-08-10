@@ -14,7 +14,7 @@ Masum M (2026). *brfssdata: Access CDC Behavioral Risk Factor
 Surveillance System Data*. R package version 0.1.0,
 <https://muntasirmasum.github.io/brfssdata/>.
 
-    @Manual{,
+    @Manual{brfssdata,
       title = {{brfssdata}: Access CDC Behavioral Risk Factor Surveillance System Data},
       author = {Muntasir Masum},
       year = {2026},
@@ -27,7 +27,7 @@ Surveillance System Survey Data. Atlanta, Georgia: U.S. Department of
 Health and Human Services, Centers for Disease Control and Prevention,
 \[appropriate year\].
 
-    @Misc{,
+    @Misc{brfss,
       title = {Behavioral Risk Factor Surveillance System Survey Data},
       author = {{{Centers for Disease Control and Prevention (CDC)}}},
       year = {1985--2024},

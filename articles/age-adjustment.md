@@ -47,11 +47,27 @@ age-adjust adult BRFSS estimates.
 
 `_AGE_G` codes 1 through 6 correspond, in order, to the six rows of the
 `adult6` set, so the design carries everything standardization needs.
-One preparation step: `survey`’s post-stratification machinery wants
-syntactic, factor-typed grouping variables, and CDC’s names are neither,
-so make plain copies first (the same reason
+Two preparation steps go in one
+[`mutate()`](https://dplyr.tidyverse.org/reference/mutate.html).
+`survey`’s post-stratification machinery wants syntactic, factor-typed
+grouping variables, and CDC’s names are neither, so make a plain copy of
+the age variable first (the same reason
 [`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
-builds itself on `brfss_wt` and friends).
+builds itself on `brfss_wt` and friends). The outcome gets its own
+column at the same time, because
+[`svystandardize()`](https://rdrr.io/pkg/survey/man/svystandardize.html)
+has to be told which variable the estimate will use (see Cautions).
+
+Take the factor labels from the standard-population table rather than
+writing them out.
+[`svystandardize()`](https://rdrr.io/pkg/survey/man/svystandardize.html)
+matches `population` to the levels of `by` by position and never checks
+names, so a table sorted some other way is silently wrong rather than an
+error. What the whole pattern rests on is that `std` runs in ascending
+age order, which makes its row *i* the row for `_AGE_G` code *i*. The
+[`stopifnot()`](https://rdrr.io/r/base/stopifnot.html) below costs
+nothing and says so out loud, which matters if you filter or re-sort the
+table on the way in.
 
 ``` r
 
@@ -59,17 +75,22 @@ library(srvyr)
 library(survey)
 
 des <- brfss_design(2023, vars = c("GENHLTH", "_AGE_G"), quiet = TRUE) |>
-  mutate(age_group = factor(`_AGE_G`))
+  mutate(
+    age_group = factor(`_AGE_G`, levels = 1:6, labels = std$age_group),
+    fair_poor = GENHLTH >= 4
+  )
+
+stopifnot(!is.unsorted(std$age_min))
 ```
 
 The crude estimate first. Codes CDC uses for don’t know and refused are
-already `NA` here (`na = TRUE` is the design default), so `GENHLTH >= 4`
-is fair-or-poor health over substantive answers.
+already `NA` here (`na = TRUE` is the design default), so `fair_poor` is
+fair-or-poor health over substantive answers.
 
 ``` r
 
 des |>
-  summarize(fair_poor = survey_mean(GENHLTH >= 4, na.rm = TRUE))
+  summarize(fair_poor = survey_mean(fair_poor, na.rm = TRUE))
 #> # A tibble: 1 × 2
 #>   fair_poor fair_poor_se
 #>       <dbl>        <dbl>
@@ -87,16 +108,16 @@ std_des <- svystandardize(
   by = ~age_group,
   over = ~1,
   population = std$std_pop,
-  excluding.missing = ~age_group
+  excluding.missing = ~ fair_poor + age_group
 )
 
-svymean(~I(GENHLTH >= 4), std_des, na.rm = TRUE)
-#>                        mean     SE
-#> I(GENHLTH >= 4)FALSE 0.8154 0.0014
-#> I(GENHLTH >= 4)TRUE  0.1846 0.0014
+svymean(~fair_poor, std_des, na.rm = TRUE)
+#>                   mean     SE
+#> fair_poorFALSE 0.81538 0.0014
+#> fair_poorTRUE  0.18462 0.0014
 ```
 
-For a single national year the two differ modestly, because the sample’s
+Over the whole 2023 file the two differ modestly, because the sample’s
 weighted age distribution sits near the 2000 standard. The adjustment
 earns its keep in comparisons.
 
@@ -116,11 +137,17 @@ two <- brfss_design(
   states = c("FL", "UT"),
   quiet = TRUE
 ) |>
-  mutate(age_group = factor(`_AGE_G`), state = factor(`_STATE`))
+  mutate(
+    age_group = factor(`_AGE_G`, levels = 1:6, labels = std$age_group),
+    fair_poor = GENHLTH >= 4,
+    state = factor(`_STATE`)
+  )
+
+stopifnot(!is.unsorted(std$age_min))
 
 two |>
   group_by(state) |>
-  summarize(fair_poor = survey_mean(GENHLTH >= 4, na.rm = TRUE))
+  summarize(fair_poor = survey_mean(fair_poor, na.rm = TRUE))
 #> # A tibble: 2 × 3
 #>   state fair_poor fair_poor_se
 #>   <fct>     <dbl>        <dbl>
@@ -139,16 +166,13 @@ two_std <- svystandardize(
   by = ~age_group,
   over = ~state,
   population = std$std_pop,
-  excluding.missing = ~age_group
+  excluding.missing = ~ fair_poor + age_group
 )
 
-svyby(~I(GENHLTH >= 4), ~state, two_std, svymean, na.rm = TRUE)
-#>    state I(GENHLTH >= 4)FALSE I(GENHLTH >= 4)TRUE se.I(GENHLTH >= 4)FALSE
-#> 12    12            0.8225493           0.1774507             0.007683139
-#> 49    49            0.8569787           0.1430213             0.004393409
-#>    se.I(GENHLTH >= 4)TRUE
-#> 12            0.007683139
-#> 49            0.004393409
+svyby(~fair_poor, ~state, two_std, svymean, na.rm = TRUE)
+#>    state fair_poorFALSE fair_poorTRUE se.fair_poorFALSE se.fair_poorTRUE
+#> 12    12      0.8226126     0.1773874       0.007687164      0.007687164
+#> 49    49      0.8569790     0.1430210       0.004392674      0.004392674
 ```
 
 Florida’s estimate drops by more than a point once its older age
@@ -159,18 +183,50 @@ number CDC’s own age-adjusted tables report.
 
 ## Cautions
 
+`excluding.missing` has to name every variable the estimate will use,
+the outcome included.
 [`svystandardize()`](https://rdrr.io/pkg/survey/man/svystandardize.html)
-needs a complete age variable; `_AGE_G` is imputed by CDC and is
-complete in modern files, and `excluding.missing` guards the call
-anyway. Standardize before estimating subgroups, and note that a
-subgroup’s standardized estimate uses the standard’s age distribution,
-not the subgroup’s own. CDC’s published age-adjusted figures
-occasionally use a measure-specific age grouping rather than the
-six-group standard, so when matching a published table exactly, check
-the measure’s documentation first; the `age19` set covers the finer
-groupings. Age adjustment is for comparison, not description. The crude
-estimate remains the actual burden in the population, and reports
-usually show both.
+drops the rows that are missing on any variable in that formula and then
+computes the age weights over the survivors, so a variable left out of
+the formula is still carrying age weight at the moment `na.rm = TRUE`
+throws its row away. What comes back is then an average of the age-group
+means weighted by each group’s standard share times its weighted
+response rate, where direct standardization weights by the standard
+share alone. The two coincide only when item nonresponse is flat across
+the age groups, and it generally is not. Naming the age variable as
+well, as `~ fair_poor + age_group` does above, is also what makes the
+requirement of a complete age variable actually bite; `_AGE_G` is
+imputed by CDC and is complete in modern files, so nothing is dropped on
+that account here.
+
+The consequence is that a standardized design belongs to one outcome.
+Build a fresh `std_des` for each measure instead of reusing one across
+several, since the calibration is specific to the rows that measure
+answers. The discrepancy is small when an item is nearly complete and
+grows with age-patterned nonresponse, and it is largest for questions
+that sit behind a skip pattern and are put to only part of the sample.
+Standardizing such an outcome puts the eligible subpopulation on the
+standard age distribution, which is the comparison that was wanted.
+
+Standardize before estimating subgroups, and note that a subgroup’s
+standardized estimate uses the standard’s age distribution, not the
+subgroup’s own. CDC’s published age-adjusted figures occasionally use a
+measure-specific age grouping rather than the six-group standard, so
+when matching a published table exactly, check the measure’s
+documentation first; the `age19` set covers the finer groupings.
+
+The whole-file estimates above are not fifty-state figures. The 2023
+public-use file covers 52 reporting areas, 48 states plus the District
+of Columbia, Guam, Puerto Rico, and the U.S. Virgin Islands, with
+Kentucky and Pennsylvania absent that year.
+[`brfss_year_info()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_year_info.md)
+reports the jurisdiction count for every year in its `states` column,
+and the `datasets` article traces how coverage moved across the series;
+pass `states =` when the write-up claims a specific universe.
+
+Age adjustment is for comparison, not description. The crude estimate
+remains the actual burden in the population, and reports usually show
+both.
 
 ## Sources
 

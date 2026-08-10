@@ -583,6 +583,37 @@ zero-prevalence result.</p>
 rows would come back all <code>NA</code> for that column.</p>
 </div>
 <div class="section level2">
+<h2 id="known-limitations">Known limitations<a class="anchor" aria-label="anchor" href="#known-limitations"></a>
+</h2>
+<p>A few gaps are worth knowing before building on the collection.</p>
+<p>The files carry no upstream provenance yet.
+<code><a href="../reference/brfss_year_info.html">brfss_year_info()</a></code> reports what the hosted copy contains,
+but not the CDC URL it was built from, when it was retrieved, or the
+hash of the upstream Transport file, so there is no way from inside the
+package to tell which CDC revision of a year you are holding. Those
+columns are planned for the next data republish.</p>
+<p>Calculated variables keep CDC’s stored scaling. <code>_BMI5</code>
+and <code>_DRNKWK2</code> carry two implied decimal places, so a stored
+2704 is a BMI of 27.04, and nothing in the files or catalogs records
+that factor, nor units or valid ranges. The per-year CDC codebook,
+linked from <code>brfss_year_info()$codebook_url</code>, is the source
+for all three.</p>
+<p>Value labels stop at 1998, because CDC distributes no usable format
+libraries for earlier years. <code>na = TRUE</code> therefore has no
+catalog to consult before 1998 and warns rather than guessing; special
+codes in those years must be recoded by hand from CDC’s codebooks.</p>
+<p>Module analyses that require CDC’s questionnaire-version datasets and
+their <code>_LCPWTV1</code> to <code>_LCPWTV3</code> weights are not
+supported, because the hosted annual files do not include those weights.
+For the module weights the files do carry, the confinement check in
+<code><a href="../reference/brfss_design.html">brfss_design()</a></code> warns when a module variable is analyzed
+under a full-sample weight.</p>
+<p>Releases are not immutable. A corrected year replaces the published
+bytes under the same tag; the manifest checksum and the daily cache
+recheck notice the change, but there is no way yet to pin an analysis to
+an exact prior snapshot.</p>
+</div>
+<div class="section level2">
 <h2 id="citing-the-data">Citing the data<a class="anchor" aria-label="anchor" href="#citing-the-data"></a>
 </h2>
 <p>All data originate from the CDC BRFSS annual survey files, which are

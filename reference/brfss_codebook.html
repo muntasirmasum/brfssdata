@@ -113,6 +113,16 @@ subset), <code>concept</code>, and <code>related</code> (list-column of sibling
 generations from the crosswalk).</p>
     </div>
     <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>The card documents codes and labels only. It carries no units, no
+scale factor, and no valid range, so a calculated variable CDC
+stores scaled (<code>_BMI5</code> and <code>_DRNKWK2</code> carry two implied decimals)
+looks no different here from an unscaled one, and a range format
+lists its special codes without the ordinary values around them.
+Read magnitudes against CDC's codebook for the year, whose address
+is <code>brfss_year_info()$codebook_url</code>.</p>
+    </div>
+    <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="brfss_vars.html">brfss_vars()</a></code>, <code><a href="brfss_labels.html">brfss_labels()</a></code>, <code><a href="brfss_missing_codes.html">brfss_missing_codes()</a></code>,
 <code><a href="brfss_crosswalk.html">brfss_crosswalk()</a></code>.</p></div>

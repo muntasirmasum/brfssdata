@@ -7,6 +7,11 @@ react to exactly the situation they mean to and nothing else, e.g.
 `tryCatch(read_brfss(2023), brfssdata_download_error = \(e) NULL)` or
 `suppressWarnings(..., classes = "brfssdata_break_warning")`.
 
+`quiet = TRUE` never hides a signal about what the data mean; it
+suppresses progress and housekeeping output only. To silence a specific
+analytical note, suppress its class, e.g.
+`suppressMessages(read_brfss(2021:2022, vars = "_DRNKWK1"), classes = "brfssdata_rename_note")`.
+
 ## Errors
 
 - `brfssdata_bad_years_arg`:
@@ -49,7 +54,21 @@ react to exactly the situation they mean to and nothing else, e.g.
 
   `weight` in
   [`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
-  is malformed, or the column is absent from a requested year.
+  is malformed, requested outside the weight's published span, absent
+  from a requested year, or carries values that are not positive and
+  finite.
+
+- `brfssdata_unrecognized_weight`:
+
+  `weight` in
+  [`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
+  names a column that is not one of CDC's final analysis weights and
+  `unsafe_weight = TRUE` was not set. Also carries
+  `brfssdata_bad_weight`, so one handler catches every weight refusal.
+
+- `brfssdata_bad_unsafe_weight_arg`:
+
+  `unsafe_weight` is not `TRUE` or `FALSE`.
 
 - `brfssdata_bad_labels_arg`:
 
@@ -61,12 +80,22 @@ react to exactly the situation they mean to and nothing else, e.g.
 
 - `brfssdata_bad_option`:
 
-  `options(brfssdata.lonely_psu)` is not a single string.
+  `options(brfssdata.lonely_psu)` is not a single string, or
+  `options(brfssdata.module_weight_check)` is not `TRUE` or `FALSE`.
 
 - `brfssdata_bad_design_var`:
 
   A design variable (era weight, `_STSTR`, `_PSU`) is absent or carries
-  missing values, so no valid design can be built.
+  missing or invalid values, so no valid design can be built; for a
+  final analysis weight this points at a damaged file.
+
+- `brfssdata_no_eligible_rows`:
+
+  No rows are left to build a survey design: a `states` filter, or the
+  domain of a user-supplied `weight`, emptied the frame.
+  [`read_brfss()`](https://muntasirmasum.github.io/brfssdata/reference/read_brfss.md)
+  still returns the zero-row tibble, which is a usable answer; a
+  zero-row survey design is not constructible.
 
 - `brfssdata_break_error`:
 
@@ -114,18 +143,46 @@ react to exactly the situation they mean to and nothing else, e.g.
   `weight` in
   [`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
   names an intermediate stage of CDC's weighting pipeline (e.g.
-  `_LLCPWT2`, the truncated pre-raking design weight), not a final
-  analysis weight.
+  `_LLCPWT2`, the truncated pre-raking design weight), requested
+  deliberately via `unsafe_weight = TRUE`.
+
+- `brfssdata_unsafe_weight_warning`:
+
+  `weight` in
+  [`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md),
+  requested via `unsafe_weight = TRUE`, names a column that is neither a
+  final analysis weight nor a known pipeline stage; the estimates are
+  calibrated to nothing.
+
+- `brfssdata_module_weight_warning`:
+
+  A requested analysis variable has data almost only where a module
+  weight (`_CLLCPWT` and kin) is non-missing, but the design uses a
+  full-sample weight: very likely a module analysis under the wrong
+  weight. State-optional modules that CDC assigns to the core weight are
+  the legitimate exception. Disable with
+  `options(brfssdata.module_weight_check = FALSE)`.
 
 - `brfssdata_pooled_states_warning`:
 
   Pooled years differ in state participation, so totals mix coverage.
+  Participation is counted over the rows a user-supplied `weight`
+  covers, the population the design actually estimates, not over the
+  whole file.
 
 - `brfssdata_label_drift_warning`:
 
-  Label wording for a converted variable changed meaning (not just
-  formatting) across the requested years; the newest wording was
-  applied.
+  Label wording for a variable changed meaning (not just formatting)
+  across the requested years, so it kept CDC's numeric codes instead of
+  converting to a factor; read the years separately if each year's own
+  wording is wanted.
+
+- `brfssdata_na_coverage_warning`:
+
+  `na = TRUE` was requested for years before 1998, where no value-label
+  catalog exists at all, so no missing-type code was cleared there:
+  estimates over those years still contain CDC's don't-know and refused
+  codes.
 
 - `brfssdata_state_coverage_warning`:
 
@@ -139,7 +196,8 @@ react to exactly the situation they mean to and nothing else, e.g.
 
   Cache lifecycle notes: directory created, files removed by
   [`brfss_cache_clear()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_cache_dir.md),
-  a size-mismatched file or stale catalog re-downloaded, or the
+  a size-mismatched or checksum-failing cached file re-downloaded, a
+  stale catalog refreshed, or the
   [`brfss_download()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_download.md)
   summary.
 
@@ -170,9 +228,10 @@ react to exactly the situation they mean to and nothing else, e.g.
 
 - `brfssdata_na_coverage_note`:
 
-  `na = TRUE` was requested for years the value-label catalog does not
-  cover (before 1998) or covers only partially (1998), so codes there
-  passed through unchanged.
+  `na = TRUE` was requested for a year the value-label catalog covers
+  only partially (1998 covers under a quarter of its file's variables),
+  so codes in the uncatalogued variables passed through unchanged. Years
+  with no catalog at all raise `brfssdata_na_coverage_warning` instead.
 
 - `brfssdata_weight_subset_note`:
 
@@ -189,10 +248,23 @@ react to exactly the situation they mean to and nothing else, e.g.
   [`brfss_year_info()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_year_info.md))
   matched nothing.
 
+- `brfssdata_partial_match_note`:
+
+  Some requested variables in
+  [`brfss_labels()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_labels.md)
+  or
+  [`brfss_crosswalk()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_crosswalk.md)
+  matched nothing while others matched, so the returned rows cover the
+  matching variables only. Absence can be legitimate: continuous
+  variables have no label entries, and most variables belong to no
+  rename family.
+
 - `brfssdata_full_load_note`:
 
+  [`read_brfss()`](https://muntasirmasum.github.io/brfssdata/reference/read_brfss.md)
+  is loading every column because `vars` was not given;
   [`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
-  is loading every column because `vars` was not given.
+  passes `vars` through and inherits it.
 
 - `brfssdata_rename_note`:
 

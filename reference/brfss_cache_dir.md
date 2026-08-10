@@ -11,7 +11,14 @@ redirected with `options(brfssdata.cache_dir = ...)` or the
 
 - `brfss_cache_info()` lists cached files with their sizes. Rows with
   `year = NA` are the metadata files (the manifest and the variable and
-  label catalogs), not survey years.
+  label catalogs), not survey years. `verify = TRUE` also hashes each
+  file and compares it with the data manifest's checksum, adding a
+  `verified` column: `TRUE` on a match, `FALSE` on a mismatch, `NA`
+  where the manifest has no entry to compare against (the manifest
+  itself, foreign files, or a manifest published without hashes).
+  Hashing reads every byte, roughly two seconds for a full 40-year
+  cache, so it is off by default; the comparison uses the cached or
+  bundled manifest and never touches the network.
 
 - `brfss_cache_clear()` deletes cached survey years, all of them by
   default, and reports what it removed. The manifest and catalogs are
@@ -26,18 +33,25 @@ redirected with `options(brfssdata.cache_dir = ...)` or the
 ``` r
 brfss_cache_dir()
 
-brfss_cache_info()
+brfss_cache_info(verify = FALSE)
 
 brfss_cache_clear(years = NULL, catalogs = FALSE)
 ```
 
 ## Arguments
 
+- verify:
+
+  If `TRUE`, `brfss_cache_info()` hashes every cached file and adds the
+  `verified` column described above.
+
 - years:
 
   Optional integer vector. If supplied to `brfss_cache_clear()`, only
   those survey years are removed; `integer(0)` removes none (useful with
-  `catalogs = TRUE`).
+  `catalogs = TRUE`). Fractional, infinite, missing, or non-numeric
+  years are rejected (`brfssdata_bad_years_arg`) before anything is
+  deleted.
 
 - catalogs:
 
@@ -47,8 +61,9 @@ brfss_cache_clear(years = NULL, catalogs = FALSE)
 ## Value
 
 `brfss_cache_dir()` returns a path (character). `brfss_cache_info()`
-returns a tibble with columns `file`, `year`, and `size` (bytes).
-`brfss_cache_clear()` returns, invisibly, the paths it removed.
+returns a tibble with columns `file`, `year`, and `size` (bytes), plus
+`verified` (logical) under `verify = TRUE`. `brfss_cache_clear()`
+returns, invisibly, the paths it removed.
 
 ## Examples
 

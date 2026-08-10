@@ -463,7 +463,7 @@ it.</p>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> brfss_2023.parquet       <span style="text-decoration: underline;">2</span>023 29<span style="text-decoration: underline;">077</span>288</span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> brfss_labels.parquet       <span style="color: #BB0000;">NA</span>   <span style="text-decoration: underline;">119</span>739</span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> brfss_variables.parquet    <span style="color: #BB0000;">NA</span>    <span style="text-decoration: underline;">63</span>889</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> manifest.json              <span style="color: #BB0000;">NA</span>     <span style="text-decoration: underline;">6</span>561</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> manifest.json              <span style="color: #BB0000;">NA</span>     <span style="text-decoration: underline;">6</span>562</span></span></code></pre></div>
 <p>Because reads come from the cache, a year you have already downloaded
 is available with no network at all. Setting
 <code>download = FALSE</code> makes that explicit: cached years are read
@@ -525,16 +525,18 @@ for years before 2011 and <code>_LLCPWT</code> from 2011 on (a
 child weight <code>_CLLCPWT</code>, when CDC’s documentation calls for
 it; a module weight like that exists only for its module’s records, so
 the design subsets to the rows it covers and says how many were dropped;
-see <code><a href="../reference/brfss_design.html">?brfss_design</a></code> for that and for why the intermediate
-pipeline weights like <code>_LLCPWT2</code> warn). The design is built
-on three added columns, <code>brfss_wt</code>, <code>brfss_psu</code>,
-and <code>brfss_strata</code>, because CDC’s names are not syntactic and
+anything that is not a CDC final analysis weight, including intermediate
+pipeline stages like <code>_LLCPWT2</code>, is refused unless
+<code>unsafe_weight = TRUE</code> says you mean it; see
+<code><a href="../reference/brfss_design.html">?brfss_design</a></code>). The design is built on three added columns,
+<code>brfss_wt</code>, <code>brfss_psu</code>, and
+<code>brfss_strata</code>, because CDC’s names are not syntactic and
 cannot enter a model formula; the original CDC columns are kept
 alongside them, unchanged. The don’t-know and refused codes arrive as
 <code>NA</code> here by default (<code>na = TRUE</code>), which is why
 the filter above is on <code><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na()</a></code> and not on code ranges; pass
 <code>na = FALSE</code> for the raw codes.</p>
-<p>Two behaviors are worth knowing about up front. Because BRFSS
+<p>A few behaviors are worth knowing about up front. Because BRFSS
 public-use files make each respondent their own primary sampling unit,
 single-PSU strata are common and would otherwise make variance
 estimation fail, so <code><a href="../reference/brfss_design.html">brfss_design()</a></code> sets
@@ -543,13 +545,19 @@ unset, and says so once per session. Any value you set other than
 <code>"fail"</code> is respected as yours; <code>"fail"</code> is what
 the survey package itself installs on load, so it reads as unset, and
 <code>options(brfssdata.lonely_psu = ...)</code> is the way to pin any
-handling, <code>"fail"</code> included. And when you request several
-years, weights are divided by the number of years, so pooled estimates
-describe an average year rather than a summed population, while the
-strata become the year-by-stratum interaction, which treats each annual
-survey as an independent sample. Pass <code>pool_weights = FALSE</code>
-to leave the weights undivided; if state participation differs across
-the pooled years, a warning names the states involved.</p>
+handling, <code>"fail"</code> included. When you request several years,
+weights are divided by the number of years, so pooled estimates describe
+an average year rather than a summed population, while the strata become
+the year-by-stratum interaction, which treats each annual survey as an
+independent sample. Pass <code>pool_weights = FALSE</code> to leave the
+weights undivided; if state participation differs across the pooled
+years, a warning names the states involved. And when a requested
+variable has data almost only where a module weight such as
+<code>_CLLCPWT</code> does, a warning suggests that weight, because a
+module analysis under the full-sample default is very likely wrong;
+disable the check with
+<code>options(brfssdata.module_weight_check = FALSE)</code> if a
+state-optional module legitimately uses the core weight.</p>
 <div class="section level3">
 <h3 id="the-2011-boundary">The 2011 boundary<a class="anchor" aria-label="anchor" href="#the-2011-boundary"></a>
 </h3>

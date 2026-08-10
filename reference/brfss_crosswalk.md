@@ -56,7 +56,9 @@ A tibble with columns `concept` (family identifier), `variable`, `year`,
 `generation` (1, 2, ... in order of first appearance), `status`,
 `comparable`, and `note`, one row per variable-year. A lookup that
 matches nothing returns zero rows with a `brfssdata_empty_result`
-message.
+message. When only some requested variables belong to a family, the
+matching families are returned and a `brfssdata_partial_match_note`
+message names the ones with no entry.
 
 ## Reading the crosswalk
 

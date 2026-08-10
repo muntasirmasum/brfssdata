@@ -105,7 +105,10 @@ missing catalog raises an error instead of being downloaded.</p></dd>
     <p>A tibble with columns <code>year</code>, <code>variable</code>, <code>code</code>, <code>label</code>,
 and <code>complete</code>. A lookup that matches nothing returns zero rows and
 says so with a <code>brfssdata_empty_result</code> message (regardless of
-<code>quiet</code>, which governs download output only).</p>
+<code>quiet</code>, which governs download output only). When only some
+requested variables match, the matching rows are returned and a
+<code>brfssdata_partial_match_note</code> message names the ones with no
+entries, also regardless of <code>quiet</code>.</p>
     </div>
 
     <div class="section level2">

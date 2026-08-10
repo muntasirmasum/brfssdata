@@ -12,11 +12,14 @@ Every hosted file has a published sha256, twice over. The data manifest
 carries a per-asset hash that
 [`read_brfss()`](https://muntasirmasum.github.io/brfssdata/reference/read_brfss.md)
 verifies on every download, and each release asset also has a plain
-`.sha256` sidecar next to it, so the manifest can be checked against an
-independent channel. A weekly integration job downloads real years
-fresh, verifies the sidecars, re-asserts the recorded row counts, and
-computes the known-answer estimate below; the package does not ship
-until that passes.
+`.sha256` sidecar next to it. Both records come from the same hashing
+step at publish time, so the sidecar is a second copy, not a second
+opinion. What it catches is drift: a manifest and an asset that no
+longer agree after a partial republish, or either file corrupted in
+transport or storage. A weekly integration job downloads real years
+fresh, verifies the sidecars against the downloaded bytes, re-asserts
+the recorded row counts, and computes the known-answer estimate below;
+the package does not ship until that passes.
 
 ## Reproducing a published prevalence
 

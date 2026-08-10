@@ -3,14 +3,22 @@
 tibble. Each requested year is downloaded once into the local cache
 (see brfss_cache_dir()) and read from there afterwards; the query
 itself runs through DuckDB, so selecting a handful of variables from a
-300-plus column survey stays fast.
+300-plus column survey stays fast. Cached files are re-verified
+against the manifest's checksums at most once a day per session; a
+file that no longer matches is announced and re-downloaded verified.
+With download = FALSE nothing is checked, nothing is downloaded,
+and nothing is ever deleted.
 Different survey years carry different variable sets. When years are
 combined, variables absent from a year are filled with NA. A year
 column always identifies the survey year of each row."><meta property="og:description" content="Returns respondent-level BRFSS data for one or more survey years as a
 tibble. Each requested year is downloaded once into the local cache
 (see brfss_cache_dir()) and read from there afterwards; the query
 itself runs through DuckDB, so selecting a handful of variables from a
-300-plus column survey stays fast.
+300-plus column survey stays fast. Cached files are re-verified
+against the manifest's checksums at most once a day per session; a
+file that no longer matches is announced and re-downloaded verified.
+With download = FALSE nothing is checked, nothing is downloaded,
+and nothing is ever deleted.
 Different survey years carry different variable sets. When years are
 combined, variables absent from a year are filled with NA. A year
 column always identifies the survey year of each row."><meta property="og:image" content="https://muntasirmasum.github.io/brfssdata/logo.svg"></head><body>
@@ -62,7 +70,11 @@ column always identifies the survey year of each row."><meta property="og:image"
 tibble. Each requested year is downloaded once into the local cache
 (see <code><a href="brfss_cache_dir.html">brfss_cache_dir()</a></code>) and read from there afterwards; the query
 itself runs through DuckDB, so selecting a handful of variables from a
-300-plus column survey stays fast.</p>
+300-plus column survey stays fast. Cached files are re-verified
+against the manifest's checksums at most once a day per session; a
+file that no longer matches is announced and re-downloaded verified.
+With <code>download = FALSE</code> nothing is checked, nothing is downloaded,
+and nothing is ever deleted.</p>
 <p>Different survey years carry different variable sets. When years are
 combined, variables absent from a year are filled with <code>NA</code>. A <code>year</code>
 column always identifies the survey year of each row.</p>
@@ -115,7 +127,13 @@ years raise an error instead of being downloaded.</p></dd>
 
 
 <dt id="arg-quiet">quiet<a class="anchor" aria-label="anchor" href="#arg-quiet"></a></dt>
-<dd><p>If <code>TRUE</code>, suppress download progress output.</p></dd>
+<dd><p>If <code>TRUE</code>, suppress progress and housekeeping output:
+download progress, cache notes, the full-load hint, and the
+<code>na = TRUE</code> recode tally. Notes and warnings about what the data
+mean (renames, missing-code coverage, weight-domain subsetting)
+signal regardless of <code>quiet</code>; silence a specific one by its class,
+e.g. <code>suppressMessages(..., classes = "brfssdata_rename_note")</code>.
+See <a href="brfssdata-conditions.html">brfssdata-conditions</a> for every class.</p></dd>
 
 
 <dt id="arg-labels">labels<a class="anchor" aria-label="anchor" href="#arg-labels"></a></dt>
@@ -128,8 +146,15 @@ codes (most CDC code sets are non-contiguous, so the two disagree).
 <code>"both"</code> keeps the code in the level text (<code>"[1] Excellent"</code>) so it
 stays recoverable. A variable converts only when its format is a
 pure code-to-label map, its code set agrees across the requested
-years, and every observed value is covered; everything else keeps
-its numeric codes. Identifier and design columns (<code>_STATE</code>, the
+years, every observed value is covered, and its label wording did
+not change meaning across those years; everything else keeps its
+numeric codes. Wording that did change (CDC reused <code>COLNTES1</code>
+codes 3 to 5 for different screening intervals from 2022 on) keeps
+its codes too, with a <code>brfssdata_label_drift_warning</code> naming the
+variables; read those years separately if you want each year's own
+wording. Levels come from the newest requested year, so purely
+cosmetic rewording is shown in CDC's most recent phrasing.
+Identifier and design columns (<code>_STATE</code>, the
 weights, strata, and PSU) always keep numeric codes so filters like
 <code>_STATE == 6</code> keep working. See <code><a href="brfss_labels.html">brfss_labels()</a></code> for the catalog.</p></dd>
 

@@ -22,6 +22,7 @@ brfss_design(
   vars = NULL,
   states = NULL,
   weight = NULL,
+  unsafe_weight = FALSE,
   allow_break = FALSE,
   pool_weights = TRUE,
   download = TRUE,
@@ -67,7 +68,16 @@ brfss_design(
 
   Optional name of the weight column to use instead of the automatic era
   weight, e.g. `"_CLLCPWT"` for the child-level modules; matched
-  case-insensitively. See *Choosing a weight*.
+  case-insensitively. Must be one of CDC's final analysis weights unless
+  `unsafe_weight = TRUE`. See *Choosing a weight*.
+
+- unsafe_weight:
+
+  Set to `TRUE` to allow a `weight` that is not one of CDC's final
+  analysis weights (an intermediate pipeline stage, or any other numeric
+  column). The design still warns with a pointed class, and the values
+  must be positive and finite. Has no effect when `weight` names a final
+  weight.
 
 - allow_break:
 
@@ -86,7 +96,14 @@ brfss_design(
 
 - quiet:
 
-  If `TRUE`, suppress download progress output.
+  If `TRUE`, suppress progress and housekeeping output: download
+  progress, cache notes, the full-load hint, and the `na = TRUE` recode
+  tally. Notes and warnings about what the data mean (renames,
+  missing-code coverage, weight-domain subsetting) signal regardless of
+  `quiet`; silence a specific one by its class, e.g.
+  `suppressMessages(..., classes = "brfssdata_rename_note")`. See
+  [brfssdata-conditions](https://muntasirmasum.github.io/brfssdata/reference/brfssdata-conditions.md)
+  for every class.
 
 - labels:
 
@@ -99,10 +116,17 @@ brfss_design(
   non-contiguous, so the two disagree). `"both"` keeps the code in the
   level text (`"[1] Excellent"`) so it stays recoverable. A variable
   converts only when its format is a pure code-to-label map, its code
-  set agrees across the requested years, and every observed value is
-  covered; everything else keeps its numeric codes. Identifier and
-  design columns (`_STATE`, the weights, strata, and PSU) always keep
-  numeric codes so filters like `_STATE == 6` keep working. See
+  set agrees across the requested years, every observed value is
+  covered, and its label wording did not change meaning across those
+  years; everything else keeps its numeric codes. Wording that did
+  change (CDC reused `COLNTES1` codes 3 to 5 for different screening
+  intervals from 2022 on) keeps its codes too, with a
+  `brfssdata_label_drift_warning` naming the variables; read those years
+  separately if you want each year's own wording. Levels come from the
+  newest requested year, so purely cosmetic rewording is shown in CDC's
+  most recent phrasing. Identifier and design columns (`_STATE`, the
+  weights, strata, and PSU) always keep numeric codes so filters like
+  `_STATE == 6` keep working. See
   [`brfss_labels()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_labels.md)
   for the catalog.
 
@@ -126,14 +150,24 @@ are pooled). The original CDC columns are kept unchanged.
 
 ## Choosing a weight
 
-`_LLCPWT` is the final weight for the combined landline-and-cell sample
-and is correct for core-questionnaire analyses; `_FINALWT` is its
-pre-2011 counterpart. The files also carry the intermediate stages of
-CDC's weighting pipeline, such as `_STRWT`, `_WT2RAKE`, and `_LLCPWT2`
-(the truncated design weight, computed before raking). None of those is
-an analysis weight, estimates computed with one are not calibrated to
-CDC's population totals, and requesting one via `weight` triggers a
-classed warning.
+`weight` accepts CDC's final analysis weights: the full-sample weights
+`_FINALWT` (1985-2010) and `_LLCPWT` (2011 on), the domain weights
+`_CLLCPWT` (2011 on) and, for 2006-2010, `_CHILDWT` and `_HOUSEWT`, and
+the 2007 questionnaire-version weights `_FINALQ1`, `_FINALQ2`,
+`_CHILDQ1`, and `_CHILDQ2`. `_LLCPWT` is correct for core-questionnaire
+analyses of the combined landline-and-cell sample; `_FINALWT` is its
+pre-2011 counterpart. A final weight requested for years outside its
+published span fails before anything is downloaded, with the span named.
+
+The files also carry the intermediate stages of CDC's weighting
+pipeline, such as `_STRWT`, `_WT2RAKE`, and `_LLCPWT2` (the truncated
+design weight, computed before raking). None of those is an analysis
+weight, and estimates computed with one are not calibrated to CDC's
+population totals, so requesting one, or any other column that is not a
+final weight, is a classed error (`brfssdata_unrecognized_weight`)
+unless `unsafe_weight = TRUE` says you mean it. The override still warns
+with a pointed class, and the weight values must be positive and finite
+either way.
 
 Optional modules asked in states that fielded several questionnaire
 versions are published by CDC as separate version datasets (`LLCPyyV1`
@@ -142,18 +176,29 @@ Those datasets are not part of this package's hosted annual files, so
 version-specific module analyses need CDC's own downloads. The year's
 CDC module-analysis documentation ("Complex Sampling Weights and
 Preparing Module Data for Analysis") says which modules belong to the
-combined dataset, where the default `_LLCPWT` is correct. The `weight`
-argument overrides the era default for the final weights that do live in
-these files, e.g. `_CLLCPWT` for the child-level modules. A
-user-supplied weight defines its analytic domain: a module weight exists
-only for the records its module applies to (completed child interviews
-for `_CLLCPWT`, so most rows carry `NA` there), and the design subsets
-to the rows the weight covers, reporting the drop with a
+combined dataset, where the default `_LLCPWT` is correct. A
+user-supplied domain weight defines its analytic domain: a module weight
+exists only for the records its module applies to (completed child
+interviews for `_CLLCPWT`, so most rows carry `NA` there), and the
+design subsets to the rows the weight covers, reporting the drop with a
 `brfssdata_weight_subset_note` message, which matches CDC's
-module-analysis guidance. The automatic era weight gets no such
-treatment; a missing value there means a damaged file and stops the
-build. A user-supplied weight is used for every requested year and still
-divides by the year count under `pool_weights`.
+module-analysis guidance. An explicitly named full-sample weight
+(`_FINALWT`, `_LLCPWT`) gets the same treatment as the automatic era
+weight instead: it must cover every respondent, and a missing value
+there means a damaged file and stops the build. A user-supplied weight
+is used for every requested year and still divides by the year count
+under `pool_weights`.
+
+The reverse mistake, a module variable analyzed under a full-sample
+weight, is caught by a confinement check: when a requested variable has
+data almost only where a module weight is non-missing (2023 child asthma
+`CASTHDX2` sits inside `_CLLCPWT`'s records for 99.7% of its answers), a
+`brfssdata_module_weight_warning` names the module weight to consider.
+It warns rather than fails because state-optional modules that CDC
+assigns to the core weight produce the same shape; the year's
+module-analysis documentation settles those. The check runs only when
+`vars` is given and can be disabled with
+`options(brfssdata.module_weight_check = FALSE)`.
 
 CDC states that estimates from 2011 onward are not directly comparable
 to earlier years, because 2011 added cell-phone-only respondents and

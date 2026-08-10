@@ -87,6 +87,13 @@ Whether weighting matters depends on how strongly the quantity is
 related to the characteristics the weights correct for, and access to a
 regular provider is strongly related to age.
 
+Both quantities are estimated over the whole 2023 file, which covers 52
+reporting areas, 48 states plus the District of Columbia, Guam, Puerto
+Rico, and the U.S. Virgin Islands, since Kentucky and Pennsylvania are
+absent that year. Neither is a fifty-state number, and `states =`
+restricts the extract to a states-and-DC subset when that is the
+universe being described.
+
 ``` r
 
 des |>
@@ -214,28 +221,36 @@ column and cannot quietly pick up the wrong one.
 The files also carry the intermediate stages of CDC’s weighting
 pipeline, `_STRWT`, `_RAWRAKE`, `_WT2RAKE`, and `_LLCPWT2` (the
 truncated design weight, computed before raking). None of them is an
-analysis weight, an estimate computed with one is calibrated to nothing,
-and
+analysis weight and an estimate computed with one is calibrated to
+nothing, so
 [`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
-warns when a `weight` request names one. For optional modules the
-question is which dataset, not which column. When a state fielded
-several questionnaire versions, CDC publishes separate version datasets
-(`LLCP23V1` through `LLCP23V3` in 2023) with their own final weights
-(`_LCPWTV1` through `_LCPWTV3`); those files are not part of this
-collection, so version-specific module analyses need CDC’s own
-downloads. CDC’s annual “Complex Sampling Weights and Preparing Module
-Data for Analysis” document says which modules belong to the combined
-dataset, where the default `_LLCPWT` is correct, and the `weight`
-argument covers the final weights that do live in these files, such as
-the child weight (`weight = "_CLLCPWT"`). A module weight exists only
-for the records its module applies to (completed child interviews, about
-50,000 of 2023’s 433,323 rows), so the design subsets to the rows the
-requested weight covers and reports what it dropped, which is CDC’s own
-module-analysis guidance; the automatic era weight, by contrast, must
-cover everyone, and a missing value there stops the build. The
-missing-code handling is also on by default here (`na = TRUE`): the
-don’t-know and refused codes arrive as `NA`, so denominators cover
-substantive answers, with
+refuses any `weight` that is not one of CDC’s final analysis weights;
+`unsafe_weight = TRUE` is the deliberate override, and it still warns.
+For optional modules the question is which dataset, not which column.
+When a state fielded several questionnaire versions, CDC publishes
+separate version datasets (`LLCP23V1` through `LLCP23V3` in 2023) with
+their own final weights (`_LCPWTV1` through `_LCPWTV3`); those files are
+not part of this collection, so version-specific module analyses need
+CDC’s own downloads. CDC’s annual “Complex Sampling Weights and
+Preparing Module Data for Analysis” document says which modules belong
+to the combined dataset, where the default `_LLCPWT` is correct, and the
+`weight` argument covers the final weights that do live in these files,
+such as the child weight (`weight = "_CLLCPWT"`). A module weight exists
+only for the records its module applies to (completed child interviews,
+about 50,000 of 2023’s 433,323 rows), so the design subsets to the rows
+the requested weight covers and reports what it dropped, which is CDC’s
+own module-analysis guidance; the automatic era weight, by contrast,
+must cover everyone, and a missing value there stops the build. The
+reverse mistake is caught too: requesting a variable whose answers sit
+almost entirely inside a module weight’s records while the design uses
+the full-sample default draws a `brfssdata_module_weight_warning` naming
+the weight to consider (2023 child asthma under `_LLCPWT` instead of
+`_CLLCPWT` shifts prevalence by half a point). It warns rather than
+fails because state-optional modules that CDC assigns to the core weight
+produce the same shape; `options(brfssdata.module_weight_check = FALSE)`
+turns it off. The missing-code handling is also on by default here
+(`na = TRUE`): the don’t-know and refused codes arrive as `NA`, so
+denominators cover substantive answers, with
 [`brfss_missing_codes()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_missing_codes.md)
 as the audit trail and `na = FALSE` as the way back to the raw codes.
 

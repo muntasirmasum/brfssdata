@@ -45,7 +45,9 @@ brfss_labels(vars = NULL, years = NULL, download = TRUE, quiet = TRUE)
 A tibble with columns `year`, `variable`, `code`, `label`, and
 `complete`. A lookup that matches nothing returns zero rows and says so
 with a `brfssdata_empty_result` message (regardless of `quiet`, which
-governs download output only).
+governs download output only). When only some requested variables match,
+the matching rows are returned and a `brfssdata_partial_match_note`
+message names the ones with no entries, also regardless of `quiet`.
 
 ## Examples
 

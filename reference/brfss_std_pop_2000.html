@@ -93,7 +93,12 @@ for the open-ended top group.</p></dd>
 sums to 1).</p></dd>
 
 
-</dl></div>
+</dl><p>Rows run in ascending age order within each set, so the <code>adult6</code>
+rows are in <code>_AGE_G</code> code order (1 through 6), which is the order
+<code><a href="https://rdrr.io/pkg/survey/man/svystandardize.html" class="external-link">survey::svystandardize()</a></code> expects for its <code>population</code> argument
+(it matches that vector to the levels of <code>by</code> by position, without
+checking names).</p>
+    </div>
     <div class="section level2">
     <h2 id="source">Source<a class="anchor" aria-label="anchor" href="#source"></a></h2>
     <p>Aggregated from SEER's single-age rendering of the Census

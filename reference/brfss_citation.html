@@ -69,15 +69,18 @@ are validated against the cached or bundled manifest.</p>
 
 
 <dl><dt id="arg-years">years<a class="anchor" aria-label="anchor" href="#arg-years"></a></dt>
-<dd><p>Optional integer vector of survey years to cite.
-<code>NULL</code> cites the collection's span as a single entry.</p></dd>
+<dd><p>Optional integer vector of one or more survey years to
+cite. <code>NULL</code> cites the collection's span as a single entry.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A <code><a href="https://rdrr.io/r/utils/bibentry.html" class="external-link">utils::bibentry()</a></code> vector: one entry per requested year
 (or one spanning entry when <code>years = NULL</code>), then the package
-entry.</p>
+entry. Every entry carries a BibTeX key, <code>brfssdata</code> for the
+package, <code>brfss</code> for the spanning data entry, and <code>brfss2023</code> and
+the like for each requested year, so <code><a href="https://rdrr.io/r/utils/toLatex.html" class="external-link">toBibtex()</a></code> output drops
+into a <code>.bib</code> file unedited.</p>
     </div>
 
     <div class="section level2">
@@ -91,7 +94,7 @@ entry.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Surveillance System Data_. R package version 0.1.0,</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;https://muntasirmasum.github.io/brfssdata/&gt;.</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/toLatex.html" class="external-link">toBibtex</a></span><span class="op">(</span><span class="fu">brfss_citation</span><span class="op">(</span><span class="fl">2022</span><span class="op">:</span><span class="fl">2023</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> @Misc{,</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> @Misc{brfss2022,</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   title = {Behavioral Risk Factor Surveillance System Survey Data, 2022},</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   author = {{Centers for Disease Control and Prevention (CDC)}},</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   year = {2022},</span>
@@ -100,7 +103,7 @@ entry.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   url = {https://www.cdc.gov/brfss/},</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> }</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> @Misc{,</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> @Misc{brfss2023,</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   title = {Behavioral Risk Factor Surveillance System Survey Data, 2023},</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   author = {{Centers for Disease Control and Prevention (CDC)}},</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   year = {2023},</span>
@@ -109,7 +112,7 @@ entry.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   url = {https://www.cdc.gov/brfss/},</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> }</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> @Manual{,</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> @Manual{brfssdata,</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   title = {{brfssdata}: Access CDC Behavioral Risk Factor Surveillance System Data},</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   author = {Muntasir Masum},</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   year = {2026},</span>

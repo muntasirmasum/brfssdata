@@ -90,11 +90,14 @@ how, because the strongest validation is the one you run yourself.</p>
 <p>Every hosted file has a published sha256, twice over. The data
 manifest carries a per-asset hash that <code><a href="../reference/read_brfss.html">read_brfss()</a></code>
 verifies on every download, and each release asset also has a plain
-<code>.sha256</code> sidecar next to it, so the manifest can be checked
-against an independent channel. A weekly integration job downloads real
-years fresh, verifies the sidecars, re-asserts the recorded row counts,
-and computes the known-answer estimate below; the package does not ship
-until that passes.</p>
+<code>.sha256</code> sidecar next to it. Both records come from the same
+hashing step at publish time, so the sidecar is a second copy, not a
+second opinion. What it catches is drift: a manifest and an asset that
+no longer agree after a partial republish, or either file corrupted in
+transport or storage. A weekly integration job downloads real years
+fresh, verifies the sidecars against the downloaded bytes, re-asserts
+the recorded row counts, and computes the known-answer estimate below;
+the package does not ship until that passes.</p>
 </div>
 <div class="section level2">
 <h2 id="reproducing-a-published-prevalence">Reproducing a published prevalence<a class="anchor" aria-label="anchor" href="#reproducing-a-published-prevalence"></a>

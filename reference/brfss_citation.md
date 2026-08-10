@@ -18,14 +18,18 @@ brfss_citation(years = NULL)
 
 - years:
 
-  Optional integer vector of survey years to cite. `NULL` cites the
-  collection's span as a single entry.
+  Optional integer vector of one or more survey years to cite. `NULL`
+  cites the collection's span as a single entry.
 
 ## Value
 
 A [`utils::bibentry()`](https://rdrr.io/r/utils/bibentry.html) vector:
 one entry per requested year (or one spanning entry when
-`years = NULL`), then the package entry.
+`years = NULL`), then the package entry. Every entry carries a BibTeX
+key, `brfssdata` for the package, `brfss` for the spanning data entry,
+and `brfss2023` and the like for each requested year, so
+[`toBibtex()`](https://rdrr.io/r/utils/toLatex.html) output drops into a
+`.bib` file unedited.
 
 ## Examples
 
@@ -39,7 +43,7 @@ brfss_citation(2023)
 #> Surveillance System Data_. R package version 0.1.0,
 #> <https://muntasirmasum.github.io/brfssdata/>.
 toBibtex(brfss_citation(2022:2023))
-#> @Misc{,
+#> @Misc{brfss2022,
 #>   title = {Behavioral Risk Factor Surveillance System Survey Data, 2022},
 #>   author = {{Centers for Disease Control and Prevention (CDC)}},
 #>   year = {2022},
@@ -48,7 +52,7 @@ toBibtex(brfss_citation(2022:2023))
 #>   url = {https://www.cdc.gov/brfss/},
 #> }
 #> 
-#> @Misc{,
+#> @Misc{brfss2023,
 #>   title = {Behavioral Risk Factor Surveillance System Survey Data, 2023},
 #>   author = {{Centers for Disease Control and Prevention (CDC)}},
 #>   year = {2023},
@@ -57,7 +61,7 @@ toBibtex(brfss_citation(2022:2023))
 #>   url = {https://www.cdc.gov/brfss/},
 #> }
 #> 
-#> @Manual{,
+#> @Manual{brfssdata,
 #>   title = {{brfssdata}: Access CDC Behavioral Risk Factor Surveillance System Data},
 #>   author = {Muntasir Masum},
 #>   year = {2026},

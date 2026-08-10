@@ -49,6 +49,16 @@ A tibble of class `brfss_codebook` with columns `variable`, `label`
 `missing_codes` (list-column, the `missing` subset), `concept`, and
 `related` (list-column of sibling generations from the crosswalk).
 
+## Details
+
+The card documents codes and labels only. It carries no units, no scale
+factor, and no valid range, so a calculated variable CDC stores scaled
+(`_BMI5` and `_DRNKWK2` carry two implied decimals) looks no different
+here from an unscaled one, and a range format lists its special codes
+without the ordinary values around them. Read magnitudes against CDC's
+codebook for the year, whose address is
+`brfss_year_info()$codebook_url`.
+
 ## See also
 
 [`brfss_vars()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_vars.md),

@@ -5,7 +5,10 @@ tibble. Each requested year is downloaded once into the local cache (see
 [`brfss_cache_dir()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_cache_dir.md))
 and read from there afterwards; the query itself runs through DuckDB, so
 selecting a handful of variables from a 300-plus column survey stays
-fast.
+fast. Cached files are re-verified against the manifest's checksums at
+most once a day per session; a file that no longer matches is announced
+and re-downloaded verified. With `download = FALSE` nothing is checked,
+nothing is downloaded, and nothing is ever deleted.
 
 Different survey years carry different variable sets. When years are
 combined, variables absent from a year are filled with `NA`. A `year`
@@ -61,7 +64,14 @@ read_brfss(
 
 - quiet:
 
-  If `TRUE`, suppress download progress output.
+  If `TRUE`, suppress progress and housekeeping output: download
+  progress, cache notes, the full-load hint, and the `na = TRUE` recode
+  tally. Notes and warnings about what the data mean (renames,
+  missing-code coverage, weight-domain subsetting) signal regardless of
+  `quiet`; silence a specific one by its class, e.g.
+  `suppressMessages(..., classes = "brfssdata_rename_note")`. See
+  [brfssdata-conditions](https://muntasirmasum.github.io/brfssdata/reference/brfssdata-conditions.md)
+  for every class.
 
 - labels:
 
@@ -74,10 +84,17 @@ read_brfss(
   non-contiguous, so the two disagree). `"both"` keeps the code in the
   level text (`"[1] Excellent"`) so it stays recoverable. A variable
   converts only when its format is a pure code-to-label map, its code
-  set agrees across the requested years, and every observed value is
-  covered; everything else keeps its numeric codes. Identifier and
-  design columns (`_STATE`, the weights, strata, and PSU) always keep
-  numeric codes so filters like `_STATE == 6` keep working. See
+  set agrees across the requested years, every observed value is
+  covered, and its label wording did not change meaning across those
+  years; everything else keeps its numeric codes. Wording that did
+  change (CDC reused `COLNTES1` codes 3 to 5 for different screening
+  intervals from 2022 on) keeps its codes too, with a
+  `brfssdata_label_drift_warning` naming the variables; read those years
+  separately if you want each year's own wording. Levels come from the
+  newest requested year, so purely cosmetic rewording is shown in CDC's
+  most recent phrasing. Identifier and design columns (`_STATE`, the
+  weights, strata, and PSU) always keep numeric codes so filters like
+  `_STATE == 6` keep working. See
   [`brfss_labels()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_labels.md)
   for the catalog.
 

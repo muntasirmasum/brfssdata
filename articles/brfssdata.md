@@ -445,7 +445,7 @@ brfss_cache_info()
 #> 3 brfss_2023.parquet       2023 29077288
 #> 4 brfss_labels.parquet       NA   119739
 #> 5 brfss_variables.parquet    NA    63889
-#> 6 manifest.json              NA     6561
+#> 6 manifest.json              NA     6562
 ```
 
 Because reads come from the cache, a year you have already downloaded is
@@ -524,32 +524,39 @@ before 2011 and `_LLCPWT` from 2011 on (a `weight` argument selects
 another final weight, such as the child weight `_CLLCPWT`, when CDC’s
 documentation calls for it; a module weight like that exists only for
 its module’s records, so the design subsets to the rows it covers and
-says how many were dropped; see
-[`?brfss_design`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
-for that and for why the intermediate pipeline weights like `_LLCPWT2`
-warn). The design is built on three added columns, `brfss_wt`,
-`brfss_psu`, and `brfss_strata`, because CDC’s names are not syntactic
-and cannot enter a model formula; the original CDC columns are kept
-alongside them, unchanged. The don’t-know and refused codes arrive as
-`NA` here by default (`na = TRUE`), which is why the filter above is on
+says how many were dropped; anything that is not a CDC final analysis
+weight, including intermediate pipeline stages like `_LLCPWT2`, is
+refused unless `unsafe_weight = TRUE` says you mean it; see
+[`?brfss_design`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)).
+The design is built on three added columns, `brfss_wt`, `brfss_psu`, and
+`brfss_strata`, because CDC’s names are not syntactic and cannot enter a
+model formula; the original CDC columns are kept alongside them,
+unchanged. The don’t-know and refused codes arrive as `NA` here by
+default (`na = TRUE`), which is why the filter above is on
 [`is.na()`](https://rdrr.io/r/base/NA.html) and not on code ranges; pass
 `na = FALSE` for the raw codes.
 
-Two behaviors are worth knowing about up front. Because BRFSS public-use
-files make each respondent their own primary sampling unit, single-PSU
-strata are common and would otherwise make variance estimation fail, so
+A few behaviors are worth knowing about up front. Because BRFSS
+public-use files make each respondent their own primary sampling unit,
+single-PSU strata are common and would otherwise make variance
+estimation fail, so
 [`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
 sets `options(survey.lonely.psu = "adjust")` if the option is unset, and
 says so once per session. Any value you set other than `"fail"` is
 respected as yours; `"fail"` is what the survey package itself installs
 on load, so it reads as unset, and `options(brfssdata.lonely_psu = ...)`
-is the way to pin any handling, `"fail"` included. And when you request
+is the way to pin any handling, `"fail"` included. When you request
 several years, weights are divided by the number of years, so pooled
 estimates describe an average year rather than a summed population,
 while the strata become the year-by-stratum interaction, which treats
 each annual survey as an independent sample. Pass `pool_weights = FALSE`
 to leave the weights undivided; if state participation differs across
-the pooled years, a warning names the states involved.
+the pooled years, a warning names the states involved. And when a
+requested variable has data almost only where a module weight such as
+`_CLLCPWT` does, a warning suggests that weight, because a module
+analysis under the full-sample default is very likely wrong; disable the
+check with `options(brfssdata.module_weight_check = FALSE)` if a
+state-optional module legitimately uses the core weight.
 
 ### The 2011 boundary
 
