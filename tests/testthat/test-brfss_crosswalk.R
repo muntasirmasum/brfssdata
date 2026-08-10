@@ -103,3 +103,24 @@ test_that("the rename note never touches the network", {
     class = "brfssdata_rename_note"
   )
 })
+
+test_that("a partial match returns the family and names the misses", {
+  # GENHLTH kept one name throughout, so it legitimately has no entry;
+  # without a signal that absence is indistinguishable from a typo.
+  local_brfss_cache(c(2022, 2023))
+  msg <- expect_message(
+    out <- brfss_crosswalk(c("OLDGEN", "GENHLTH")),
+    class = "brfssdata_partial_match_note"
+  )
+  expect_match(conditionMessage(msg), "GENHLTH")
+  expect_gt(nrow(out), 0)
+  expect_false("GENHLTH" %in% out$variable)
+})
+
+test_that("a full family match emits no partial-match note", {
+  local_brfss_cache(c(2022, 2023))
+  expect_no_message(
+    brfss_crosswalk("OLDGEN"),
+    class = "brfssdata_partial_match_note"
+  )
+})

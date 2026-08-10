@@ -78,7 +78,10 @@
 #'   `variable`, `year`, `generation` (1, 2, ... in order of first
 #'   appearance), `status`, `comparable`, and `note`, one row per
 #'   variable-year. A lookup that matches nothing returns zero rows
-#'   with a `brfssdata_empty_result` message.
+#'   with a `brfssdata_empty_result` message. When only some requested
+#'   variables belong to a family, the matching families are returned
+#'   and a `brfssdata_partial_match_note` message names the ones with
+#'   no entry.
 #'
 #' @examples
 #' # The whole family, from any member's name. download = FALSE reads
@@ -104,7 +107,13 @@ brfss_crosswalk <- function(
     years <- check_years_arg(years)
   }
   xwalk <- crosswalk_catalog(download = download, quiet = quiet)
+  unmatched <- character(0)
   if (!is.null(vars)) {
+    # Membership judged against the whole catalog, before the years
+    # filter: a family exists or it does not, regardless of which rows
+    # the years filter keeps.
+    vars_u <- unique(vars)
+    unmatched <- vars_u[!toupper(vars_u) %in% toupper(xwalk$variable)]
     concepts <- unique(
       xwalk$concept[toupper(xwalk$variable) %in% toupper(vars)]
     )
@@ -112,6 +121,25 @@ brfss_crosswalk <- function(
   }
   if (!is.null(years)) {
     xwalk <- xwalk[xwalk$year %in% years, , drop = FALSE]
+  }
+  # A miss hiding inside a non-empty result is indistinguishable from a
+  # typo without a signal. Exactly one signal per call; an all-miss
+  # lookup gets only the empty-result message below. Quiet-independent,
+  # like that message.
+  if (nrow(xwalk) > 0 && length(unmatched) > 0) {
+    n_miss <- length(unmatched)
+    n_matched <- length(vars_u) - n_miss
+    cli::cli_inform(
+      c(
+        "{cli::qty(n_miss)}Variable{?s} {.val {unmatched}}
+         {cli::qty(n_miss)}{?belongs/belong} to no rename family;
+         {cli::qty(n_matched)}the other requested variable{?s} matched.",
+        "i" = "Most variables were never renamed, so no entry is the
+               common case; the crosswalk lists a variable only when
+               CDC renamed it. Search names with {.fun brfss_vars}."
+      ),
+      class = "brfssdata_partial_match_note"
+    )
   }
   if (nrow(xwalk) == 0 && (!is.null(vars) || !is.null(years))) {
     cli::cli_inform(

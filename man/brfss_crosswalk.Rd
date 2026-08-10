@@ -25,7 +25,10 @@ A tibble with columns \code{concept} (family identifier),
 \code{variable}, \code{year}, \code{generation} (1, 2, ... in order of first
 appearance), \code{status}, \code{comparable}, and \code{note}, one row per
 variable-year. A lookup that matches nothing returns zero rows
-with a \code{brfssdata_empty_result} message.
+with a \code{brfssdata_empty_result} message. When only some requested
+variables belong to a family, the matching families are returned
+and a \code{brfssdata_partial_match_note} message names the ones with
+no entry.
 }
 \description{
 CDC renames a variable when its definition or its questionnaire

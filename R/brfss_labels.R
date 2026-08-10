@@ -24,7 +24,10 @@
 #' @return A tibble with columns `year`, `variable`, `code`, `label`,
 #'   and `complete`. A lookup that matches nothing returns zero rows and
 #'   says so with a `brfssdata_empty_result` message (regardless of
-#'   `quiet`, which governs download output only).
+#'   `quiet`, which governs download output only). When only some
+#'   requested variables match, the matching rows are returned and a
+#'   `brfssdata_partial_match_note` message names the ones with no
+#'   entries, also regardless of `quiet`.
 #'
 #' @examples
 #' # download = FALSE reads the cached catalog, or the snapshot bundled
@@ -58,9 +61,30 @@ brfss_labels <- function(
   if (!is.null(years)) {
     catalog <- catalog[catalog$year %in% years, , drop = FALSE]
   }
+  unmatched <- character(0)
   if (!is.null(vars)) {
+    vars_u <- unique(vars)
+    unmatched <- vars_u[!toupper(vars_u) %in% toupper(catalog$variable)]
     keep <- toupper(catalog$variable) %in% toupper(vars)
     catalog <- catalog[keep, , drop = FALSE]
+  }
+  # A miss hiding inside a non-empty result is the dangerous silent
+  # case: rows came back, so nothing looks wrong. Exactly one signal
+  # per call; an all-miss lookup gets only the empty-result message
+  # below. Quiet-independent, like that message.
+  if (nrow(catalog) > 0 && length(unmatched) > 0) {
+    n_matched <- length(vars_u) - length(unmatched)
+    scope <- if (is.null(years)) "" else " in the requested years"
+    cli::cli_inform(
+      c(
+        "No label entries for {.val {unmatched}}{scope};
+         {cli::qty(n_matched)}the other requested variable{?s} matched.",
+        "i" = "Absence can be legitimate: continuous variables have no
+               label entries, and labels cover 1998 on. Search names
+               with {.fun brfss_vars}."
+      ),
+      class = "brfssdata_partial_match_note"
+    )
   }
   if (nrow(catalog) == 0 && (!is.null(vars) || !is.null(years))) {
     cli::cli_inform(

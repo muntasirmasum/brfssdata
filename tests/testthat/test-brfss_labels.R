@@ -279,3 +279,33 @@ test_that("a matching lookup stays silent", {
     class = "brfssdata_empty_result"
   )
 })
+
+test_that("a partial match keeps the matching rows and names the misses", {
+  local_brfss_cache(2023)
+  msg <- expect_message(
+    out <- brfss_labels(c("GENHLTH", "NOSUCHVAR"), years = 2023),
+    class = "brfssdata_partial_match_note"
+  )
+  expect_match(conditionMessage(msg), "NOSUCHVAR")
+  expect_true(all(out$variable == "GENHLTH"))
+  expect_gt(nrow(out), 0)
+})
+
+test_that("a full match emits no partial-match note", {
+  local_brfss_cache(2023)
+  expect_no_message(
+    brfss_labels("GENHLTH", years = 2023),
+    class = "brfssdata_partial_match_note"
+  )
+})
+
+test_that("a full miss signals only the empty result", {
+  local_brfss_cache(2023)
+  expect_no_message(
+    expect_message(
+      brfss_labels("NOSUCHVAR", years = 2023),
+      class = "brfssdata_empty_result"
+    ),
+    class = "brfssdata_partial_match_note"
+  )
+})

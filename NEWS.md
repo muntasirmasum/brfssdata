@@ -108,6 +108,14 @@ Initial CRAN release.
   citations, each with a stable BibTeX key (`brfss2023` and the like,
   and `brfssdata` for the package), so `toBibtex()` output drops into a
   `.bib` file unedited.
+* `brfss_labels()` and `brfss_crosswalk()` say so when only some
+  requested variables match (`brfssdata_partial_match_note`), naming
+  the ones with no entries, instead of silently returning rows for the
+  rest. A miss can be legitimate (continuous variables have no label
+  entries; most variables belong to no rename family), which is
+  exactly why it deserves a note rather than silence: without one, a
+  legitimate absence and a typo look identical.
+  `brfss_missing_codes()` inherits the note.
 * `brfss_citation(integer(0))` errors with `brfssdata_bad_years_arg`
   instead of returning a malformed, data-free citation list with no
   signal that nothing was cited.

@@ -143,6 +143,12 @@
 #'   \item{`brfssdata_empty_result`}{A metadata lookup
 #'     ([brfss_labels()], [brfss_crosswalk()], [brfss_year_info()])
 #'     matched nothing.}
+#'   \item{`brfssdata_partial_match_note`}{Some requested variables in
+#'     [brfss_labels()] or [brfss_crosswalk()] matched nothing while
+#'     others matched, so the returned rows cover the matching
+#'     variables only. Absence can be legitimate: continuous variables
+#'     have no label entries, and most variables belong to no rename
+#'     family.}
 #'   \item{`brfssdata_full_load_note`}{[read_brfss()] is loading every
 #'     column because `vars` was not given; [brfss_design()] passes
 #'     `vars` through and inherits it.}

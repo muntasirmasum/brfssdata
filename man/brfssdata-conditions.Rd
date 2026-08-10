@@ -150,6 +150,12 @@ module-analysis guidance.}
 \item{\code{brfssdata_empty_result}}{A metadata lookup
 (\code{\link[=brfss_labels]{brfss_labels()}}, \code{\link[=brfss_crosswalk]{brfss_crosswalk()}}, \code{\link[=brfss_year_info]{brfss_year_info()}})
 matched nothing.}
+\item{\code{brfssdata_partial_match_note}}{Some requested variables in
+\code{\link[=brfss_labels]{brfss_labels()}} or \code{\link[=brfss_crosswalk]{brfss_crosswalk()}} matched nothing while
+others matched, so the returned rows cover the matching
+variables only. Absence can be legitimate: continuous variables
+have no label entries, and most variables belong to no rename
+family.}
 \item{\code{brfssdata_full_load_note}}{\code{\link[=read_brfss]{read_brfss()}} is loading every
 column because \code{vars} was not given; \code{\link[=brfss_design]{brfss_design()}} passes
 \code{vars} through and inherits it.}

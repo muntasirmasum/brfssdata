@@ -369,3 +369,12 @@ test_that("a malformed years argument names brfss_missing_codes()", {
   )
   expect_match(conditionMessage(err), "years")
 })
+
+test_that("the partial-match note passes through brfss_missing_codes()", {
+  local_brfss_cache(2023)
+  expect_message(
+    out <- brfss_missing_codes(c("GENHLTH", "NOSUCHVAR"), years = 2023),
+    class = "brfssdata_partial_match_note"
+  )
+  expect_true(all(out$variable == "GENHLTH"))
+})

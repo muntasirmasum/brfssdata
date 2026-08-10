@@ -23,7 +23,10 @@ missing catalog raises an error instead of being downloaded.}
 A tibble with columns \code{year}, \code{variable}, \code{code}, \code{label},
 and \code{complete}. A lookup that matches nothing returns zero rows and
 says so with a \code{brfssdata_empty_result} message (regardless of
-\code{quiet}, which governs download output only).
+\code{quiet}, which governs download output only). When only some
+requested variables match, the matching rows are returned and a
+\code{brfssdata_partial_match_note} message names the ones with no
+entries, also regardless of \code{quiet}.
 }
 \description{
 Returns the value-label catalog that accompanies the data releases:
