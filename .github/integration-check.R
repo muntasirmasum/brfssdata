@@ -146,18 +146,22 @@ if (!anyNA(frt$`_FRTLT1A`)) {
 }
 message("_FRTLT1A missing bucket cleared under na = TRUE")
 
-# 10. na = TRUE on a pre-catalog year announces its own no-op.
-seen_note <- FALSE
+# 10. na = TRUE on a pre-catalog year announces its own no-op. Years
+#     with no catalog at all are warning-grade
+#     (brfssdata_na_coverage_warning); the milder
+#     brfssdata_na_coverage_note is reserved for partially covered
+#     years like 1998.
+seen_warning <- FALSE
 invisible(withCallingHandlers(
   read_brfss(1993L, vars = "GENHLTH", na = TRUE),
-  brfssdata_na_coverage_note = function(m) {
-    seen_note <<- TRUE
-    invokeRestart("muffleMessage")
+  brfssdata_na_coverage_warning = function(w) {
+    seen_warning <<- TRUE
+    invokeRestart("muffleWarning")
   }
 ))
-if (!seen_note) {
-  fail("1993 na = TRUE emitted no coverage note")
+if (!seen_warning) {
+  fail("1993 na = TRUE emitted no coverage warning")
 }
-message("pre-1998 coverage note fires")
+message("pre-1998 coverage warning fires")
 
 message("integration check passed")

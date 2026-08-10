@@ -68,9 +68,9 @@
 #'   estimates over raw codes are almost never what an analyst wants.)
 #'   Code 88/888 ("None") means zero, is never touched, and needs
 #'   recoding to 0 by hand before averaging count variables. Labels
-#'   cover 1998 on, so earlier years pass through unchanged, and a
-#'   request touching years the catalog does not cover (or, like 1998,
-#'   covers only partially) says so with a
+#'   cover 1998 on, so earlier years pass through unchanged and say so
+#'   with a `brfssdata_na_coverage_warning` warning; a request touching
+#'   a year the catalog covers only partially (like 1998) raises a
 #'   `brfssdata_na_coverage_note` message rather than staying silent.
 #'
 #' @return A tibble with one row per respondent and a `year` column.
