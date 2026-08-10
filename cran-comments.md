@@ -11,7 +11,8 @@ standard statistical term for respondent-level records.
 
 ## Test environments
 
-* local macOS (aarch64), R 4.6.1: 0 errors, 0 warnings, 0 notes
+* local macOS (aarch64), R 4.6.1 (2026-08-09): 0 errors, 0 warnings,
+  0 notes; test suite 626 passing, 0 failing, 0 skipped
 * GitHub Actions: ubuntu-latest (R 4.2, release, devel, oldrel-1),
   windows-latest (release), macos-latest (release): all passing
 * win-builder (devel): 1 note (the DESCRIPTION spelling
