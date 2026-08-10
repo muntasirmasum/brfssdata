@@ -10,7 +10,7 @@
 #' `quiet = TRUE` never hides a signal about what the data mean; it
 #' suppresses progress and housekeeping output only. To silence a
 #' specific analytical note, suppress its class, e.g.
-#' `suppressMessages(read_brfss(2022:2023, vars = "_DRNKWK1"),
+#' `suppressMessages(read_brfss(2021:2022, vars = "_DRNKWK1"),
 #' classes = "brfssdata_rename_note")`.
 #'
 #' @section Errors:
