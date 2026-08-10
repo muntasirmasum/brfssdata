@@ -155,6 +155,20 @@ Initial CRAN release.
   proportions cover substantive answers; `read_brfss()` defaults to
   `na = FALSE` and returns the file as published. The exported
   `brfss_missing_codes()` lists exactly which codes are affected.
+* `quiet = TRUE` governs progress and housekeeping output only:
+  download progress, cache notes, the full-load hint, and the recode
+  tally. Signals about what the data mean fire regardless of `quiet`:
+  the rename note, the missing-code coverage signals, and the
+  weight-domain subset note. Previously all three were suppressed by
+  `quiet = TRUE`, which every article passed, so a
+  `brfss_design(weight = "_CLLCPWT", quiet = TRUE)` call could
+  silently estimate a different population. Requesting `na = TRUE`
+  for years before 1998, where no value-label catalog exists, is now
+  a classed warning (`brfssdata_na_coverage_warning`) rather than a
+  message: nothing was cleared there, and a 1993 `PHYSHLTH` mean with
+  the 77/99 codes left in is materially wrong. Silence any of these
+  by class, e.g.
+  `suppressMessages(..., classes = "brfssdata_rename_note")`.
 * `brfss_labels()` exposes CDC's value-label catalog (1998-2024), and
   `labels = TRUE` converts variables with safe one-to-one maps to
   factors; ambiguous maps keep their numeric codes. `labels = "both"`

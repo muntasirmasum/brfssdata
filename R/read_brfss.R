@@ -29,7 +29,13 @@
 #'   rather than returning silently fewer rows.
 #' @param download If `FALSE`, only cached years are used and missing
 #'   years raise an error instead of being downloaded.
-#' @param quiet If `TRUE`, suppress download progress output.
+#' @param quiet If `TRUE`, suppress progress and housekeeping output:
+#'   download progress, cache notes, the full-load hint, and the
+#'   `na = TRUE` recode tally. Notes and warnings about what the data
+#'   mean (renames, missing-code coverage, weight-domain subsetting)
+#'   signal regardless of `quiet`; silence a specific one by its class,
+#'   e.g. `suppressMessages(..., classes = "brfssdata_rename_note")`.
+#'   See [brfssdata-conditions] for every class.
 #' @param labels Controls value-label conversion via CDC's format
 #'   libraries (available from 1998 on). `FALSE` (the default) keeps
 #'   every numeric code. `TRUE` converts variables with safe maps to
@@ -129,7 +135,7 @@ read_brfss <- function(
   # did not field would look identical to a rename (all-NA in a year a
   # sibling covers), and a confidently wrong note is worse than none.
   if (is.null(states)) {
-    note_renames(dat, vars, years, quiet = quiet)
+    note_renames(dat, vars, years)
   }
   if (isTRUE(na)) {
     dat <- apply_missing_codes(
@@ -193,9 +199,10 @@ warn_state_coverage <- function(dat, years, states) {
 # user is almost certainly stepping into CDC's trailing-digit rename
 # (_DRNKWK1 -> _DRNKWK2 -> _DRNKWK3). Say so. Consults only a cached or
 # bundled crosswalk -- never the network -- because the read path's
-# offline contract must hold.
-note_renames <- function(dat, vars, years, quiet = FALSE) {
-  if (is.null(vars) || isTRUE(quiet)) {
+# offline contract must hold. Deliberately not gated on quiet: this is
+# an analytical signal, not progress output; silence it by class.
+note_renames <- function(dat, vars, years) {
+  if (is.null(vars)) {
     return(invisible())
   }
   xwalk <- crosswalk_catalog_offline()

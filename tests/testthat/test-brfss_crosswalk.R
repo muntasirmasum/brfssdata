@@ -66,12 +66,15 @@ test_that("no rename note when the variable has data everywhere", {
   )
 })
 
-test_that("quiet = TRUE suppresses the rename note", {
+test_that("the rename note survives quiet = TRUE", {
+  # quiet governs progress output only; a variable silently empty in a
+  # year its sibling covers is an analytical signal. Silence it by
+  # class: suppressMessages(..., classes = "brfssdata_rename_note").
   local_brfss_cache(
     c(2022, 2023),
     add_cols = list("2022" = list(OLDGEN = c(1, 2)))
   )
-  expect_no_message(
+  expect_message(
     read_brfss(2022:2023, vars = "OLDGEN", quiet = TRUE),
     class = "brfssdata_rename_note"
   )

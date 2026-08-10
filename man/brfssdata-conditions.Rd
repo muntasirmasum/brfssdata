@@ -9,6 +9,11 @@ class, so \code{tryCatch()} and \code{withCallingHandlers()} can react to
 exactly the situation they mean to and nothing else, e.g.
 \verb{tryCatch(read_brfss(2023), brfssdata_download_error = \\(e) NULL)} or
 \code{suppressWarnings(..., classes = "brfssdata_break_warning")}.
+
+\code{quiet = TRUE} never hides a signal about what the data mean; it
+suppresses progress and housekeeping output only. To silence a
+specific analytical note, suppress its class, e.g.
+\code{suppressMessages(read_brfss(2022:2023, vars = "_DRNKWK1"), classes = "brfssdata_rename_note")}.
 }
 \section{Errors}{
 
@@ -83,6 +88,10 @@ variable changed meaning (not just formatting) across the
 requested years, so it kept CDC's numeric codes instead of
 converting to a factor; read the years separately if each
 year's own wording is wanted.}
+\item{\code{brfssdata_na_coverage_warning}}{\code{na = TRUE} was requested
+for years before 1998, where no value-label catalog exists at
+all, so no missing-type code was cleared there: estimates over
+those years still contain CDC's don't-know and refused codes.}
 \item{\code{brfssdata_state_coverage_warning}}{A jurisdiction requested
 via \code{states} is absent from a requested year's file, so
 estimates for that year cover the remaining states only.}
@@ -108,9 +117,10 @@ for it).}
 \item{\code{brfssdata_na_note}}{\code{na = TRUE} set missing-type codes to
 \code{NA}; the counts and the \code{\link[=brfss_missing_codes]{brfss_missing_codes()}} audit trail.}
 \item{\code{brfssdata_na_coverage_note}}{\code{na = TRUE} was requested for
-years the value-label catalog does not cover (before 1998) or
-covers only partially (1998), so codes there passed through
-unchanged.}
+a year the value-label catalog covers only partially (1998
+covers under a quarter of its file's variables), so codes in the
+uncatalogued variables passed through unchanged. Years with no
+catalog at all raise \code{brfssdata_na_coverage_warning} instead.}
 \item{\code{brfssdata_weight_subset_note}}{A user-supplied \code{weight} in
 \code{\link[=brfss_design]{brfss_design()}} is missing on some rows (a module weight covers
 only its module's records); those rows were dropped, per CDC's

@@ -241,9 +241,9 @@ apply_missing_codes <- function(
       class = "brfssdata_na_note"
     )
   }
-  if (!quiet) {
-    note_na_coverage(dat, years, catalog_years, covered_vars_by_year, exclude)
-  }
+  # The coverage signals are analytical, not progress output, so they
+  # are deliberately not gated on quiet; silence them by class.
+  note_na_coverage(dat, years, catalog_years, covered_vars_by_year, exclude)
   dat
 }
 
@@ -290,26 +290,36 @@ note_na_coverage <- function(
   partial_txt <- paste(partial, collapse = "; ")
   n_uncovered <- length(uncovered)
   n_partial <- length(partial)
-  cli::cli_inform(
-    c(
-      if (n_uncovered > 0) {
-        c(
-          "!" = "{.code na = TRUE} had no value-label catalog to consult
-                 for {cli::qty(n_uncovered)}year{?s} {uncovered_txt};
-                 codes there pass through unchanged (labels cover 1998
-                 on)."
-        )
-      },
-      if (n_partial > 0) {
-        c(
-          "!" = "The catalog only partially covers the loaded variables
-                 in {cli::qty(n_partial)}year{?s} {partial_txt}; codes in
-                 the uncatalogued variables pass through unchanged."
-        )
-      },
-      "i" = "See {.fun brfss_labels} for coverage and
-             {.fun brfss_missing_codes} for what was cleared."
-    ),
-    class = "brfssdata_na_coverage_note"
-  )
+  # Two severities: no catalog at all means na = TRUE was a complete
+  # no-op for those years, which is warning-grade (a 1993 PHYSHLTH mean
+  # with 77/99 left in is off by a third); partial coverage still
+  # cleared something and stays a note. Both arms can co-fire (a
+  # 1993 + 1998 request) and each is self-contained, because either
+  # class can be suppressed independently.
+  if (n_uncovered > 0) {
+    cli::cli_warn(
+      c(
+        "{.code na = TRUE} had no value-label catalog to consult for
+         {cli::qty(n_uncovered)}year{?s} {uncovered_txt}; codes there
+         pass through unchanged (labels cover 1998 on).",
+        "x" = "Estimates over those years still contain CDC's don't
+               know and refused codes (77/99 and kin).",
+        "i" = "See {.fun brfss_labels} for coverage and
+               {.fun brfss_missing_codes} for what was cleared."
+      ),
+      class = "brfssdata_na_coverage_warning"
+    )
+  }
+  if (n_partial > 0) {
+    cli::cli_inform(
+      c(
+        "!" = "The catalog only partially covers the loaded variables
+               in {cli::qty(n_partial)}year{?s} {partial_txt}; codes in
+               the uncatalogued variables pass through unchanged.",
+        "i" = "See {.fun brfss_labels} for coverage and
+               {.fun brfss_missing_codes} for what was cleared."
+      ),
+      class = "brfssdata_na_coverage_note"
+    )
+  }
 }

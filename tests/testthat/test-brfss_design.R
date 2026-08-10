@@ -238,7 +238,10 @@ test_that("pool_weights divides by the year count, not by two", {
 
 test_that("a user-supplied weight overrides the era default", {
   local_brfss_cache(2023, alt_weights = 2023)
-  des <- brfss_design(2023, vars = "GENHLTH", weight = "_CLLCPWT", quiet = TRUE)
+  des <- suppressMessages(
+    brfss_design(2023, vars = "GENHLTH", weight = "_CLLCPWT", quiet = TRUE),
+    classes = "brfssdata_weight_subset_note"
+  )
   dat <- des$variables
   expect_identical(dat$brfss_wt, dat$`_CLLCPWT`)
   # the era weight is not even loaded when a weight override is given
@@ -263,10 +266,20 @@ test_that("a domain weight subsets to its covered rows with a note", {
   expect_identical(dat$brfss_wt, dat$`_CLLCPWT`)
 })
 
-test_that("quiet = TRUE suppresses the domain-weight subset note", {
+test_that("the domain-weight subset note survives quiet = TRUE", {
+  # quiet governs progress output only; the subset note is analytical
+  # (the design now estimates a different population). The way to
+  # silence it is its class, which the second leg demonstrates.
   local_brfss_cache(2023, alt_weights = 2023)
-  expect_no_message(
+  expect_message(
     brfss_design(2023, vars = "GENHLTH", weight = "_CLLCPWT", quiet = TRUE),
+    class = "brfssdata_weight_subset_note"
+  )
+  expect_no_message(
+    suppressMessages(
+      brfss_design(2023, vars = "GENHLTH", weight = "_CLLCPWT", quiet = TRUE),
+      classes = "brfssdata_weight_subset_note"
+    ),
     class = "brfssdata_weight_subset_note"
   )
 })
@@ -298,7 +311,10 @@ test_that("the automatic era weight still aborts on missing values", {
 
 test_that("a user-supplied weight matches case-insensitively", {
   local_brfss_cache(2023, alt_weights = 2023)
-  des <- brfss_design(2023, vars = "GENHLTH", weight = "_cllcpwt", quiet = TRUE)
+  des <- suppressMessages(
+    brfss_design(2023, vars = "GENHLTH", weight = "_cllcpwt", quiet = TRUE),
+    classes = "brfssdata_weight_subset_note"
+  )
   expect_identical(des$variables$brfss_wt, des$variables$`_CLLCPWT`)
 })
 
@@ -333,18 +349,24 @@ test_that("a weight absent from a requested year names that year", {
 
 test_that("a pooled user-supplied weight is divided by the year count", {
   local_brfss_cache(c(2022, 2023), alt_weights = c(2022, 2023))
-  pooled <- brfss_design(
-    2022:2023,
-    vars = "GENHLTH",
-    weight = "_CLLCPWT",
-    quiet = TRUE
+  pooled <- suppressMessages(
+    brfss_design(
+      2022:2023,
+      vars = "GENHLTH",
+      weight = "_CLLCPWT",
+      quiet = TRUE
+    ),
+    classes = "brfssdata_weight_subset_note"
   )
-  unpooled <- brfss_design(
-    2022:2023,
-    vars = "GENHLTH",
-    weight = "_CLLCPWT",
-    pool_weights = FALSE,
-    quiet = TRUE
+  unpooled <- suppressMessages(
+    brfss_design(
+      2022:2023,
+      vars = "GENHLTH",
+      weight = "_CLLCPWT",
+      pool_weights = FALSE,
+      quiet = TRUE
+    ),
+    classes = "brfssdata_weight_subset_note"
   )
   expect_equal(pooled$variables$brfss_wt, unpooled$variables$brfss_wt / 2)
 })

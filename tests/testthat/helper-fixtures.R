@@ -292,6 +292,12 @@ local_brfss_cache <- function(
   # GENHLTH/_STATE rows so the coverage note stays quiet for them, like
   # the real catalog; earlier fixture years get none, also like the
   # real catalog.
+  # Boundary caution: a full-width fixture design loads GENHLTH and
+  # PHYSHLTH as data columns, and only GENHLTH is catalogued, so
+  # coverage sits at exactly 1 of 2 = 0.5 against the strictly-less-
+  # than-0.5 partial threshold in note_na_coverage(). Adding a third
+  # uncatalogued default column would tip every full-width na = TRUE
+  # design test into the partial-coverage note.
   if (label_catalog) {
     write_fixture_labels(dir, extra_years = years)
   }

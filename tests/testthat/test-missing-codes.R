@@ -291,11 +291,13 @@ test_that("labels = TRUE converts codes at the notation threshold", {
   expect_false(anyNA(dat$BIGCODE))
 })
 
-test_that("na = TRUE says so when years have no catalog at all", {
+test_that("na = TRUE warns when years have no catalog at all", {
+  # Warning-grade, not a note: na = TRUE was a complete no-op for the
+  # year, so estimates still contain CDC's 77/99-style codes.
   local_brfss_cache(1993)
-  expect_message(
+  expect_warning(
     dat <- read_brfss(1993, na = TRUE),
-    class = "brfssdata_na_coverage_note"
+    class = "brfssdata_na_coverage_warning"
   )
   # and the values really do pass through unchanged
   raw <- read_brfss(1993, quiet = TRUE)
@@ -313,6 +315,14 @@ test_that("na = TRUE says so when a year's catalog is mostly gaps", {
   )
 })
 
+test_that("the partial-coverage note survives quiet = TRUE", {
+  local_brfss_cache(1998, extra = list("1998" = "MYSTVAR"))
+  expect_message(
+    read_brfss(1998, na = TRUE, quiet = TRUE),
+    class = "brfssdata_na_coverage_note"
+  )
+})
+
 test_that("fully covered years emit no coverage note", {
   local_brfss_cache(2023)
   expect_no_message(
@@ -321,11 +331,19 @@ test_that("fully covered years emit no coverage note", {
   )
 })
 
-test_that("quiet = TRUE suppresses the coverage note", {
+test_that("quiet = TRUE does not hide the coverage warning", {
   local_brfss_cache(1993)
-  expect_no_message(
+  expect_warning(
     read_brfss(1993, quiet = TRUE, na = TRUE),
-    class = "brfssdata_na_coverage_note"
+    class = "brfssdata_na_coverage_warning"
+  )
+})
+
+test_that("brfss_design() inherits the coverage warning under quiet", {
+  local_brfss_cache(1993)
+  expect_warning(
+    brfss_design(1993, vars = "GENHLTH", quiet = TRUE),
+    class = "brfssdata_na_coverage_warning"
   )
 })
 

@@ -36,7 +36,13 @@ rather than returning silently fewer rows.}
 \item{download}{If \code{FALSE}, only cached years are used and missing
 years raise an error instead of being downloaded.}
 
-\item{quiet}{If \code{TRUE}, suppress download progress output.}
+\item{quiet}{If \code{TRUE}, suppress progress and housekeeping output:
+download progress, cache notes, the full-load hint, and the
+\code{na = TRUE} recode tally. Notes and warnings about what the data
+mean (renames, missing-code coverage, weight-domain subsetting)
+signal regardless of \code{quiet}; silence a specific one by its class,
+e.g. \code{suppressMessages(..., classes = "brfssdata_rename_note")}.
+See \link{brfssdata-conditions} for every class.}
 
 \item{labels}{Controls value-label conversion via CDC's format
 libraries (available from 1998 on). \code{FALSE} (the default) keeps

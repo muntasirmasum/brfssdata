@@ -289,27 +289,28 @@ brfss_design <- function(
     # missing value there means a damaged file, caught further down.
     drop <- is.na(dat[[weight]])
     if (any(drop)) {
-      if (!quiet) {
-        n_total <- nrow(dat)
-        n_drop <- sum(drop)
-        by_year <- table(dat$year[drop])
-        drop_txt <- paste(
-          sprintf("%s: %s", names(by_year), unname(by_year)),
-          collapse = "; "
-        )
-        cli::cli_inform(
-          c(
-            "i" = "{.val {weight}} covers {n_total - n_drop} of {n_total}
-                   rows; dropping the {n_drop} row{?s} where it is
-                   missing ({drop_txt}).",
-            "i" = "A module weight exists only for the records its
-                   module applies to; subsetting to them matches CDC's
-                   module-analysis guidance. Omit {.arg weight} for the
-                   full-sample era weight."
-          ),
-          class = "brfssdata_weight_subset_note"
-        )
-      }
+      # Not gated on quiet: the design now estimates a different
+      # population, which is an analytical signal, not progress output.
+      # Silence it by class.
+      n_total <- nrow(dat)
+      n_drop <- sum(drop)
+      by_year <- table(dat$year[drop])
+      drop_txt <- paste(
+        sprintf("%s: %s", names(by_year), unname(by_year)),
+        collapse = "; "
+      )
+      cli::cli_inform(
+        c(
+          "i" = "{.val {weight}} covers {n_total - n_drop} of {n_total}
+                 rows; dropping the {n_drop} row{?s} where it is
+                 missing ({drop_txt}).",
+          "i" = "A module weight exists only for the records its
+                 module applies to; subsetting to them matches CDC's
+                 module-analysis guidance. Omit {.arg weight} for the
+                 full-sample era weight."
+        ),
+        class = "brfssdata_weight_subset_note"
+      )
       dat <- dat[!drop, , drop = FALSE]
     }
     wt <- dat[[weight]]

@@ -130,11 +130,14 @@ test_that("the pooled diagnostic sees a domain the whole file hides", {
     class = "brfssdata_pooled_states_warning"
   )
   expect_warning(
-    brfss_design(
-      2022:2023,
-      vars = "GENHLTH",
-      weight = "_CLLCPWT",
-      quiet = TRUE
+    suppressMessages(
+      brfss_design(
+        2022:2023,
+        vars = "GENHLTH",
+        weight = "_CLLCPWT",
+        quiet = TRUE
+      ),
+      classes = "brfssdata_weight_subset_note"
     ),
     class = "brfssdata_pooled_states_warning"
   )
@@ -156,11 +159,14 @@ test_that("the pooled diagnostic names only states inside the domain", {
   )
   expect_match(conditionMessage(file_warn), '"3"')
   domain_warn <- expect_warning(
-    brfss_design(
-      2022:2023,
-      vars = "GENHLTH",
-      weight = "_CLLCPWT",
-      quiet = TRUE
+    suppressMessages(
+      brfss_design(
+        2022:2023,
+        vars = "GENHLTH",
+        weight = "_CLLCPWT",
+        quiet = TRUE
+      ),
+      classes = "brfssdata_weight_subset_note"
     ),
     class = "brfssdata_pooled_states_warning"
   )
