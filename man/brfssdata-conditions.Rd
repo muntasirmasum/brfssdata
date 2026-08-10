@@ -118,8 +118,9 @@ module-analysis guidance.}
 \item{\code{brfssdata_empty_result}}{A metadata lookup
 (\code{\link[=brfss_labels]{brfss_labels()}}, \code{\link[=brfss_crosswalk]{brfss_crosswalk()}}, \code{\link[=brfss_year_info]{brfss_year_info()}})
 matched nothing.}
-\item{\code{brfssdata_full_load_note}}{\code{\link[=brfss_design]{brfss_design()}} is loading every
-column because \code{vars} was not given.}
+\item{\code{brfssdata_full_load_note}}{\code{\link[=read_brfss]{read_brfss()}} is loading every
+column because \code{vars} was not given; \code{\link[=brfss_design]{brfss_design()}} passes
+\code{vars} through and inherits it.}
 \item{\code{brfssdata_rename_note}}{A requested variable is empty in
 years a sibling generation from the rename crosswalk covers;
 see \code{\link[=brfss_crosswalk]{brfss_crosswalk()}}.}

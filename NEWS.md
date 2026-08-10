@@ -108,6 +108,9 @@ Initial CRAN release.
   citations, each with a stable BibTeX key (`brfss2023` and the like,
   and `brfssdata` for the package), so `toBibtex()` output drops into a
   `.bib` file unedited.
+* `brfss_citation(integer(0))` errors with `brfssdata_bad_years_arg`
+  instead of returning a malformed, data-free citation list with no
+  signal that nothing was cited.
 * New package data: `brfss_states` (FIPS, names, abbreviations, Census
   regions for all 56 BRFSS jurisdictions) and `brfss_std_pop_2000` (the
   2000 projected U.S. standard population, all-ages and `_AGE_G`-
@@ -125,6 +128,12 @@ Initial CRAN release.
   queries run locally through DuckDB, so selecting a handful of
   variables from a 300-plus column survey stays fast and repeat use
   works offline.
+* `read_brfss()` with no `vars` selection says it is loading every
+  column before anything is read (`brfssdata_full_load_note`): a bare
+  `read_brfss(2024)` materializes 302 columns and about 1.1 GB where a
+  one-column projection is about 5 MB. The note names `vars = c(...)`
+  as the remedy; it previously fired only from `brfss_design()`, which
+  now inherits it from `read_brfss()`.
 * `brfss_design()` builds a srvyr survey-design object with the
   era-correct final weight (`_FINALWT` through 2010, `_LLCPWT` from
   2011), strata, and primary sampling units. Requests that pool years

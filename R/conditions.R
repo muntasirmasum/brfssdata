@@ -110,8 +110,9 @@
 #'   \item{`brfssdata_empty_result`}{A metadata lookup
 #'     ([brfss_labels()], [brfss_crosswalk()], [brfss_year_info()])
 #'     matched nothing.}
-#'   \item{`brfssdata_full_load_note`}{[brfss_design()] is loading every
-#'     column because `vars` was not given.}
+#'   \item{`brfssdata_full_load_note`}{[read_brfss()] is loading every
+#'     column because `vars` was not given; [brfss_design()] passes
+#'     `vars` through and inherits it.}
 #'   \item{`brfssdata_rename_note`}{A requested variable is empty in
 #'     years a sibling generation from the rename crosswalk covers;
 #'     see [brfss_crosswalk()].}
