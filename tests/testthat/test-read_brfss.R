@@ -157,3 +157,88 @@ test_that("no download is attempted when all years are cached", {
   expect_no_message(dat <- read_brfss(2023, quiet = TRUE))
   expect_gt(nrow(dat), 0)
 })
+
+test_that("a typo'd vars aborts before any year download", {
+  dir <- local_brfss_manifest(2020)
+  write_fixture_catalog(dir)
+  downloads <- 0L
+  local_mocked_bindings(
+    download_to_cache = function(...) {
+      downloads <<- downloads + 1L
+      stop("should not be reached")
+    }
+  )
+  expect_error(
+    read_brfss(2020, vars = "GENHLT", quiet = TRUE),
+    class = "brfssdata_bad_var"
+  )
+  expect_identical(downloads, 0L)
+})
+
+test_that("the pre-download gate passes real vars, `year`, and lowercase", {
+  dir <- local_brfss_manifest(integer(0))
+  write_fixture_catalog(dir)
+  write_fixture_year(2020, dir)
+  write_fixture_manifest(dir, 2020)
+  real <- file.path(dir, "brfss_2020.parquet")
+  keep <- withr::local_tempfile()
+  file.copy(real, keep)
+  unlink(real)
+  local_mocked_bindings(
+    download_to_cache = function(url, dest, ...) {
+      file.copy(keep, dest)
+      dest
+    }
+  )
+  dat <- read_brfss(2020, vars = c("year", "genhlth"), quiet = TRUE)
+  expect_gt(nrow(dat), 0)
+  expect_true(all(c("year", "GENHLTH") %in% names(dat)))
+})
+
+test_that("the gate fails open when the catalog does not cover the years", {
+  dir <- local_brfss_manifest(2023)
+  write_fixture_catalog(dir) # covers 2019/2020/2022 only
+  downloads <- 0L
+  local_mocked_bindings(
+    download_to_cache = function(url, dest, ...) {
+      downloads <<- downloads + 1L
+      write_fixture_year(2023, dirname(dest))
+      dest
+    }
+  )
+  # The typo still errors, but only after the (mocked) download:
+  # query_parquet stays the authority for years the catalog cannot vouch for.
+  expect_error(
+    read_brfss(2023, vars = "NOPEVAR", quiet = TRUE),
+    class = "brfssdata_bad_var"
+  )
+  expect_identical(downloads, 1L)
+})
+
+test_that("a virgin cache gates against the bundled catalog, silently", {
+  local_brfss_manifest(2023)
+  downloads <- 0L
+  local_mocked_bindings(
+    download_to_cache = function(...) {
+      downloads <<- downloads + 1L
+      stop("should not be reached")
+    }
+  )
+  expect_no_message(
+    expect_error(
+      read_brfss(2023, vars = "NOT_A_REAL_COLUMN", quiet = TRUE),
+      class = "brfssdata_bad_var"
+    ),
+    class = "brfssdata_bundled_fallback_note"
+  )
+  expect_identical(downloads, 0L)
+})
+
+test_that("download = FALSE keeps the not-cached error, even for a typo", {
+  dir <- local_brfss_manifest(2020)
+  write_fixture_catalog(dir)
+  expect_error(
+    read_brfss(2020, vars = "GENHLT", quiet = TRUE, download = FALSE),
+    class = "brfssdata_not_cached"
+  )
+})

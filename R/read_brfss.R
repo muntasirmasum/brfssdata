@@ -127,6 +127,18 @@ read_brfss <- function(
       class = "brfssdata_full_load_note"
     )
   }
+  # A typo'd variable should not cost a year download (a modern year is
+  # 20-30 MB). Only when a download would actually happen: under
+  # download = FALSE a missing year must keep its brfssdata_not_cached
+  # error, and for fully cached requests query_parquet() stays the sole
+  # authority on which columns exist.
+  if (
+    !is.null(vars) &&
+      download &&
+      !all(file.exists(cache_path(year_asset(years))))
+  ) {
+    check_vars_before_download(vars, years)
+  }
   paths <- ensure_years_cached(years, download = download, quiet = quiet)
   dat <- query_parquet(
     paths,
@@ -259,6 +271,58 @@ note_renames <- function(dat, vars, years) {
   }
   names(bullets) <- rep("!", length(bullets))
   cli::cli_inform(bullets, class = "brfssdata_rename_note")
+}
+
+# Catch a typo'd vars before any year parquet downloads. Consulted: the
+# variable catalog, cached-or-bundled only (download = FALSE), so the
+# gate itself never fetches anything and never delays the year download.
+# Its coverage is exact for the years it knows: data-raw/03_catalog.R
+# builds it from the same files. Fail open on everything else: a read
+# must never be blocked by missing or unreadable metadata, so an
+# unavailable catalog, or any requested year the catalog does not cover
+# (a new release read through an older snapshot), skips the gate and
+# leaves query_parquet() to give the authoritative answer after
+# download. The bundled-fallback note stays suppressed here: it flags
+# stale metadata served as results, and this catalog read is an
+# internal validity check, not a result.
+check_vars_before_download <- function(
+  vars,
+  years,
+  call = rlang::caller_env()
+) {
+  catalog <- tryCatch(
+    suppressMessages(
+      variables_catalog(download = FALSE, quiet = TRUE),
+      classes = "brfssdata_bundled_fallback_note"
+    ),
+    error = function(e) NULL
+  )
+  if (is.null(catalog) || nrow(catalog) == 0) {
+    return(invisible())
+  }
+  if (!all(years %in% catalog$year)) {
+    return(invisible())
+  }
+  known <- unique(toupper(catalog$variable[catalog$year %in% years]))
+  # `year` is real in every hosted file but absent from the catalog,
+  # which is built from the upstream XPT column lists that predate it.
+  requested <- unique(vars[toupper(vars) != "YEAR"])
+  unknown <- requested[!toupper(requested) %in% known]
+  if (length(unknown) == 0) {
+    return(invisible())
+  }
+  cli::cli_abort(
+    c(
+      "Variable{?s} {.val {unknown}} {?was/were} not found in the
+       requested years.",
+      "i" = "Checked against the variable catalog before downloading;
+             no data were fetched.",
+      "i" = "Use {.fun brfss_vars} to search available variables
+             and the years they appear in."
+    ),
+    class = "brfssdata_bad_var",
+    call = call
+  )
 }
 
 ensure_years_cached <- function(
