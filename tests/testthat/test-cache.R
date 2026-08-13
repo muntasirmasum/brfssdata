@@ -256,3 +256,49 @@ test_that("a replaced catalog file invalidates the session memo", {
   expect_true(all(refreshed$year == 2022L))
   expect_gt(nrow(refreshed), 0)
 })
+
+test_that("a bare interactive cache clear asks first, and a refusal keeps files", {
+  dir <- local_brfss_cache(2023)
+  target <- file.path(dir, "brfss_2023.parquet")
+  withr::local_options(rlang_interactive = TRUE)
+  local_mocked_bindings(ask_yes_no = function(...) FALSE)
+  expect_message(
+    removed <- brfss_cache_clear(),
+    class = "brfssdata_cache_note"
+  )
+  expect_identical(removed, character(0))
+  expect_true(file.exists(target))
+
+  # NA (EOF, closed stdin) counts as a refusal too.
+  local_mocked_bindings(ask_yes_no = function(...) NA)
+  suppressMessages(removed <- brfss_cache_clear())
+  expect_true(file.exists(target))
+
+  local_mocked_bindings(ask_yes_no = function(...) TRUE)
+  suppressMessages(removed <- brfss_cache_clear())
+  expect_false(file.exists(target))
+  expect_identical(basename(removed), "brfss_2023.parquet")
+})
+
+test_that("explicit years and years = NULL never prompt", {
+  dir <- local_brfss_cache(2022:2023)
+  withr::local_options(rlang_interactive = TRUE)
+  local_mocked_bindings(
+    ask_yes_no = function(...) stop("prompt must not be reached")
+  )
+  suppressMessages(brfss_cache_clear(2022))
+  expect_false(file.exists(file.path(dir, "brfss_2022.parquet")))
+  expect_true(file.exists(file.path(dir, "brfss_2023.parquet")))
+  suppressMessages(brfss_cache_clear(years = NULL))
+  expect_false(file.exists(file.path(dir, "brfss_2023.parquet")))
+})
+
+test_that("non-interactive sessions clear without prompting", {
+  dir <- local_brfss_cache(2023)
+  withr::local_options(rlang_interactive = FALSE)
+  local_mocked_bindings(
+    ask_yes_no = function(...) stop("prompt must not be reached")
+  )
+  suppressMessages(brfss_cache_clear())
+  expect_false(file.exists(file.path(dir, "brfss_2023.parquet")))
+})

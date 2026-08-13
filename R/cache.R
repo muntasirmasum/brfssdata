@@ -21,11 +21,16 @@
 #' * `brfss_cache_clear()` deletes cached survey years, all of them by
 #'   default, and reports what it removed. The manifest and catalogs are
 #'   kept unless `catalogs = TRUE`, so offline use of [brfss_vars()] and
-#'   [brfss_labels()] survives a data-cache clear.
+#'   [brfss_labels()] survives a data-cache clear. Called with no
+#'   `years` argument in an interactive session, it asks for
+#'   confirmation before deleting everything; scripts and knitr runs
+#'   are never prompted, and an explicit `years = NULL` clears all
+#'   years without asking in any session.
 #'
 #' @param years Optional integer vector. If supplied to
 #'   `brfss_cache_clear()`, only those survey years are removed;
-#'   `integer(0)` removes none (useful with `catalogs = TRUE`).
+#'   `integer(0)` removes none (useful with `catalogs = TRUE`) and
+#'   `NULL` removes every year without the interactive confirmation.
 #'   Fractional, infinite, missing, or non-numeric years are rejected
 #'   (`brfssdata_bad_years_arg`) before anything is deleted.
 #' @param verify If `TRUE`, `brfss_cache_info()` hashes every cached
@@ -182,6 +187,11 @@ brfss_download <- function(years = NULL, catalogs = TRUE, quiet = FALSE) {
 #' @rdname brfss_cache_dir
 #' @export
 brfss_cache_clear <- function(years = NULL, catalogs = FALSE) {
+  # Captured before `years` is touched; missing() is unreliable after
+  # any assignment. A literal `years = NULL` call is the documented
+  # no-prompt escape hatch for scripts, so only the no-argument form
+  # ever confirms.
+  no_years_given <- missing(years)
   # Validated before anything is touched: as.integer() truncation here
   # meant brfss_cache_clear(2024.9) silently deleted the 2024 file.
   # integer(0) stays the documented remove-nothing request.
@@ -203,6 +213,29 @@ brfss_cache_clear <- function(years = NULL, catalogs = FALSE) {
   files <- files[is_year | is_meta]
 
   removed_bytes <- sum(file.info(files)$size, na.rm = TRUE)
+  # Deleting the whole cache is cheap to undo only in bandwidth, and a
+  # bare brfss_cache_clear() is easy to send by accident. Interactive
+  # sessions confirm; scripts and tests (rlang::is_interactive() is
+  # FALSE there) behave exactly as before.
+  if (no_years_given && length(files) > 0 && rlang::is_interactive()) {
+    size_txt <- format(
+      structure(removed_bytes, class = "object_size"),
+      units = "auto"
+    )
+    ok <- ask_yes_no(sprintf(
+      "Remove all %d cached file(s) (%s) from %s?",
+      length(files),
+      size_txt,
+      dir
+    ))
+    if (!isTRUE(ok)) {
+      cli::cli_inform(
+        "Nothing removed from {.path {dir}}.",
+        class = "brfssdata_cache_note"
+      )
+      return(invisible(character(0)))
+    }
+  }
   unlink(files)
   if (length(files) == 0) {
     cli::cli_inform(
@@ -218,6 +251,13 @@ brfss_cache_clear <- function(years = NULL, catalogs = FALSE) {
     )
   }
   invisible(files)
+}
+
+# Isolated so tests can mock it. askYesNo() returns NA on EOF or
+# inscrutable input, and the isTRUE() at the call site treats that as a
+# refusal: the safe default for a delete.
+ask_yes_no <- function(prompt) {
+  utils::askYesNo(prompt, default = FALSE)
 }
 
 cached_file_year <- function(file) {
