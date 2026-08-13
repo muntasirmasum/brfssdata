@@ -48,14 +48,44 @@ bundled_manifest_path <- function() {
 # published, and keeps its own error (`brfssdata_no_data`) rather than
 # being papered over with the bundled copy.
 manifest_usable <- function(path) {
-  if (!file.exists(path)) {
-    return(FALSE)
+  parsed <- manifest_json(path)
+  is.list(parsed) && !is.null(parsed$years)
+}
+
+# Raw JSON parse memo: NULL for an unparseable file, the jsonlite result
+# otherwise, keyed by path plus mtime and size so a replaced file (the
+# staged-rename in refresh_manifest(), a repaired cache) re-parses on its
+# next use. A missing file returns NULL without memoizing. One
+# read_manifest() call previously parsed the same bytes up to three
+# times (freshness check, fallback check, parse_manifest); the memo
+# makes it one. Lives in manifest_state, which the test fixtures'
+# save/clear/restore scoping already covers.
+manifest_json <- function(path) {
+  info <- file.info(path, extra_cols = FALSE)
+  if (is.na(info$size)) {
+    return(NULL)
   }
-  parsed <- tryCatch(
+  key <- tryCatch(
+    normalizePath(path, mustWork = FALSE),
+    error = function(e) path
+  )
+  stamp <- c(as.numeric(info$mtime), as.numeric(info$size))
+  memo <- manifest_state$json_memo %||% list()
+  hit <- memo[[key]]
+  if (!is.null(hit) && !anyNA(stamp) && identical(hit$stamp, stamp)) {
+    return(hit$value)
+  }
+  value <- tryCatch(
     jsonlite::read_json(path, simplifyVector = TRUE),
     error = function(e) NULL
   )
-  is.list(parsed) && !is.null(parsed$years)
+  if (!anyNA(stamp)) {
+    # list() storage keeps a memoized NULL (unparseable file) distinct
+    # from "no entry".
+    memo[[key]] <- list(stamp = stamp, value = value)
+    manifest_state$json_memo <- memo
+  }
+  value
 }
 
 read_manifest <- function(refresh = FALSE) {
@@ -166,10 +196,7 @@ empty_manifest <- function() {
 # Entries without a usable sha256 are dropped, so downstream code can
 # treat "no entry" and "unusable entry" identically (unverified asset).
 parse_manifest <- function(path) {
-  out <- tryCatch(
-    jsonlite::read_json(path, simplifyVector = TRUE),
-    error = function(e) NULL
-  )
+  out <- manifest_json(path)
   if (is.null(out) || is.null(out$years)) {
     return(empty_manifest())
   }

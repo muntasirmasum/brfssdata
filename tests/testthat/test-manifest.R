@@ -57,11 +57,13 @@ test_that("a stale manifest triggers one refresh attempt, then falls back", {
 })
 
 test_that("parse_manifest tolerates malformed files", {
+  local_manifest_state()
   path <- withr::local_tempfile(lines = "not json at all")
   expect_identical(parse_manifest(path)$years, integer(0))
 })
 
 test_that("parse_manifest does not mistake other numbers for years", {
+  local_manifest_state()
   path <- withr::local_tempfile(
     lines = '{"years": [2022, 2023], "generated": "2026-08-02"}'
   )
@@ -69,6 +71,7 @@ test_that("parse_manifest does not mistake other numbers for years", {
 })
 
 test_that("parse_manifest normalizes a v1 manifest", {
+  local_manifest_state()
   path <- withr::local_tempfile(lines = '{"years": [2022, 2023]}')
   m <- parse_manifest(path)
   expect_identical(m$schema_version, 1L)
@@ -77,6 +80,7 @@ test_that("parse_manifest normalizes a v1 manifest", {
 })
 
 test_that("parse_manifest reads v2 checksums and drops unusable entries", {
+  local_manifest_state()
   path <- withr::local_tempfile(
     lines = '{
       "schema_version": 2,
@@ -95,6 +99,39 @@ test_that("parse_manifest reads v2 checksums and drops unusable entries", {
   expect_null(manifest_sha256("no-hash.parquet", m))
   expect_null(manifest_sha256("blank-hash.parquet", m))
   expect_true(is.na(manifest_size("not-listed.parquet", m)))
+})
+
+test_that("manifest_json memoizes per file state and invalidates on change", {
+  local_manifest_state()
+  path <- withr::local_tempfile(lines = '{"years": [2023]}')
+  expect_identical(manifest_json(path)$years, 2023L)
+
+  # Prove the second call is served from the memo, not a re-parse: plant
+  # a sentinel in the stored value and watch it come back.
+  key <- normalizePath(path, mustWork = FALSE)
+  memo <- manifest_state$json_memo
+  memo[[key]]$value <- list(years = "sentinel")
+  manifest_state$json_memo <- memo
+  expect_identical(manifest_json(path)$years, "sentinel")
+
+  # A rewritten file (different size, later mtime) is re-parsed.
+  writeLines('{"years": [2022, 2023]}', path)
+  bumped <- Sys.setFileTime(path, Sys.time() + 2)
+  skip_if_not(isTRUE(bumped), "cannot set file mtime on this filesystem")
+  expect_identical(manifest_json(path)$years, c(2022L, 2023L))
+})
+
+test_that("manifest_json keeps an unparseable file distinct from a missing one", {
+  local_manifest_state()
+  expect_null(manifest_json(file.path(tempdir(), "no-such-manifest.json")))
+  expect_length(manifest_state$json_memo, 0)
+
+  path <- withr::local_tempfile(lines = "not json at all")
+  expect_null(manifest_json(path))
+  # The failed parse is memoized (keyed to these bytes), so repeated
+  # freshness checks on a corrupt cache do not re-parse it.
+  key <- normalizePath(path, mustWork = FALSE)
+  expect_true(key %in% names(manifest_state$json_memo))
 })
 
 test_that("read_manifest_cached reads the cache without touching the network", {

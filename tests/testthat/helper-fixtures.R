@@ -223,6 +223,8 @@ local_file_url <- function(path) {
 # drives last_failure would leave the memo set in the session that ran
 # devtools::test(), silently skipping real manifest refreshes for a day
 # (the same leak class the suite already scopes for survey.lonely.psu).
+# The same scoping covers everything else manifest_state holds: the
+# per-asset check memos and the JSON/catalog parse memos.
 local_manifest_state <- function(env = parent.frame()) {
   old <- as.list(manifest_state)
   rm(list = ls(manifest_state), envir = manifest_state)
