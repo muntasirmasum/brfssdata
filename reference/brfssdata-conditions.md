@@ -78,6 +78,10 @@ analytical note, suppress its class, e.g.
 
   `na` is not `TRUE` or `FALSE`.
 
+- `brfssdata_bad_n_arg`:
+
+  `n` in `print.brfss_codebook()` is not a single positive number.
+
 - `brfssdata_bad_option`:
 
   `options(brfssdata.lonely_psu)` is not a single string, or

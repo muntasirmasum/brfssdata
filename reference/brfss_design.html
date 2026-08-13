@@ -38,6 +38,7 @@ the exact codes and the na entry under Arguments for details."><meta property="o
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/datasets.html">The datasets</a></li>
+    <li><a class="dropdown-item" href="../articles/value-labels-missing-codes.html">Value labels and missing codes</a></li>
     <li><a class="dropdown-item" href="../articles/survey-design.html">Survey design in BRFSS</a></li>
     <li><a class="dropdown-item" href="../articles/logistic-regression.html">Survey-weighted logistic regression</a></li>
     <li><a class="dropdown-item" href="../articles/age-adjustment.html">Age-adjusted prevalence</a></li>
@@ -293,6 +294,13 @@ factor with one level per respondent. Files through 2000 carry genuine
 multi-respondent PSUs and keep the clustered estimator, nested within
 stratum because the identifiers are reused. The choice is made from
 the data, so it follows the file rather than the year.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code><a href="read_brfss.html">read_brfss()</a></code> for the underlying data;
+<a href="brfssdata-options.html">brfssdata-options</a> for the session options
+(<code>brfssdata.lonely_psu</code>, <code>brfssdata.module_weight_check</code>) this
+function consults.</p></div>
     </div>
 
     <div class="section level2">

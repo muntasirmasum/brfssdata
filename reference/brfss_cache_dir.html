@@ -18,7 +18,11 @@ the cached or bundled manifest and never touches the network.
 brfss_cache_clear() deletes cached survey years, all of them by
 default, and reports what it removed. The manifest and catalogs are
 kept unless catalogs = TRUE, so offline use of brfss_vars() and
-brfss_labels() survives a data-cache clear.
+brfss_labels() survives a data-cache clear. Called with no
+years argument in an interactive session, it asks for
+confirmation before deleting everything; scripts and rendered
+documents are never prompted, and an explicit years = NULL
+clears all years without asking in any session.
 
 "><meta property="og:description" content="Downloaded survey years are stored as parquet files in a per-user cache
 directory so repeat use, and offline work, never re-download. The cache
@@ -39,7 +43,11 @@ the cached or bundled manifest and never touches the network.
 brfss_cache_clear() deletes cached survey years, all of them by
 default, and reports what it removed. The manifest and catalogs are
 kept unless catalogs = TRUE, so offline use of brfss_vars() and
-brfss_labels() survives a data-cache clear.
+brfss_labels() survives a data-cache clear. Called with no
+years argument in an interactive session, it asks for
+confirmation before deleting everything; scripts and rendered
+documents are never prompted, and an explicit years = NULL
+clears all years without asking in any session.
 
 "><meta property="og:image" content="https://muntasirmasum.github.io/brfssdata/logo.svg"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -62,6 +70,7 @@ brfss_labels() survives a data-cache clear.
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/datasets.html">The datasets</a></li>
+    <li><a class="dropdown-item" href="../articles/value-labels-missing-codes.html">Value labels and missing codes</a></li>
     <li><a class="dropdown-item" href="../articles/survey-design.html">Survey design in BRFSS</a></li>
     <li><a class="dropdown-item" href="../articles/logistic-regression.html">Survey-weighted logistic regression</a></li>
     <li><a class="dropdown-item" href="../articles/age-adjustment.html">Age-adjusted prevalence</a></li>
@@ -104,7 +113,11 @@ the cached or bundled manifest and never touches the network.</p></li>
 <li><p><code>brfss_cache_clear()</code> deletes cached survey years, all of them by
 default, and reports what it removed. The manifest and catalogs are
 kept unless <code>catalogs = TRUE</code>, so offline use of <code><a href="brfss_vars.html">brfss_vars()</a></code> and
-<code><a href="brfss_labels.html">brfss_labels()</a></code> survives a data-cache clear.</p></li>
+<code><a href="brfss_labels.html">brfss_labels()</a></code> survives a data-cache clear. Called with no
+<code>years</code> argument in an interactive session, it asks for
+confirmation before deleting everything; scripts and rendered
+documents are never prompted, and an explicit <code>years = NULL</code>
+clears all years without asking in any session.</p></li>
 </ul></div>
 
     <div class="section level2">
@@ -128,7 +141,8 @@ file and adds the <code>verified</code> column described above.</p></dd>
 <dt id="arg-years">years<a class="anchor" aria-label="anchor" href="#arg-years"></a></dt>
 <dd><p>Optional integer vector. If supplied to
 <code>brfss_cache_clear()</code>, only those survey years are removed;
-<code>integer(0)</code> removes none (useful with <code>catalogs = TRUE</code>).
+<code>integer(0)</code> removes none (useful with <code>catalogs = TRUE</code>) and
+<code>NULL</code> removes every year without the interactive confirmation.
 Fractional, infinite, missing, or non-numeric years are rejected
 (<code>brfssdata_bad_years_arg</code>) before anything is deleted.</p></dd>
 
@@ -144,6 +158,11 @@ manifest and the variable and label catalogs.</p></dd>
 returns a tibble with columns <code>file</code>, <code>year</code>, and <code>size</code> (bytes),
 plus <code>verified</code> (logical) under <code>verify = TRUE</code>.
 <code>brfss_cache_clear()</code> returns, invisibly, the paths it removed.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><a href="brfssdata-options.html">brfssdata-options</a> for every session option the package
+reads.</p></div>
     </div>
 
     <div class="section level2">

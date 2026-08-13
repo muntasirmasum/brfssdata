@@ -242,6 +242,14 @@ multi-respondent PSUs and keep the clustered estimator, nested within
 stratum because the identifiers are reused. The choice is made from the
 data, so it follows the file rather than the year.
 
+## See also
+
+[`read_brfss()`](https://muntasirmasum.github.io/brfssdata/reference/read_brfss.md)
+for the underlying data;
+[brfssdata-options](https://muntasirmasum.github.io/brfssdata/reference/brfssdata-options.md)
+for the session options (`brfssdata.lonely_psu`,
+`brfssdata.module_weight_check`) this function consults.
+
 ## Examples
 
 ``` r

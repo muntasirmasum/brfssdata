@@ -5,8 +5,9 @@ value-label catalog (codes and their meanings, with the missing-type
 codes flagged), and the rename crosswalk (the variable's concept
 family, if it belongs to one). It answers &quot;what is this variable&quot; in
 one call; use brfss_vars() to find variables first.
-Printing renders a card per variable. The returned object is still a
-regular tibble; the values and missing_codes columns are
+Printing renders a card per variable, capped at 10 cards by default;
+print(x, n = Inf) renders every card. The returned object is still
+a regular tibble; the values and missing_codes columns are
 list-columns of tibbles, related a list-column of sibling
 variable names."><meta property="og:description" content="One row per requested variable, joining the three metadata catalogs:
 the variable catalog (label wording and year availability), the
@@ -14,8 +15,9 @@ value-label catalog (codes and their meanings, with the missing-type
 codes flagged), and the rename crosswalk (the variable's concept
 family, if it belongs to one). It answers &quot;what is this variable&quot; in
 one call; use brfss_vars() to find variables first.
-Printing renders a card per variable. The returned object is still a
-regular tibble; the values and missing_codes columns are
+Printing renders a card per variable, capped at 10 cards by default;
+print(x, n = Inf) renders every card. The returned object is still
+a regular tibble; the values and missing_codes columns are
 list-columns of tibbles, related a list-column of sibling
 variable names."><meta property="og:image" content="https://muntasirmasum.github.io/brfssdata/logo.svg"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -38,6 +40,7 @@ variable names."><meta property="og:image" content="https://muntasirmasum.github
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/datasets.html">The datasets</a></li>
+    <li><a class="dropdown-item" href="../articles/value-labels-missing-codes.html">Value labels and missing codes</a></li>
     <li><a class="dropdown-item" href="../articles/survey-design.html">Survey design in BRFSS</a></li>
     <li><a class="dropdown-item" href="../articles/logistic-regression.html">Survey-weighted logistic regression</a></li>
     <li><a class="dropdown-item" href="../articles/age-adjustment.html">Age-adjusted prevalence</a></li>
@@ -68,8 +71,9 @@ value-label catalog (codes and their meanings, with the missing-type
 codes flagged), and the rename crosswalk (the variable's concept
 family, if it belongs to one). It answers "what is this variable" in
 one call; use <code><a href="brfss_vars.html">brfss_vars()</a></code> to <em>find</em> variables first.</p>
-<p>Printing renders a card per variable. The returned object is still a
-regular tibble; the <code>values</code> and <code>missing_codes</code> columns are
+<p>Printing renders a card per variable, capped at 10 cards by default;
+<code>print(x, n = Inf)</code> renders every card. The returned object is still
+a regular tibble; the <code>values</code> and <code>missing_codes</code> columns are
 list-columns of tibbles, <code>related</code> a list-column of sibling
 variable names.</p>
     </div>

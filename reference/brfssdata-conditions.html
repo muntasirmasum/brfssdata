@@ -36,6 +36,7 @@ suppressMessages(read_brfss(2021:2022, vars = "_DRNKWK1"), classes = "brfssdata_
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/datasets.html">The datasets</a></li>
+    <li><a class="dropdown-item" href="../articles/value-labels-missing-codes.html">Value labels and missing codes</a></li>
     <li><a class="dropdown-item" href="../articles/survey-design.html">Survey design in BRFSS</a></li>
     <li><a class="dropdown-item" href="../articles/logistic-regression.html">Survey-weighted logistic regression</a></li>
     <li><a class="dropdown-item" href="../articles/age-adjustment.html">Age-adjusted prevalence</a></li>
@@ -131,6 +132,10 @@ refusal.</p></dd>
 
 <dt><code>brfssdata_bad_na_arg</code></dt>
 <dd><p><code>na</code> is not <code>TRUE</code> or <code>FALSE</code>.</p></dd>
+
+<dt><code>brfssdata_bad_n_arg</code></dt>
+<dd><p><code>n</code> in <code>print.brfss_codebook()</code> is not
+a single positive number.</p></dd>
 
 <dt><code>brfssdata_bad_option</code></dt>
 <dd><p><code>options(brfssdata.lonely_psu)</code> is

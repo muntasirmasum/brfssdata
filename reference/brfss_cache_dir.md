@@ -26,7 +26,11 @@ redirected with `options(brfssdata.cache_dir = ...)` or the
   [`brfss_vars()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_vars.md)
   and
   [`brfss_labels()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_labels.md)
-  survives a data-cache clear.
+  survives a data-cache clear. Called with no `years` argument in an
+  interactive session, it asks for confirmation before deleting
+  everything; scripts and rendered documents are never prompted, and an
+  explicit `years = NULL` clears all years without asking in any
+  session.
 
 ## Usage
 
@@ -49,9 +53,10 @@ brfss_cache_clear(years = NULL, catalogs = FALSE)
 
   Optional integer vector. If supplied to `brfss_cache_clear()`, only
   those survey years are removed; `integer(0)` removes none (useful with
-  `catalogs = TRUE`). Fractional, infinite, missing, or non-numeric
-  years are rejected (`brfssdata_bad_years_arg`) before anything is
-  deleted.
+  `catalogs = TRUE`) and `NULL` removes every year without the
+  interactive confirmation. Fractional, infinite, missing, or
+  non-numeric years are rejected (`brfssdata_bad_years_arg`) before
+  anything is deleted.
 
 - catalogs:
 
@@ -64,6 +69,11 @@ brfss_cache_clear(years = NULL, catalogs = FALSE)
 returns a tibble with columns `file`, `year`, and `size` (bytes), plus
 `verified` (logical) under `verify = TRUE`. `brfss_cache_clear()`
 returns, invisibly, the paths it removed.
+
+## See also
+
+[brfssdata-options](https://muntasirmasum.github.io/brfssdata/reference/brfssdata-options.md)
+for every session option the package reads.
 
 ## Examples
 

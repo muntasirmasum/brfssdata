@@ -299,8 +299,57 @@ Initial CRAN release.
 - Every error, warning, and message carries a documented condition
   class; see `?brfssdata-conditions`.
 
+### Performance and ergonomics
+
+- Metadata reads are served from a session memo. The label catalog was
+  previously read from parquet, through its own DuckDB connection, on
+  every call that used it, twice per
+  [`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
+  with defaults; the manifest JSON was re-parsed up to three times per
+  read and about fifteen times per `brfss_download(catalogs = TRUE)`.
+  Each is now parsed once per file state (the memo invalidates when the
+  on-disk file changes), and the missing-code matcher runs only on the
+  requested years’ catalog rows. Results are byte-identical; repeat
+  calls in a session skip the parquet and JSON work entirely.
+- A `vars` typo no longer costs a download: when a requested year is not
+  yet cached,
+  [`read_brfss()`](https://muntasirmasum.github.io/brfssdata/reference/read_brfss.md)
+  and
+  [`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
+  first check the requested variables against the variable catalog
+  (cached or bundled, never fetched for this purpose) and abort with the
+  same `brfssdata_bad_var` error the query would raise, before any 20-30
+  MB year file transfers. Years the catalog does not cover skip the
+  check, so a stale catalog can never block a valid read.
+- The “Did you mean `years = ...`?” hint for a year-shaped first
+  argument, previously only in
+  [`brfss_labels()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_labels.md),
+  now also fires in
+  [`brfss_crosswalk()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_crosswalk.md),
+  [`brfss_codebook()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_codebook.md),
+  and
+  [`brfss_missing_codes()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_missing_codes.md).
+- [`print()`](https://rdrr.io/r/base/print.html) on a `brfss_codebook`
+  caps at 10 cards and says how many more there are; `print(x, n = Inf)`
+  renders everything. A codebook of the full catalog previously printed
+  thousands of cards.
+- [`brfss_cache_clear()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_cache_dir.md)
+  called with no `years` argument in an interactive session now asks
+  before deleting every cached year. Scripts, tests, and rendered
+  documents are never prompted, and an explicit `years = NULL` keeps the
+  old clear-everything behavior without a question.
+- Every session option the package reads is documented in one place,
+  `?brfssdata-options`, including the previously undocumented
+  `brfssdata.repo`.
+
 ### Documentation
 
+- A *Value labels and missing codes* article walks the `labels` and `na`
+  workflow end to end: what converts and what deliberately does not, the
+  split defaults, auditing with
+  [`brfss_missing_codes()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_missing_codes.md),
+  the 88-means-“None” recode, why `%in%` misreads NA-cleared data, and
+  silencing signals by condition class.
 - The *Age-adjusted prevalence* article passes the outcome to
   [`survey::svystandardize()`](https://rdrr.io/pkg/survey/man/svystandardize.html),
   as `excluding.missing = ~ fair_poor + age_group`.

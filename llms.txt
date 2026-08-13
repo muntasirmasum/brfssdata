@@ -40,6 +40,38 @@ Once the package is on CRAN, install it the usual way.
 install.packages("brfssdata")
 ```
 
+## First estimate
+
+Three lines from install to a design-correct national estimate. The
+first call downloads the year once (about 28 MB, checksum-verified),
+then everything is served from the local cache.
+
+``` r
+
+library(brfssdata)
+library(srvyr)
+
+brfss_design(2023, vars = "GENHLTH") |>
+  group_by(GENHLTH) |>
+  summarize(prop = survey_prop(vartype = "ci"))
+#> # A tibble: 6 × 4
+#>   GENHLTH    prop prop_low prop_upp
+#>     <dbl>   <dbl>    <dbl>    <dbl>
+#> 1       1 0.158    0.156    0.161
+#> 2       2 0.310    0.307    0.313
+#> 3       3 0.335    0.332    0.339
+#> 4       4 0.149    0.146    0.151
+#> 5       5 0.0444   0.0431   0.0458
+#> 6      NA 0.00316  0.00276  0.00362
+```
+
+Weights, strata, and primary sampling units are already applied, with
+the right weight for the survey era; codes CDC uses for “don’t know” and
+“refused” arrive as `NA` (that is the `na = TRUE` default on
+[`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)),
+so the proportions cover substantive answers. Add `labels = TRUE` if you
+want the factor levels spelled out.
+
 ## Usage
 
 ``` r
@@ -224,6 +256,13 @@ Search the catalogs, read the codebook, follow renames.
   [`brfss_cache_clear()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_cache_dir.md)
   : Manage the local BRFSS data cache
 
+## Package options
+
+Session options that change caching, design, and check behavior.
+
+- [`brfssdata-options`](https://muntasirmasum.github.io/brfssdata/reference/brfssdata-options.md)
+  : Options that change how brfssdata behaves
+
 # Articles
 
 ### All vignettes
@@ -244,3 +283,5 @@ Search the catalogs, read the codebook, follow renames.
   BRFSS](https://muntasirmasum.github.io/brfssdata/articles/survey-design.md):
 - [Validating against CDC's published
   estimates](https://muntasirmasum.github.io/brfssdata/articles/validation.md):
+- [Value labels and missing
+  codes](https://muntasirmasum.github.io/brfssdata/articles/value-labels-missing-codes.md):

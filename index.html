@@ -46,6 +46,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="articles/datasets.html">The datasets</a></li>
+    <li><a class="dropdown-item" href="articles/value-labels-missing-codes.html">Value labels and missing codes</a></li>
     <li><a class="dropdown-item" href="articles/survey-design.html">Survey design in BRFSS</a></li>
     <li><a class="dropdown-item" href="articles/logistic-regression.html">Survey-weighted logistic regression</a></li>
     <li><a class="dropdown-item" href="articles/age-adjustment.html">Age-adjusted prevalence</a></li>
@@ -92,9 +93,31 @@
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"brfssdata"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
+<h2 id="first-estimate">First estimate<a class="anchor" aria-label="anchor" href="#first-estimate"></a>
+</h2>
+<p>Three lines from install to a design-correct national estimate. The first call downloads the year once (about 28 MB, checksum-verified), then everything is served from the local cache.</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://muntasirmasum.github.io/brfssdata/">brfssdata</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://gdfe.co/srvyr/" class="external-link">srvyr</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="reference/brfss_design.html">brfss_design</a></span><span class="op">(</span><span class="fl">2023</span>, vars <span class="op">=</span> <span class="st">"GENHLTH"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">group_by</a></span><span class="op">(</span><span class="va">GENHLTH</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarize</a></span><span class="op">(</span>prop <span class="op">=</span> <span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_mean.html" class="external-link">survey_prop</a></span><span class="op">(</span>vartype <span class="op">=</span> <span class="st">"ci"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; # A tibble: 6 × 4</span></span>
+<span><span class="co">#&gt;   GENHLTH    prop prop_low prop_upp</span></span>
+<span><span class="co">#&gt;     &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;</span></span>
+<span><span class="co">#&gt; 1       1 0.158    0.156    0.161</span></span>
+<span><span class="co">#&gt; 2       2 0.310    0.307    0.313</span></span>
+<span><span class="co">#&gt; 3       3 0.335    0.332    0.339</span></span>
+<span><span class="co">#&gt; 4       4 0.149    0.146    0.151</span></span>
+<span><span class="co">#&gt; 5       5 0.0444   0.0431   0.0458</span></span>
+<span><span class="co">#&gt; 6      NA 0.00316  0.00276  0.00362</span></span></code></pre></div>
+<p>Weights, strata, and primary sampling units are already applied, with the right weight for the survey era; codes CDC uses for “don’t know” and “refused” arrive as <code>NA</code> (that is the <code>na = TRUE</code> default on <code><a href="reference/brfss_design.html">brfss_design()</a></code>), so the proportions cover substantive answers. Add <code>labels = TRUE</code> if you want the factor levels spelled out.</p>
+</div>
+<div class="section level2">
 <h2 id="usage">Usage<a class="anchor" aria-label="anchor" href="#usage"></a>
 </h2>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://muntasirmasum.github.io/brfssdata/">brfssdata</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Which survey years are published?</span></span>
@@ -139,11 +162,11 @@
 <h2 id="access-from-python-sas-stata-or-anything-else">Access from Python, SAS, Stata, or anything else<a class="anchor" aria-label="anchor" href="#access-from-python-sas-stata-or-anything-else"></a>
 </h2>
 <p>The hosted data files are plain parquet, so no R is required to use them. Every release asset has a stable URL:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a></span>
-<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>url <span class="op">=</span> (<span class="st">"https://github.com/muntasirmasum/brfssdata/releases/download/"</span></span>
-<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>       <span class="st">"data-2023/brfss_2023.parquet"</span>)</span>
-<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>df <span class="op">=</span> pd.read_parquet(url)</span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>url <span class="op">=</span> (<span class="st">"https://github.com/muntasirmasum/brfssdata/releases/download/"</span></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>       <span class="st">"data-2023/brfss_2023.parquet"</span>)</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>df <span class="op">=</span> pd.read_parquet(url)</span></code></pre></div>
 <p>The same URLs work in polars, DuckDB (any language), Julia, or Stata’s Python bridge. SAS and Stata users who want native files can export any extract from R with <code><a href="https://haven.tidyverse.org/reference/read_xpt.html" class="external-link">haven::write_xpt()</a></code> (SAS Transport) or <code><a href="https://haven.tidyverse.org/reference/read_dta.html" class="external-link">haven::write_dta()</a></code>; the <a href="https://muntasirmasum.github.io/brfssdata/articles/outside-r.html">Using the data outside R</a> article walks through both, including the variable-name limits each format imposes on CDC’s calculated names.</p>
 <p>For survey-weighted analysis outside R, use the design columns shipped in every year: the final weight (<code>_LLCPWT</code> from 2011, <code>_FINALWT</code> before), strata (<code>_STSTR</code>), and PSU (<code>_PSU</code>). The list of available years lives at <code>releases/download/data-meta/manifest.json</code>, and each file has a <code>.sha256</code> companion for verification.</p>
 </div>

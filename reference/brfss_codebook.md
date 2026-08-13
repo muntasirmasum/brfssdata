@@ -8,7 +8,8 @@ to one). It answers "what is this variable" in one call; use
 [`brfss_vars()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_vars.md)
 to *find* variables first.
 
-Printing renders a card per variable. The returned object is still a
+Printing renders a card per variable, capped at 10 cards by default;
+`print(x, n = Inf)` renders every card. The returned object is still a
 regular tibble; the `values` and `missing_codes` columns are
 list-columns of tibbles, `related` a list-column of sibling variable
 names.

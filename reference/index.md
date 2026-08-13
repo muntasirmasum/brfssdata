@@ -53,3 +53,10 @@ Search the catalogs, read the codebook, follow renames.
   [`brfss_cache_info()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_cache_dir.md)
   [`brfss_cache_clear()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_cache_dir.md)
   : Manage the local BRFSS data cache
+
+## Package options
+
+Session options that change caching, design, and check behavior.
+
+- [`brfssdata-options`](https://muntasirmasum.github.io/brfssdata/reference/brfssdata-options.md)
+  : Options that change how brfssdata behaves

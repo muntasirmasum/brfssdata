@@ -10,7 +10,8 @@ articles:
   articles/outside-r: outside-r.html
   articles/survey-design: survey-design.html
   articles/validation: validation.html
-last_built: 2026-08-10T14:53Z
+  articles/value-labels-missing-codes: value-labels-missing-codes.html
+last_built: 2026-08-13T20:00Z
 urls:
   reference: https://muntasirmasum.github.io/brfssdata/reference
   article: https://muntasirmasum.github.io/brfssdata/articles

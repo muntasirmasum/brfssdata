@@ -18,3 +18,5 @@
   BRFSS](https://muntasirmasum.github.io/brfssdata/articles/survey-design.md):
 - [Validating against CDC's published
   estimates](https://muntasirmasum.github.io/brfssdata/articles/validation.md):
+- [Value labels and missing
+  codes](https://muntasirmasum.github.io/brfssdata/articles/value-labels-missing-codes.md):
