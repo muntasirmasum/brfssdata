@@ -2,7 +2,7 @@
 % Please edit documentation in R/brfssdata-options.R
 \name{brfssdata-options}
 \alias{brfssdata-options}
-\title{Options that change brfssdata's behavior}
+\title{Options that change how brfssdata behaves}
 \description{
 Every session option the package reads, in one place. Set any of
 them with \code{\link[=options]{options()}}, typically in a project \code{.Rprofile}; none is

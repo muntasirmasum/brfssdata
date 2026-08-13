@@ -78,7 +78,7 @@ Everything else is left as numeric codes. `PHYSHLTH` never converts,
 because turning a count of days into a factor would destroy it.
 
 `labels = "both"` keeps the code visible inside each level, the haven
-convention, which keeps factor output joinable back to code-based
+convention, so factor output stays easy to join back to code-based
 recodes.
 
 ```{r labels-both}
@@ -86,7 +86,7 @@ read_brfss(2023, vars = "GENHLTH", labels = "both", na = TRUE) |>
   count(GENHLTH)
 ```
 
-## na = TRUE: missing-type codes become NA
+## Missing-type codes become NA with `na = TRUE`
 
 Labeling renames codes; deciding which of them mean missing is a
 separate decision, and the package keeps it separate. With

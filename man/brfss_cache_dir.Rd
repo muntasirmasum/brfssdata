@@ -55,9 +55,9 @@ default, and reports what it removed. The manifest and catalogs are
 kept unless \code{catalogs = TRUE}, so offline use of \code{\link[=brfss_vars]{brfss_vars()}} and
 \code{\link[=brfss_labels]{brfss_labels()}} survives a data-cache clear. Called with no
 \code{years} argument in an interactive session, it asks for
-confirmation before deleting everything; scripts and knitr runs
-are never prompted, and an explicit \code{years = NULL} clears all
-years without asking in any session.
+confirmation before deleting everything; scripts and rendered
+documents are never prompted, and an explicit \code{years = NULL}
+clears all years without asking in any session.
 }
 }
 \examples{

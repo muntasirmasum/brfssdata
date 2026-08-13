@@ -286,9 +286,9 @@ Initial CRAN release.
   of the full catalog previously printed thousands of cards.
 * `brfss_cache_clear()` called with no `years` argument in an
   interactive session now asks before deleting every cached year.
-  Scripts, tests, and knitr runs are never prompted, and an explicit
-  `years = NULL` keeps the old clear-everything behavior without a
-  question.
+  Scripts, tests, and rendered documents are never prompted, and an
+  explicit `years = NULL` keeps the old clear-everything behavior
+  without a question.
 * Every session option the package reads is documented in one place,
   `?brfssdata-options`, including the previously undocumented
   `brfssdata.repo`.

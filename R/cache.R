@@ -23,9 +23,9 @@
 #'   kept unless `catalogs = TRUE`, so offline use of [brfss_vars()] and
 #'   [brfss_labels()] survives a data-cache clear. Called with no
 #'   `years` argument in an interactive session, it asks for
-#'   confirmation before deleting everything; scripts and knitr runs
-#'   are never prompted, and an explicit `years = NULL` clears all
-#'   years without asking in any session.
+#'   confirmation before deleting everything; scripts and rendered
+#'   documents are never prompted, and an explicit `years = NULL`
+#'   clears all years without asking in any session.
 #'
 #' @param years Optional integer vector. If supplied to
 #'   `brfss_cache_clear()`, only those survey years are removed;

@@ -1,4 +1,4 @@
-#' Options that change brfssdata's behavior
+#' Options that change how brfssdata behaves
 #'
 #' @description
 #' Every session option the package reads, in one place. Set any of
