@@ -185,3 +185,38 @@ test_that("a year-shaped vars argument gets the years hint", {
   err <- expect_error(brfss_codebook(), class = "brfssdata_bad_vars_arg")
   expect_no_match(conditionMessage(err), "years = ")
 })
+
+test_that("printing caps the cards and points at n = Inf", {
+  local_brfss_cache(2023, catalog = TRUE)
+  cb <- brfss_codebook(c("GENHLTH", "SMOKE100"), download = FALSE)
+  capped <- gsub(
+    "\\s+",
+    " ",
+    paste(cli::cli_fmt(print(cb, n = 1)), collapse = " ")
+  )
+  expect_match(capped, "GENHLTH")
+  expect_no_match(capped, "SMOKE100")
+  expect_match(capped, "1 more variable")
+  expect_match(capped, "n = Inf")
+
+  full <- gsub(
+    "\\s+",
+    " ",
+    paste(cli::cli_fmt(print(cb, n = Inf)), collapse = " ")
+  )
+  expect_match(full, "GENHLTH")
+  expect_match(full, "SMOKE100")
+  expect_no_match(full, "more variable")
+
+  # Under the cap there is no footer at all.
+  default <- gsub(
+    "\\s+",
+    " ",
+    paste(cli::cli_fmt(print(cb)), collapse = " ")
+  )
+  expect_match(default, "SMOKE100")
+  expect_no_match(default, "more variable")
+
+  expect_error(print(cb, n = 0), class = "brfssdata_bad_n_arg")
+  expect_error(print(cb, n = "all"), class = "brfssdata_bad_n_arg")
+})

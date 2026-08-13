@@ -8,8 +8,9 @@
 #' family, if it belongs to one). It answers "what is this variable" in
 #' one call; use [brfss_vars()] to *find* variables first.
 #'
-#' Printing renders a card per variable. The returned object is still a
-#' regular tibble; the `values` and `missing_codes` columns are
+#' Printing renders a card per variable, capped at 10 cards by default;
+#' `print(x, n = Inf)` renders every card. The returned object is still
+#' a regular tibble; the `values` and `missing_codes` columns are
 #' list-columns of tibbles, `related` a list-column of sibling
 #' variable names.
 #'
@@ -173,11 +174,21 @@ brfss_codebook <- function(
 }
 
 #' @export
-print.brfss_codebook <- function(x, ...) {
+print.brfss_codebook <- function(x, ..., n = NULL) {
+  # A codebook of the whole catalog is thousands of cards; cap the
+  # console rendering the way tibbles do and point at the escape hatch.
+  n <- n %||% 10L
+  if (!is.numeric(n) || length(n) != 1L || is.na(n) || n < 1) {
+    cli::cli_abort(
+      "{.arg n} must be a single positive number (or {.code Inf}).",
+      class = "brfssdata_bad_n_arg"
+    )
+  }
+  n_show <- min(nrow(x), n)
   # Catalog label text is data, not a cli template; a literal brace in
   # a CDC label must never reach cli's interpolator.
   esc <- function(s) gsub("}", "}}", gsub("{", "{{", s, fixed = TRUE), fixed = TRUE)
-  for (i in seq_len(nrow(x))) {
+  for (i in seq_len(n_show)) {
     cli::cli_rule(left = "{.strong {x$variable[[i]]}}")
     label <- x$label[[i]]
     if (is.na(label)) {
@@ -251,6 +262,13 @@ print.brfss_codebook <- function(x, ...) {
       }
     }
     cli::cli_text("")
+  }
+  if (nrow(x) > n_show) {
+    n_more <- nrow(x) - n_show
+    cli::cli_text(
+      "{cli::qty(n_more)}... and {n_more} more variable{?s};
+       {.code print(x, n = Inf)} shows every card."
+    )
   }
   invisible(x)
 }

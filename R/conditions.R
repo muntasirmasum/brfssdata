@@ -45,6 +45,8 @@
 #'   \item{`brfssdata_bad_labels_arg`}{`labels` is something other than
 #'     `TRUE`, `FALSE`, or `"both"`.}
 #'   \item{`brfssdata_bad_na_arg`}{`na` is not `TRUE` or `FALSE`.}
+#'   \item{`brfssdata_bad_n_arg`}{`n` in `print.brfss_codebook()` is not
+#'     a single positive number.}
 #'   \item{`brfssdata_bad_option`}{`options(brfssdata.lonely_psu)` is
 #'     not a single string, or `options(brfssdata.module_weight_check)`
 #'     is not `TRUE` or `FALSE`.}
