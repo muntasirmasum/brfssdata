@@ -205,15 +205,15 @@ apply_missing_codes <- function(
   # many of its labels are missing-type.
   catalog_years <- unique(catalog$year)
   covered_years <- intersect(years, catalog_years)
+  # Requested years only from here on: the label matcher below is the
+  # expensive step, and rows outside `years` can never contribute to
+  # either the coverage map or the recode.
+  catalog <- catalog[catalog$year %in% years, , drop = FALSE]
   covered_vars_by_year <- lapply(covered_years, function(y) {
     unique(catalog$variable[catalog$year == y])
   })
   names(covered_vars_by_year) <- as.character(covered_years)
-  catalog <- catalog[
-    catalog$year %in% years & is_missing_label(catalog$label),
-    ,
-    drop = FALSE
-  ]
+  catalog <- catalog[is_missing_label(catalog$label), , drop = FALSE]
 
   vars <- setdiff(intersect(unique(catalog$variable), names(dat)), exclude)
   cleared <- 0L

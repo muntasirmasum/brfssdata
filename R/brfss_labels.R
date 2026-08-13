@@ -64,8 +64,9 @@ brfss_labels <- function(
   unmatched <- character(0)
   if (!is.null(vars)) {
     vars_u <- unique(vars)
-    unmatched <- vars_u[!toupper(vars_u) %in% toupper(catalog$variable)]
-    keep <- toupper(catalog$variable) %in% toupper(vars)
+    catalog_upper <- toupper(catalog$variable)
+    unmatched <- vars_u[!toupper(vars_u) %in% catalog_upper]
+    keep <- catalog_upper %in% toupper(vars_u)
     catalog <- catalog[keep, , drop = FALSE]
   }
   # A miss hiding inside a non-empty result is the dangerous silent
