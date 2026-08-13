@@ -9,6 +9,15 @@ additionally flags two words in DESCRIPTION as possibly misspelled:
 System, the survey this package distributes, and "microdata" is a
 standard statistical term for respondent-level records.
 
+One win-builder R-devel run also listed the maintainer's ORCID iD
+(0000-0002-4210-2844, from inst/CITATION) under "(possibly) invalid
+ORCID iD". The iD is valid: it passes tools:::.ORCID_iD_is_valid()
+(the checksum), and tools:::.ORCID_iD_is_alive() returns TRUE for it
+(https://orcid.org/0000-0002-4210-2844 resolves). The same iD appears
+in DESCRIPTION and inst/CITATION, so the incoming check requests the
+same URL twice concurrently; the flag on one of the two copies is a
+transient non-200 from orcid.org, not a property of the iD.
+
 ## Test environments
 
 * local macOS (aarch64), R 4.6.1 (2026-08-13): 0 errors, 0 warnings,
