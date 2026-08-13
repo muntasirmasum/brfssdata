@@ -164,19 +164,19 @@ crosswalk_catalog <- function(
   quiet = TRUE,
   call = rlang::caller_env()
 ) {
-  path <- ensure_catalog_cached(
+  read_catalog(
     "brfss_crosswalk.parquet",
     what = "rename crosswalk",
     download = download,
     quiet = quiet,
     call = call
   )
-  query_parquet(path)
 }
 
 # The read path's rename note must never touch the network: cached copy
 # if present, bundled snapshot otherwise, NULL (skip the note) when
-# neither is readable.
+# neither is readable. Served from the session memo after the first
+# read, since this runs on every read_brfss(vars = ...) call.
 crosswalk_catalog_offline <- function() {
   path <- cache_path("brfss_crosswalk.parquet")
   if (!file.exists(path)) {
@@ -185,5 +185,5 @@ crosswalk_catalog_offline <- function() {
   if (is.null(path)) {
     return(NULL)
   }
-  tryCatch(query_parquet(path), error = function(e) NULL)
+  tryCatch(catalog_memo_get(path), error = function(e) NULL)
 }

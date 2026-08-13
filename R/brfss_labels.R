@@ -109,14 +109,13 @@ labels_catalog <- function(
   quiet = TRUE,
   call = rlang::caller_env()
 ) {
-  path <- ensure_catalog_cached(
+  read_catalog(
     "brfss_labels.parquet",
     what = "label catalog",
     download = download,
     quiet = quiet,
     call = call
   )
-  query_parquet(path)
 }
 
 # Convert eligible variables to factors. A variable qualifies when, for

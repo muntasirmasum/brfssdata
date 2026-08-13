@@ -495,3 +495,55 @@ ensure_catalog_cached <- function(
   }
   path
 }
+
+# Session memo of parsed catalog tibbles, keyed by file identity
+# (normalized path, invalidated when mtime or size moves). Lives in
+# manifest_state so the test fixtures' save/clear/restore scoping covers
+# it automatically, like the per-asset check memos. Consulted only AFTER
+# ensure_catalog_cached() has decided the on-disk file is current (or
+# replaced it): a refresh rewrites the file, which changes the stamp, so
+# the next lookup re-reads. A read error propagates and is never
+# memoized, so a corrupt file keeps signalling on every call. mtime
+# resolution is coarse (1s) on some filesystems; the size half of the
+# stamp and the fact that replacements arrive as newly written bytes
+# close that window in practice.
+catalog_memo_get <- function(path, call = rlang::caller_env()) {
+  info <- file.info(path, extra_cols = FALSE)
+  key <- tryCatch(
+    normalizePath(path, mustWork = FALSE),
+    error = function(e) path
+  )
+  stamp <- c(as.numeric(info$mtime), as.numeric(info$size))
+  memo <- manifest_state$catalog_memo %||% list()
+  hit <- memo[[key]]
+  if (!is.null(hit) && !anyNA(stamp) && identical(hit$stamp, stamp)) {
+    return(hit$value)
+  }
+  value <- query_parquet(path, call = call)
+  if (!anyNA(stamp)) {
+    memo[[key]] <- list(stamp = stamp, value = value)
+    manifest_state$catalog_memo <- memo
+  }
+  value
+}
+
+# One body for the metadata-catalog accessors: ensure the asset is
+# cached and fresh, then serve the session memo.
+read_catalog <- function(
+  asset,
+  what,
+  download = TRUE,
+  quiet = TRUE,
+  fallback = TRUE,
+  call = rlang::caller_env()
+) {
+  path <- ensure_catalog_cached(
+    asset,
+    what = what,
+    download = download,
+    quiet = quiet,
+    fallback = fallback,
+    call = call
+  )
+  catalog_memo_get(path, call = call)
+}

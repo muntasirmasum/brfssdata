@@ -26,13 +26,12 @@ brfss_year_info <- function(years = NULL, download = TRUE, quiet = TRUE) {
   if (!is.null(years)) {
     years <- check_years_arg(years)
   }
-  path <- ensure_catalog_cached(
+  info <- read_catalog(
     "brfss_year_info.parquet",
     what = "year inventory",
     download = download,
     quiet = quiet
   )
-  info <- query_parquet(path)
   if (!is.null(years)) {
     info <- info[info$year %in% years, , drop = FALSE]
     missing <- setdiff(years, info$year)

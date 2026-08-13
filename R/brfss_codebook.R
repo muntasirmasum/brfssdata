@@ -61,13 +61,7 @@ brfss_codebook <- function(
     years <- check_years_arg(years)
   }
 
-  path <- ensure_catalog_cached(
-    "brfss_variables.parquet",
-    what = "variable catalog",
-    download = download,
-    quiet = quiet
-  )
-  catalog <- query_parquet(path)
+  catalog <- variables_catalog(download = download, quiet = quiet)
   labels <- labels_catalog(download = download, quiet = quiet)
   # The years the value-label catalog covers at all, read before the
   # year filter narrows it: an empty value set means something

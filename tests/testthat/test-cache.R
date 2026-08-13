@@ -225,3 +225,34 @@ test_that("brfss_cache_info(verify = TRUE) reports the tri-state verdict", {
   info2 <- brfss_cache_info(verify = TRUE)
   expect_false(info2$verified[info2$file == "brfss_2023.parquet"])
 })
+
+test_that("catalog reads are memoized within a session", {
+  local_brfss_cache(2023)
+  real_query <- query_parquet
+  reads <- 0L
+  local_mocked_bindings(
+    query_parquet = function(...) {
+      reads <<- reads + 1L
+      real_query(...)
+    }
+  )
+  first <- brfss_labels(years = 2023)
+  second <- brfss_labels(years = 2023)
+  expect_identical(reads, 1L)
+  expect_identical(first, second)
+})
+
+test_that("a replaced catalog file invalidates the session memo", {
+  dir <- local_brfss_cache(2023)
+  first <- brfss_labels(years = 2023)
+  expect_gt(nrow(first), 0)
+  # Rewrite the label catalog with an extra year: new bytes on disk,
+  # plus an explicit mtime bump for coarse-mtime filesystems.
+  write_fixture_labels(dir, extra_years = c(2022L, 2023L))
+  path <- file.path(dir, "brfss_labels.parquet")
+  bumped <- Sys.setFileTime(path, Sys.time() + 2)
+  skip_if_not(isTRUE(bumped), "cannot set file mtime on this filesystem")
+  refreshed <- brfss_labels(years = 2022)
+  expect_true(all(refreshed$year == 2022L))
+  expect_gt(nrow(refreshed), 0)
+})

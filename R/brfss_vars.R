@@ -35,14 +35,7 @@ brfss_vars <- function(
   if (!is.null(years)) {
     years <- check_years_arg(years)
   }
-  path <- ensure_catalog_cached(
-    "brfss_variables.parquet",
-    what = "variable catalog",
-    download = download,
-    quiet = quiet
-  )
-
-  catalog <- query_parquet(path)
+  catalog <- variables_catalog(download = download, quiet = quiet)
 
   if (!is.null(years)) {
     catalog <- catalog[catalog$year %in% years, , drop = FALSE]
@@ -110,4 +103,18 @@ brfss_vars <- function(
   # radix ordering is locale-independent, so the catalog comes back in
   # the same order on every machine.
   out[order(out$variable, method = "radix"), ]
+}
+
+variables_catalog <- function(
+  download = TRUE,
+  quiet = TRUE,
+  call = rlang::caller_env()
+) {
+  read_catalog(
+    "brfss_variables.parquet",
+    what = "variable catalog",
+    download = download,
+    quiet = quiet,
+    call = call
+  )
 }
