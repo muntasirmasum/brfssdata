@@ -24,6 +24,8 @@ navbar:
       menu:
       - text: The datasets
         href: articles/datasets.html
+      - text: Value labels and missing codes
+        href: articles/value-labels-missing-codes.html
       - text: Survey design in BRFSS
         href: articles/survey-design.html
       - text: Survey-weighted logistic regression
