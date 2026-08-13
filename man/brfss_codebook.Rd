@@ -35,8 +35,9 @@ codes flagged), and the rename crosswalk (the variable's concept
 family, if it belongs to one). It answers "what is this variable" in
 one call; use \code{\link[=brfss_vars]{brfss_vars()}} to \emph{find} variables first.
 
-Printing renders a card per variable. The returned object is still a
-regular tibble; the \code{values} and \code{missing_codes} columns are
+Printing renders a card per variable, capped at 10 cards by default;
+\code{print(x, n = Inf)} renders every card. The returned object is still
+a regular tibble; the \code{values} and \code{missing_codes} columns are
 list-columns of tibbles, \code{related} a list-column of sibling
 variable names.
 }

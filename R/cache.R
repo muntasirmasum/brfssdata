@@ -47,6 +47,8 @@
 #' @examples
 #' brfss_cache_dir()
 #' brfss_cache_info()
+#' @seealso [brfssdata-options] for every session option the package
+#'   reads.
 #' @export
 brfss_cache_dir <- function() {
   getOption("brfssdata.cache_dir") %||%

@@ -159,6 +159,10 @@
 #' des |>
 #'   group_by(GENHLTH) |>
 #'   summarize(prop = survey_prop())
+#' @seealso [read_brfss()] for the underlying data;
+#'   [brfssdata-options] for the session options
+#'   (`brfssdata.lonely_psu`, `brfssdata.module_weight_check`) this
+#'   function consults.
 #' @export
 brfss_design <- function(
   years,

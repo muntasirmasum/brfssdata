@@ -69,3 +69,7 @@ reference:
   - brfss_cache_dir
   - brfss_cache_info
   - brfss_cache_clear
+- title: Package options
+  desc: Session options that change caching, design, and check behavior.
+  contents:
+  - brfssdata-options

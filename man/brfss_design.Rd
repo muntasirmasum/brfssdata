@@ -224,3 +224,9 @@ des |>
   summarize(prop = survey_prop())
 \dontshow{\}) # examplesIf}
 }
+\seealso{
+\code{\link[=read_brfss]{read_brfss()}} for the underlying data;
+\link{brfssdata-options} for the session options
+(\code{brfssdata.lonely_psu}, \code{brfssdata.module_weight_check}) this
+function consults.
+}

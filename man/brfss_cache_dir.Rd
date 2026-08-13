@@ -18,7 +18,8 @@ file and adds the \code{verified} column described above.}
 
 \item{years}{Optional integer vector. If supplied to
 \code{brfss_cache_clear()}, only those survey years are removed;
-\code{integer(0)} removes none (useful with \code{catalogs = TRUE}).
+\code{integer(0)} removes none (useful with \code{catalogs = TRUE}) and
+\code{NULL} removes every year without the interactive confirmation.
 Fractional, infinite, missing, or non-numeric years are rejected
 (\code{brfssdata_bad_years_arg}) before anything is deleted.}
 
@@ -52,10 +53,18 @@ the cached or bundled manifest and never touches the network.
 \item \code{brfss_cache_clear()} deletes cached survey years, all of them by
 default, and reports what it removed. The manifest and catalogs are
 kept unless \code{catalogs = TRUE}, so offline use of \code{\link[=brfss_vars]{brfss_vars()}} and
-\code{\link[=brfss_labels]{brfss_labels()}} survives a data-cache clear.
+\code{\link[=brfss_labels]{brfss_labels()}} survives a data-cache clear. Called with no
+\code{years} argument in an interactive session, it asks for
+confirmation before deleting everything; scripts and knitr runs
+are never prompted, and an explicit \code{years = NULL} clears all
+years without asking in any session.
 }
 }
 \examples{
 brfss_cache_dir()
 brfss_cache_info()
+}
+\seealso{
+\link{brfssdata-options} for every session option the package
+reads.
 }

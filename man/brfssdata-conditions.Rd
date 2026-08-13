@@ -48,6 +48,8 @@ refusal.}
 \item{\code{brfssdata_bad_labels_arg}}{\code{labels} is something other than
 \code{TRUE}, \code{FALSE}, or \code{"both"}.}
 \item{\code{brfssdata_bad_na_arg}}{\code{na} is not \code{TRUE} or \code{FALSE}.}
+\item{\code{brfssdata_bad_n_arg}}{\code{n} in \code{print.brfss_codebook()} is not
+a single positive number.}
 \item{\code{brfssdata_bad_option}}{\code{options(brfssdata.lonely_psu)} is
 not a single string, or \code{options(brfssdata.module_weight_check)}
 is not \code{TRUE} or \code{FALSE}.}
