@@ -176,3 +176,12 @@ test_that("malformed years are rejected with the years class", {
     class = "brfssdata_bad_years_arg"
   )
 })
+
+test_that("a year-shaped vars argument gets the years hint", {
+  err <- expect_error(brfss_codebook(2023), class = "brfssdata_bad_vars_arg")
+  expect_match(conditionMessage(err), "years = ")
+  err <- expect_error(brfss_codebook(1:2), class = "brfssdata_bad_vars_arg")
+  expect_no_match(conditionMessage(err), "years = ")
+  err <- expect_error(brfss_codebook(), class = "brfssdata_bad_vars_arg")
+  expect_no_match(conditionMessage(err), "years = ")
+})

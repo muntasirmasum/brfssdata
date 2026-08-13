@@ -159,6 +159,27 @@ check_years_arg <- function(
   sort(unique(as.integer(years)))
 }
 
+# Shared year-sniff for the metadata lookups' vars guards: when a
+# numeric first argument looks like survey years, say which argument
+# they belong in. Returns a cli bullet to append to the abort, or NULL.
+# The predicate is brfss_labels()'s original, kept verbatim: numeric(0)
+# vacuously passes all() and keeps its hint, as it always has.
+vars_arg_year_hint <- function(vars, fn) {
+  year_like <- is.numeric(vars) &&
+    all(vars >= 1984 & vars <= 2100, na.rm = TRUE)
+  if (!year_like) {
+    return(NULL)
+  }
+  c(
+    "i" = paste0(
+      "Did you mean {.code ",
+      fn,
+      "(years = ...)}? The first
+       argument is variable names; survey years come second."
+    )
+  )
+}
+
 validate_years <- function(years, download = TRUE, call = rlang::caller_env()) {
   years <- check_years_arg(years, call = call)
 

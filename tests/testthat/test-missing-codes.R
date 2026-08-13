@@ -378,3 +378,13 @@ test_that("the partial-match note passes through brfss_missing_codes()", {
   )
   expect_true(all(out$variable == "GENHLTH"))
 })
+
+test_that("a year-shaped vars argument gets the years hint", {
+  err <- expect_error(
+    brfss_missing_codes(2023),
+    class = "brfssdata_bad_vars_arg"
+  )
+  expect_match(conditionMessage(err), "brfss_missing_codes\\(years = ")
+  err <- expect_error(brfss_missing_codes(1), class = "brfssdata_bad_vars_arg")
+  expect_no_match(conditionMessage(err), "years = ")
+})

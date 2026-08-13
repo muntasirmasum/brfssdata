@@ -124,3 +124,10 @@ test_that("a full family match emits no partial-match note", {
     class = "brfssdata_partial_match_note"
   )
 })
+
+test_that("a year-shaped vars argument gets the years hint", {
+  err <- expect_error(brfss_crosswalk(2023), class = "brfssdata_bad_vars_arg")
+  expect_match(conditionMessage(err), "years = ")
+  err <- expect_error(brfss_crosswalk(1), class = "brfssdata_bad_vars_arg")
+  expect_no_match(conditionMessage(err), "years = ")
+})

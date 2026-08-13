@@ -41,8 +41,17 @@ brfss_missing_codes <- function(
   download = TRUE,
   quiet = TRUE
 ) {
-  # Validated here, not just in the delegation, so a malformed years
-  # error names this function rather than brfss_labels().
+  # Validated here, not just in the delegation, so a malformed vars or
+  # years error names this function rather than brfss_labels().
+  if (!is.null(vars) && (!is.character(vars) || anyNA(vars))) {
+    cli::cli_abort(
+      c(
+        "{.arg vars} must be a character vector of variable names.",
+        vars_arg_year_hint(vars, "brfss_missing_codes")
+      ),
+      class = "brfssdata_bad_vars_arg"
+    )
+  }
   if (!is.null(years)) {
     years <- check_years_arg(years)
   }

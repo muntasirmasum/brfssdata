@@ -99,7 +99,10 @@ brfss_crosswalk <- function(
 ) {
   if (!is.null(vars) && (!is.character(vars) || anyNA(vars))) {
     cli::cli_abort(
-      "{.arg vars} must be a character vector of variable names.",
+      c(
+        "{.arg vars} must be a character vector of variable names.",
+        vars_arg_year_hint(vars, "brfss_crosswalk")
+      ),
       class = "brfssdata_bad_vars_arg"
     )
   }

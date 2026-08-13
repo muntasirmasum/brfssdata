@@ -41,16 +41,11 @@ brfss_labels <- function(
   quiet = TRUE
 ) {
   if (!is.null(vars) && (!is.character(vars) || anyNA(vars))) {
-    year_like <- is.numeric(vars) &&
-      all(vars >= 1984 & vars <= 2100, na.rm = TRUE)
-    hint <- if (year_like) {
-      c(
-        "i" = "Did you mean {.code brfss_labels(years = ...)}? The first
-               argument is variable names; survey years come second."
-      )
-    }
     cli::cli_abort(
-      c("{.arg vars} must be a character vector of variable names.", hint),
+      c(
+        "{.arg vars} must be a character vector of variable names.",
+        vars_arg_year_hint(vars, "brfss_labels")
+      ),
       class = "brfssdata_bad_vars_arg"
     )
   }

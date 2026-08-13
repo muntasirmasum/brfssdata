@@ -52,7 +52,8 @@ brfss_codebook <- function(
       c(
         "{.arg vars} must be a character vector of variable names.",
         "i" = "To browse or search the whole catalog, use
-               {.fun brfss_vars}."
+               {.fun brfss_vars}.",
+        if (!missing(vars)) vars_arg_year_hint(vars, "brfss_codebook")
       ),
       class = "brfssdata_bad_vars_arg"
     )
