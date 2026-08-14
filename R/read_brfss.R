@@ -310,12 +310,19 @@ check_vars_before_download <- function(
   if (length(unknown) == 0) {
     return(invisible())
   }
+  hints <- var_not_found_hints(
+    unknown,
+    catalog_vars = catalog$variable,
+    catalog_years = catalog$year,
+    scope_vars = catalog$variable[catalog$year %in% years]
+  )
   cli::cli_abort(
     c(
       "Variable{?s} {.val {unknown}} {?was/were} not found in the
        requested years.",
       "i" = "Checked against the variable catalog before downloading;
              no data were fetched.",
+      rlang::set_names(hints, rep("i", length(hints))),
       "i" = "Use {.fun brfss_vars} to search available variables
              and the years they appear in."
     ),

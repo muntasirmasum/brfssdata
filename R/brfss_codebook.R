@@ -96,6 +96,9 @@ brfss_codebook <- function(
       NULL
     }
   )
+  # Kept unfiltered so the not-found error can say which years do
+  # carry a variable that the years filter excluded.
+  catalog_all <- catalog
   if (!is.null(years)) {
     catalog <- catalog[catalog$year %in% years, , drop = FALSE]
     labels <- labels[labels$year %in% years, , drop = FALSE]
@@ -112,10 +115,17 @@ brfss_codebook <- function(
       "in the variable catalog for the requested years"
     }
     n_unknown <- length(unknown)
+    hints <- var_not_found_hints(
+      unknown,
+      catalog_vars = catalog_all$variable,
+      catalog_years = catalog_all$year,
+      scope_vars = canonical
+    )
     cli::cli_abort(
       c(
         "{cli::qty(n_unknown)}Variable{?s} {.val {unknown}}
          {cli::qty(n_unknown)}{?was/were} not found {scope}.",
+        rlang::set_names(hints, rep("i", length(hints))),
         "i" = "Search names and labels with {.fun brfss_vars}."
       ),
       class = "brfssdata_bad_var"
@@ -185,16 +195,15 @@ print.brfss_codebook <- function(x, ..., n = NULL) {
     )
   }
   n_show <- min(nrow(x), n)
-  # Catalog label text is data, not a cli template; a literal brace in
-  # a CDC label must never reach cli's interpolator.
-  esc <- function(s) gsub("}", "}}", gsub("{", "{{", s, fixed = TRUE), fixed = TRUE)
   for (i in seq_len(n_show)) {
     cli::cli_rule(left = "{.strong {x$variable[[i]]}}")
     label <- x$label[[i]]
     if (is.na(label)) {
       label <- "(no label recorded)"
     }
-    cli::cli_text(esc(label))
+    # Catalog label text is data, not a cli template; a literal brace
+    # in a CDC label must never reach cli's interpolator.
+    cli::cli_text(escape_cli_braces(label))
     cli::cli_text("Years: {x$years[[i]]}")
     if (!is.na(x$concept[[i]]) && length(x$related[[i]]) > 0) {
       cli::cli_text(
@@ -243,7 +252,7 @@ print.brfss_codebook <- function(x, ..., n = NULL) {
           "\u00a0\u00a0",
           latest$code[[j]],
           ": ",
-          esc(latest$label[[j]]),
+          escape_cli_braces(latest$label[[j]]),
           flag
         ))
       }

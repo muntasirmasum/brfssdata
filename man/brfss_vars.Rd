@@ -24,13 +24,21 @@ A tibble with one row per variable: \code{variable}, \code{label} (the
 most recent non-missing label, since label text can drift across
 years), and \code{years} (a compact summary of the years the variable
 appears in, e.g. \code{"2011-2013, 2020"}). Searches that match nothing
-return a zero-row tibble.
+return a zero-row tibble and say so with a
+\code{brfssdata_empty_result} message carrying the suggestions
+described above.
 }
 \description{
 BRFSS variable names and availability drift across years. This function
 searches the variable catalog that accompanies the data releases and
 reports, for each match, which years carry the variable. The catalog is
 downloaded once and cached like the data itself.
+
+A search that matches nothing says so and suggests near misses:
+variables whose name or label is a small edit away (a typo'd
+pattern), variables matching every word of a multi-word pattern in
+any order, and, when \code{years} is given, matches that exist only in
+other years.
 }
 \examples{
 # download = FALSE reads the cached catalog, or the snapshot bundled

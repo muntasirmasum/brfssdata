@@ -26,6 +26,35 @@ test_that("vars is required and matched case-insensitively", {
   )
 })
 
+test_that("an unknown variable gets a did-you-mean and year hints", {
+  local_brfss_cache(2023, catalog = TRUE)
+  # GENHLT is one edit from GENHLTH.
+  err <- expect_error(
+    brfss_codebook("GENHLT", download = FALSE),
+    class = "brfssdata_bad_var"
+  )
+  expect_match(conditionMessage(err), "GENHLTH", fixed = TRUE)
+  # MYSTVAR exists, but only in 2020.
+  err2 <- expect_error(
+    brfss_codebook("MYSTVAR", years = 2022, download = FALSE),
+    class = "brfssdata_bad_var"
+  )
+  expect_match(conditionMessage(err2), "2020", fixed = TRUE)
+})
+
+test_that("case variants of one unknown produce one hint", {
+  local_brfss_cache(2023, catalog = TRUE)
+  err <- expect_error(
+    brfss_codebook(c("mystvar", "MYSTVAR"), years = 2022, download = FALSE),
+    class = "brfssdata_bad_var"
+  )
+  msg <- conditionMessage(err)
+  expect_identical(
+    lengths(regmatches(msg, gregexpr("available in", msg, fixed = TRUE))),
+    1L
+  )
+})
+
 test_that("family membership comes from the crosswalk", {
   dir <- local_brfss_cache(2023, catalog = TRUE)
   # Put OLDGEN in the variable catalog so the codebook can find it.

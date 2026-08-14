@@ -150,8 +150,11 @@ catalog at all raise \code{brfssdata_na_coverage_warning} instead.}
 only its module's records); those rows were dropped, per CDC's
 module-analysis guidance.}
 \item{\code{brfssdata_empty_result}}{A metadata lookup
-(\code{\link[=brfss_labels]{brfss_labels()}}, \code{\link[=brfss_crosswalk]{brfss_crosswalk()}}, \code{\link[=brfss_year_info]{brfss_year_info()}})
-matched nothing.}
+(\code{\link[=brfss_vars]{brfss_vars()}}, \code{\link[=brfss_labels]{brfss_labels()}}, \code{\link[=brfss_crosswalk]{brfss_crosswalk()}},
+\code{\link[=brfss_year_info]{brfss_year_info()}}) matched nothing. From \code{\link[=brfss_vars]{brfss_vars()}} the
+message also suggests near misses: close names and labels,
+order-blind multi-word matches, and matches confined to other
+years.}
 \item{\code{brfssdata_partial_match_note}}{Some requested variables in
 \code{\link[=brfss_labels]{brfss_labels()}} or \code{\link[=brfss_crosswalk]{brfss_crosswalk()}} matched nothing while
 others matched, so the returned rows cover the matching

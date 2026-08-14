@@ -143,8 +143,11 @@
 #'     only its module's records); those rows were dropped, per CDC's
 #'     module-analysis guidance.}
 #'   \item{`brfssdata_empty_result`}{A metadata lookup
-#'     ([brfss_labels()], [brfss_crosswalk()], [brfss_year_info()])
-#'     matched nothing.}
+#'     ([brfss_vars()], [brfss_labels()], [brfss_crosswalk()],
+#'     [brfss_year_info()]) matched nothing. From [brfss_vars()] the
+#'     message also suggests near misses: close names and labels,
+#'     order-blind multi-word matches, and matches confined to other
+#'     years.}
 #'   \item{`brfssdata_partial_match_note`}{Some requested variables in
 #'     [brfss_labels()] or [brfss_crosswalk()] matched nothing while
 #'     others matched, so the returned rows cover the matching

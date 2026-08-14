@@ -79,6 +79,13 @@ Initial CRAN release.
 
 ## Discovery and metadata
 
+* A `brfss_vars()` search that matches nothing says so
+  (`brfssdata_empty_result`) and suggests near misses: variables whose
+  name or label is a small edit away, variables matching every word of
+  a multi-word pattern in any order, and, under a `years` filter,
+  matches that exist only in other years. Unknown-variable errors from
+  `read_brfss()` and `brfss_codebook()` likewise name the years that
+  do carry the variable and offer a did-you-mean for close names.
 * `brfss_crosswalk()` reports CDC's trailing-digit rename families
   (`_DRNKWK1` to `_DRNKWK3`). A `status` column records how far human
   review of each family has gone (mechanically proposed families ship

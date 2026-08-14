@@ -168,11 +168,54 @@ test_that("a typo'd vars aborts before any year download", {
       stop("should not be reached")
     }
   )
-  expect_error(
+  err <- expect_error(
     read_brfss(2020, vars = "GENHLT", quiet = TRUE),
     class = "brfssdata_bad_var"
   )
   expect_identical(downloads, 0L)
+  # The near miss is named: GENHLT is one edit from GENHLTH.
+  expect_match(conditionMessage(err), "GENHLTH", fixed = TRUE)
+})
+
+test_that("the gate names the years that do carry a missing variable", {
+  dir <- local_brfss_manifest(2022)
+  write_fixture_catalog(dir)
+  downloads <- 0L
+  local_mocked_bindings(
+    download_to_cache = function(...) {
+      downloads <<- downloads + 1L
+      stop("should not be reached")
+    }
+  )
+  # MYSTVAR exists in the catalog, but only in 2020.
+  err <- expect_error(
+    read_brfss(2022, vars = "MYSTVAR", quiet = TRUE),
+    class = "brfssdata_bad_var"
+  )
+  expect_identical(downloads, 0L)
+  expect_match(conditionMessage(err), "2020", fixed = TRUE)
+
+  # The year hint survives even when other unknowns come first.
+  err2 <- expect_error(
+    read_brfss(
+      2022,
+      vars = c("AAA1", "BBB2", "CCC3", "MYSTVAR"),
+      quiet = TRUE
+    ),
+    class = "brfssdata_bad_var"
+  )
+  expect_match(conditionMessage(err2), "2020", fixed = TRUE)
+})
+
+test_that("the parquet authority names near misses too", {
+  # Fully cached, so the gate is skipped and query_parquet() raises the
+  # error from the files' real schema.
+  local_brfss_cache(2023)
+  err <- expect_error(
+    read_brfss(2023, vars = "GENHLT", quiet = TRUE, download = FALSE),
+    class = "brfssdata_bad_var"
+  )
+  expect_match(conditionMessage(err), "GENHLTH", fixed = TRUE)
 })
 
 test_that("the pre-download gate passes real vars, `year`, and lowercase", {

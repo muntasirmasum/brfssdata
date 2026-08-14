@@ -245,6 +245,77 @@ summarize_years <- function(years) {
   paste(runs, collapse = ", ")
 }
 
+# Nearest names for a did-you-mean hint: case-insensitive edit distance
+# against the candidate pool, with a length-scaled threshold so short
+# names tolerate one edit and longer ones a few (GENHLT reaches
+# GENHLTH; MYSTVAR never reaches GENHLTH). Ordered by distance, ties
+# alphabetical; empty when nothing is close.
+suggest_similar_vars <- function(unknown, known, n_max = 3L) {
+  unknown <- unique(unknown)
+  known <- unique(known)
+  if (length(unknown) == 0 || length(known) == 0) {
+    return(character(0))
+  }
+  d <- utils::adist(toupper(unknown), toupper(known))
+  ok <- sweep(d, 1L, edit_distance_limit(unknown), `<=`)
+  if (!any(ok)) {
+    return(character(0))
+  }
+  hit <- which(ok, arr.ind = TRUE)
+  cand <- data.frame(
+    name = known[hit[, "col"]],
+    dist = d[hit],
+    stringsAsFactors = FALSE
+  )
+  cand <- cand[order(cand$dist, cand$name, method = "radix"), , drop = FALSE]
+  utils::head(unique(cand$name), n_max)
+}
+
+# How many edits away a name may be and still count as close: one for
+# short names, scaling up slowly (GENHLT reaches GENHLTH; MYSTVAR
+# never reaches GENHLTH). The single tuning knob for every fuzzy path.
+edit_distance_limit <- function(x) {
+  pmax(1L, ceiling(nchar(x) / 4))
+}
+
+# Hint bullets for an unknown-variable error: the years that do carry
+# each missing variable (it exists, just not in the requested scope),
+# then a did-you-mean against the in-scope names for the rest. The
+# split is decided for every unknown, so a real variable never falls
+# through to the typo hint; only the emitted year bullets are capped.
+# Bullets come back fully rendered and brace-escaped, ready to append
+# to a cli message.
+var_not_found_hints <- function(unknown, catalog_vars, catalog_years, scope_vars) {
+  unknown <- unknown[!duplicated(toupper(unknown))]
+  up <- toupper(catalog_vars)
+  exists_elsewhere <- vapply(
+    unknown,
+    function(u) any(up == toupper(u)),
+    logical(1)
+  )
+  hints <- vapply(
+    utils::head(unknown[exists_elsewhere], 3L),
+    function(u) {
+      yrs <- catalog_years[up == toupper(u)]
+      cli::format_inline("{.val {u}} is available in {summarize_years(yrs)}.")
+    },
+    character(1),
+    USE.NAMES = FALSE
+  )
+  sugg <- suggest_similar_vars(unknown[!exists_elsewhere], scope_vars)
+  if (length(sugg) > 0) {
+    hints <- c(hints, cli::format_inline("Did you mean {.val {sugg}}?"))
+  }
+  escape_cli_braces(hints)
+}
+
+# cli re-reads message vectors as glue templates, so text that is
+# already rendered (or that carries user-typed braces) must have its
+# braces doubled before it is passed along.
+escape_cli_braces <- function(x) {
+  gsub("{", "{{", gsub("}", "}}", x, fixed = TRUE), fixed = TRUE)
+}
+
 # Quote a DuckDB identifier (double quotes, doubled internal quotes).
 quote_ident <- function(x) {
   paste0('"', gsub('"', '""', x, fixed = TRUE), '"')
@@ -373,10 +444,19 @@ query_parquet <- function(
     vars <- match_vars_ci(vars, schema$column_name)
     unknown <- setdiff(vars, schema$column_name)
     if (length(unknown) > 0) {
+      # No catalog here, only the files' real schema; the empty catalog
+      # vectors degrade var_not_found_hints() to its did-you-mean tier.
+      hints <- var_not_found_hints(
+        unknown,
+        catalog_vars = character(0),
+        catalog_years = integer(0),
+        scope_vars = schema$column_name
+      )
       cli::cli_abort(
         c(
           "Variable{?s} {.val {unknown}} {?was/were} not found in the
            requested years.",
+          rlang::set_names(hints, rep("i", length(hints))),
           "i" = "Use {.fun brfss_vars} to search available variables
                  and the years they appear in."
         ),
