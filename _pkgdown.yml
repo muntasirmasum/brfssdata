@@ -7,6 +7,8 @@ authors:
 template:
   bootstrap: 5
   bslib:
+    primary: "#46166B"
+    link-color: "#46166B"
     base_font:
       google: "IBM Plex Sans"
     heading_font:
@@ -15,6 +17,7 @@ template:
       google: "IBM Plex Mono"
 
 navbar:
+  bg: primary
   structure:
     left: [intro, reference, articles, news]
     right: [search, github]
@@ -22,18 +25,23 @@ navbar:
     articles:
       text: Articles
       menu:
+      - text: Understand the data
       - text: The datasets
         href: articles/datasets.html
       - text: Value labels and missing codes
         href: articles/value-labels-missing-codes.html
       - text: Survey design in BRFSS
         href: articles/survey-design.html
+      - text: -------
+      - text: Analyze
       - text: Survey-weighted logistic regression
         href: articles/logistic-regression.html
       - text: Age-adjusted prevalence
         href: articles/age-adjustment.html
       - text: Validating against CDC's published estimates
         href: articles/validation.html
+      - text: -------
+      - text: Combine and export
       - text: Merging BRFSS with external data
         href: articles/external-data.html
       - text: Using the data outside R
@@ -60,12 +68,15 @@ reference:
   - brfss_missing_codes
   - brfss_crosswalk
 - title: Reference data
+  desc: Lookup tables bundled with the package.
   contents:
   - brfss_states
 - title: Cite
+  desc: Citations for the package and the survey years an analysis used.
   contents:
   - brfss_citation
 - title: Cache management
+  desc: Prefetch data and inspect, relocate, or clear the local cache.
   contents:
   - brfss_download
   - brfss_cache_dir

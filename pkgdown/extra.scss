@@ -1,0 +1,133 @@
+// brfssdata site theme. Every color derives from the hex logo:
+// #241040 ink, #46166b purple, #cbb1e8 lavender, #f4ecff pale.
+// The goal is hierarchy: headers announce themselves, the right rail
+// recedes, code blocks stay contained.
+
+// The default Google Fonts request fetches only regular/bold; ask for
+// the variable ranges so 500/600 headings render true, not synthesized.
+@import url("https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..800;1,6..72,400..800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+
+$brand-ink: #241040;
+$brand-purple: #46166b;
+$brand-lavender: #cbb1e8;
+$brand-pale: #f4ecff;
+$brand-muted: #5f5876;
+$brand-hairline: #ece2f7;
+
+// ---------------------------------------------------------------- headings
+h1, h2, h3, h4, h5, h6 {
+  color: $brand-ink;
+}
+
+main h1 {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+// The section tick: a short purple bar above every h2, so sections are
+// findable at scroll speed even between long code blocks.
+main h2 {
+  font-weight: 600;
+  font-size: 1.65rem;
+  margin-top: 3rem;
+
+  &::before {
+    content: "";
+    display: block;
+    width: 2.25rem;
+    height: 0.25rem;
+    border-radius: 2px;
+    background: $brand-purple;
+    margin-bottom: 0.65rem;
+  }
+}
+
+// Sans subheads under serif sections: two levels you can tell apart
+// without reading.
+main h3 {
+  font-family: $font-family-base;
+  font-weight: 600;
+  font-size: 1.125rem;
+  margin-top: 2.25rem;
+}
+
+main h4,
+main h5 {
+  font-family: $font-family-base;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.page-header {
+  border-bottom: 1px solid $brand-hairline;
+  padding-bottom: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+// --------------------------------------------------------------- right rail
+// Sidebar headings become quiet uppercase labels so the rail stops
+// competing with the content.
+aside h2 {
+  font-family: $font-family-monospace;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: $brand-muted;
+}
+
+#toc .nav-link {
+  padding-block: 0.3rem;
+
+  &:hover {
+    color: $brand-purple;
+  }
+
+  &.active {
+    color: $brand-purple;
+    font-weight: 600;
+    background: $brand-pale;
+    border-left: 3px solid $brand-purple;
+    border-radius: 0 0.25rem 0.25rem 0;
+  }
+}
+
+// ------------------------------------------------------------------- navbar
+.navbar-brand {
+  font-family: $headings-font-family;
+  font-weight: 600;
+  font-size: 1.3rem;
+}
+
+// Utility .text-muted is unreadable on the purple navbar.
+.navbar small.nav-text {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
+// --------------------------------------------------------------------- code
+pre {
+  background-color: #faf8fe;
+  border: 1px solid $brand-hairline;
+  border-radius: 0.375rem;
+}
+
+:not(pre) > code {
+  background-color: rgba($brand-pale, 0.6);
+}
+
+// ------------------------------------------------------------------ content
+main table th {
+  border-bottom: 2px solid $brand-lavender;
+}
+
+blockquote {
+  border-left: 3px solid $brand-lavender;
+  background: #faf8fe;
+  padding: 0.75rem 1rem;
+  border-radius: 0 0.375rem 0.375rem 0;
+}
+
+footer {
+  border-top: 1px solid $brand-hairline;
+  margin-top: 3rem;
+}
