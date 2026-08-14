@@ -10,8 +10,10 @@
 #'   \item{`brfssdata.cache_dir`}{Path used for the local data cache
 #'     instead of the [tools::R_user_dir()] default. Point it at a
 #'     shared or project-local directory to reuse one set of downloads
-#'     across machines or projects; see [brfss_cache_dir()] and the
-#'     *Getting started* vignette's offline recipe.}
+#'     across machines or projects; a lab or an HPC cluster needs only
+#'     one populated copy on a shared filesystem, with every user's
+#'     option pointing at it. See [brfss_cache_dir()] and the *Getting
+#'     started* vignette's offline recipe.}
 #'   \item{`brfssdata.lonely_psu`}{A single string copied into
 #'     `options(survey.lonely.psu = ...)` when [brfss_design()] detects
 #'     single-PSU strata, replacing the package's default `"adjust"`.
@@ -31,7 +33,11 @@
 #' The package also *writes* one option while working:
 #' [brfss_design()] sets `options(survey.lonely.psu)` for the session
 #' (announced once via `brfssdata_lonely_psu_note`), and downloads
-#' temporarily raise `options(timeout)` to at least an hour.
+#' temporarily raise `options(timeout)` to at least an hour. Downloads
+#' through the preferred curl backend additionally abort if a
+#' connection takes over a minute to establish or a transfer sits below
+#' 100 bytes/s for five minutes, so a dead proxy fails with an error
+#' instead of hanging.
 #'
 #' @seealso [brfssdata-conditions] for the condition classes that
 #'   control console output, [brfss_cache_dir()] for cache management.

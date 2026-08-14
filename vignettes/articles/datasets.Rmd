@@ -68,7 +68,7 @@ knitr::kable(catalog, align = "rrrrl")
 ```
 
 The whole collection holds about 11.4 million respondents in roughly
-700 MB of parquet, which is small enough that a working cache of every
+737 MB of parquet, which is small enough that a working cache of every
 year fits comfortably on a laptop. The column count is CDC's variables
 for that year plus the added `year`, so it tracks the size of the core
 questionnaire together with whatever optional modules and calculated

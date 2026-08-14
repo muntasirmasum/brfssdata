@@ -325,6 +325,24 @@ once on a connected machine, copy the directory across, and point
 brfss_download(2019:2023)
 ```
 
+### Restricted networks
+
+The data files live on GitHub releases, so any network that blocks or
+intercepts traffic to `github.com` blocks the download too. The common
+cases are hospital and corporate networks that terminate TLS at a
+proxy, campus networks with allowlists, and HPC compute nodes with no
+outbound access. A blocked download fails with an error naming the
+likely cause rather than hanging, and nothing partial is written to
+the cache. The prefetch recipe above is the way through. Populate the
+cache from an unrestricted machine (a modern survey year is 20 to 35
+MB, all 40 years about 737 MB), copy the directory, and set
+`options(brfssdata.cache_dir = ...)` on the restricted one. A lab or a
+cluster needs only one such copy, since every user can point the same
+option at a shared directory. Variable discovery is never blocked.
+`brfss_vars()`, `brfss_labels()`, `brfss_codebook()`, and
+`brfss_crosswalk()` fall back to catalog snapshots bundled with the
+package, so codebook work runs before anything is downloaded.
+
 Downloads are verified against the sha256 checksums published with each
 release, and a cached file that later turns out damaged is either
 re-downloaded automatically or named in an error along with the exact

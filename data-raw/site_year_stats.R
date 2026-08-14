@@ -67,7 +67,10 @@ sizes <- vapply(
   },
   numeric(1)
 )
-stats$size_mb <- round(sizes / 1024^2, 1)
+# Decimal MB, the same unit NEWS.md and the README quote (737 MB total),
+# not MiB; mixing the two once put "roughly 700 MB" and "737 MB" in
+# print for the same bytes.
+stats$size_mb <- round(sizes / 1e6, 1)
 
 write.csv(
   stats,

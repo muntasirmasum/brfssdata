@@ -14,8 +14,10 @@ required for normal use.
 \item{\code{brfssdata.cache_dir}}{Path used for the local data cache
 instead of the \code{\link[tools:R_user_dir]{tools::R_user_dir()}} default. Point it at a
 shared or project-local directory to reuse one set of downloads
-across machines or projects; see \code{\link[=brfss_cache_dir]{brfss_cache_dir()}} and the
-\emph{Getting started} vignette's offline recipe.}
+across machines or projects; a lab or an HPC cluster needs only
+one populated copy on a shared filesystem, with every user's
+option pointing at it. See \code{\link[=brfss_cache_dir]{brfss_cache_dir()}} and the \emph{Getting
+started} vignette's offline recipe.}
 \item{\code{brfssdata.lonely_psu}}{A single string copied into
 \code{options(survey.lonely.psu = ...)} when \code{\link[=brfss_design]{brfss_design()}} detects
 single-PSU strata, replacing the package's default \code{"adjust"}.
@@ -35,7 +37,11 @@ normal use.}
 The package also \emph{writes} one option while working:
 \code{\link[=brfss_design]{brfss_design()}} sets \code{options(survey.lonely.psu)} for the session
 (announced once via \code{brfssdata_lonely_psu_note}), and downloads
-temporarily raise \code{options(timeout)} to at least an hour.
+temporarily raise \code{options(timeout)} to at least an hour. Downloads
+through the preferred curl backend additionally abort if a
+connection takes over a minute to establish or a transfer sits below
+100 bytes/s for five minutes, so a dead proxy fails with an error
+instead of hanging.
 }
 
 \seealso{
