@@ -5,6 +5,11 @@ searches the variable catalog that accompanies the data releases and
 reports, for each match, which years carry the variable. The catalog is
 downloaded once and cached like the data itself.
 
+A search that matches nothing says so and suggests near misses:
+variables whose name or label is a small edit away (a typo'd pattern),
+variables matching every word of a multi-word pattern in any order, and,
+when `years` is given, matches that exist only in other years.
+
 ## Usage
 
 ``` r
@@ -38,7 +43,8 @@ A tibble with one row per variable: `variable`, `label` (the most recent
 non-missing label, since label text can drift across years), and `years`
 (a compact summary of the years the variable appears in, e.g.
 `"2011-2013, 2020"`). Searches that match nothing return a zero-row
-tibble.
+tibble and say so with a `brfssdata_empty_result` message carrying the
+suggestions described above.
 
 ## Examples
 

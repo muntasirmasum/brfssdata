@@ -293,8 +293,11 @@ module-analysis guidance.</p></dd>
 
 <dt><code>brfssdata_empty_result</code></dt>
 <dd><p>A metadata lookup
-(<code><a href="brfss_labels.html">brfss_labels()</a></code>, <code><a href="brfss_crosswalk.html">brfss_crosswalk()</a></code>, <code><a href="brfss_year_info.html">brfss_year_info()</a></code>)
-matched nothing.</p></dd>
+(<code><a href="brfss_vars.html">brfss_vars()</a></code>, <code><a href="brfss_labels.html">brfss_labels()</a></code>, <code><a href="brfss_crosswalk.html">brfss_crosswalk()</a></code>,
+<code><a href="brfss_year_info.html">brfss_year_info()</a></code>) matched nothing. From <code><a href="brfss_vars.html">brfss_vars()</a></code> the
+message also suggests near misses: close names and labels,
+order-blind multi-word matches, and matches confined to other
+years.</p></dd>
 
 <dt><code>brfssdata_partial_match_note</code></dt>
 <dd><p>Some requested variables in

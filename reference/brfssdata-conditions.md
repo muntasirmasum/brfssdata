@@ -247,10 +247,14 @@ analytical note, suppress its class, e.g.
 - `brfssdata_empty_result`:
 
   A metadata lookup
-  ([`brfss_labels()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_labels.md),
+  ([`brfss_vars()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_vars.md),
+  [`brfss_labels()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_labels.md),
   [`brfss_crosswalk()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_crosswalk.md),
   [`brfss_year_info()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_year_info.md))
-  matched nothing.
+  matched nothing. From
+  [`brfss_vars()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_vars.md)
+  the message also suggests near misses: close names and labels,
+  order-blind multi-word matches, and matches confined to other years.
 
 - `brfssdata_partial_match_note`:
 

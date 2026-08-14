@@ -354,8 +354,10 @@ codebooks.
 
 ## Cautions
 
-Recent public-use files carry no county, tract, or ZIP identifier, and
-searching the 2023 catalog for one comes back empty.
+Recent public-use files carry no county, tract, or ZIP identifier.
+Searching the 2023 catalog for one comes back empty, and the
+empty-result message points at where the identifiers went: earlier
+years.
 
 ``` r
 
@@ -364,7 +366,7 @@ brfss_vars("county|census tract|zip", years = 2023)
 #> # ℹ 3 variables: variable <chr>, label <chr>, years <chr>
 ```
 
-Dropping the year restriction shows that this was not always so.
+Dropping the year restriction lays out that history in full.
 
 ``` r
 
