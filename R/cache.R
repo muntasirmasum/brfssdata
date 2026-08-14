@@ -281,6 +281,88 @@ has_curl <- function() {
   requireNamespace("curl", quietly = TRUE)
 }
 
+# Fail rather than hang: give up if a connection takes more than a
+# minute to establish, or if an established transfer sits below 100
+# bytes/s for five minutes (a stalled proxy, not a slow link). libcurl
+# sets no transfer-time ceiling of its own, so without these a dead
+# middlebox blocks forever.
+download_handle <- function() {
+  curl::new_handle(
+    connecttimeout = 60L,
+    low_speed_limit = 100L,
+    low_speed_time = 300L
+  )
+}
+
+# The transport call, separated so tests can substitute classed curl
+# failures without touching the network.
+perform_download <- function(url, tmp, quiet) {
+  if (has_curl()) {
+    curl::curl_download(
+      url,
+      tmp,
+      mode = "wb",
+      quiet = quiet,
+      handle = download_handle()
+    )
+  } else {
+    utils::download.file(url, tmp, mode = "wb", quiet = quiet)
+  }
+}
+
+# curl signals one classed condition per libcurl error code, which is
+# enough to name the likely cause. Anything unrecognized -- including
+# every download.file() failure, which arrives as text only -- keeps the
+# generic wording.
+download_failure_hint <- function(cond) {
+  generic <- c(
+    "i" = "The resource may be temporarily unavailable, or you may
+           be offline."
+  )
+  if (is.null(cond)) {
+    return(generic)
+  }
+  cls <- class(cond)
+  unreachable <- c(
+    "curl_error_couldnt_resolve_host",
+    "curl_error_couldnt_connect",
+    "curl_error_no_connection_available"
+  )
+  proxy_tls <- c(
+    "curl_error_peer_failed_verification",
+    "curl_error_proxy",
+    "curl_error_couldnt_resolve_proxy",
+    "curl_error_use_ssl_failed"
+  )
+  if (any(cls %in% unreachable)) {
+    return(c(
+      "i" = "GitHub could not be reached; you may be offline, or this
+             network may block {.code github.com}."
+    ))
+  }
+  if (any(cls %in% proxy_tls) || any(startsWith(cls, "curl_error_ssl"))) {
+    return(c(
+      "i" = "This looks like a proxy or TLS-interception failure, common
+             on hospital, campus, and corporate networks.",
+      "i" = "Downloads made on an unrestricted machine can be copied into
+             this one's cache; see {.fun brfss_download}."
+    ))
+  }
+  if ("curl_error_operation_timedout" %in% cls) {
+    return(c(
+      "i" = "The connection stalled or timed out; retry, or prefetch with
+             {.fun brfss_download} on a steadier network."
+    ))
+  }
+  if ("curl_error_http_returned_error" %in% cls) {
+    return(c(
+      "i" = "The server rejected the request; the published years are
+             listed by {.fun brfss_years}."
+    ))
+  }
+  generic
+}
+
 cache_path <- function(asset) {
   file.path(brfss_cache_dir(), asset)
 }
@@ -335,37 +417,34 @@ download_to_cache <- function(
 
   attempts <- 1L + max(0L, as.integer(retries))
   for (attempt in seq_len(attempts)) {
-    why <- NULL
+    cond <- NULL
     ok <- tryCatch(
       {
-        if (has_curl()) {
-          curl::curl_download(url, tmp, mode = "wb", quiet = quiet)
-        } else {
-          utils::download.file(url, tmp, mode = "wb", quiet = quiet)
-        }
+        perform_download(url, tmp, quiet)
         TRUE
       },
       error = function(e) {
-        why <<- conditionMessage(e)
+        cond <<- e
         FALSE
       },
       warning = function(w) {
-        why <<- conditionMessage(w)
+        cond <<- w
         FALSE
       }
     )
     if (!ok || !file.exists(tmp) || file.size(tmp) == 0) {
+      # The condition is kept whole, not just its message: curl's classed
+      # errors let the hint below name a proxy/TLS block, a stall, or a
+      # rejected request rather than guessing "offline".
+      why <- if (!is.null(cond)) conditionMessage(cond)
       if (is.null(why) && file.exists(tmp) && file.size(tmp) == 0) {
         why <- "the server returned an empty file"
       }
       cli::cli_abort(
         c(
           "Could not download {.url {url}}.",
-          # The underlying condition distinguishes a proxy, TLS, disk-full
-          # or 404 failure from simply being offline.
           if (!is.null(why)) c("x" = "{why}"),
-          "i" = "The resource may be temporarily unavailable, or you may
-                 be offline.",
+          download_failure_hint(cond),
           "i" = "Cached years remain usable; see {.fun brfss_cache_info}."
         ),
         class = "brfssdata_download_error",

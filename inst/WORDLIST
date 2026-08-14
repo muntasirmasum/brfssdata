@@ -7,6 +7,7 @@ CMD
 Codebook
 DuckDB
 Graubard
+HPC
 Hoboken
 Hyattsville
 KFF
@@ -34,6 +35,7 @@ Schoenborn's
 Stata
 Stata's
 Subpopulation
+TLS
 UNK
 Viya
 XPORT
@@ -56,9 +58,11 @@ data's
 dplyr
 duckdb
 epidemiologic
+filesystem
 flagger
 gapped
 https
+libcurl
 libname
 lifecycle
 lossy
@@ -67,6 +71,7 @@ microdata
 nonresponse
 polars
 pre
+prefetch
 prefetches
 prevalences
 pyarrow

@@ -184,6 +184,89 @@ test_that("an empty download is treated as a failure", {
   expect_length(list.files(dir, pattern = "\\.tmp$"), 0)
 })
 
+test_that("download_handle builds a guarded curl handle", {
+  skip_if_not_installed("curl")
+  # new_handle() rejects unknown option names at construction, so this
+  # also pins the connecttimeout/low_speed spellings.
+  expect_s3_class(download_handle(), "curl_handle")
+})
+
+test_that("the curl branch downloads through the guarded handle", {
+  skip_if_not_installed("curl")
+  dir <- withr::local_tempdir()
+  withr::local_options(brfssdata.cache_dir = dir)
+  used <- FALSE
+  local_mocked_bindings(
+    has_curl = function() TRUE,
+    download_handle = function() {
+      used <<- TRUE
+      curl::new_handle()
+    }
+  )
+  src <- withr::local_tempfile()
+  writeLines("payload", src)
+  download_to_cache(
+    local_file_url(paste0("file://", src)),
+    file.path(dir, "brfss_2023.parquet"),
+    quiet = TRUE
+  )
+  expect_true(used)
+})
+
+test_that("classed curl failures get a targeted hint, same condition class", {
+  dir <- withr::local_tempdir()
+  withr::local_options(brfssdata.cache_dir = dir)
+  dest <- file.path(dir, "brfss_2023.parquet")
+  curl_classed_error <- function(class) {
+    structure(
+      class = c(class, "curl_error", "error", "condition"),
+      list(message = "transport detail", call = NULL)
+    )
+  }
+  cases <- list(
+    list("curl_error_couldnt_resolve_host", "GitHub could not be reached"),
+    list("curl_error_couldnt_connect", "GitHub could not be reached"),
+    list("curl_error_ssl_connect_error", "proxy or TLS-interception"),
+    list("curl_error_peer_failed_verification", "proxy or TLS-interception"),
+    list("curl_error_operation_timedout", "stalled or timed out"),
+    list("curl_error_http_returned_error", "server rejected the request")
+  )
+  for (case in cases) {
+    local({
+      local_mocked_bindings(
+        perform_download = function(url, tmp, quiet) {
+          stop(curl_classed_error(case[[1]]))
+        }
+      )
+      expect_error(
+        download_to_cache("https://example.invalid/x.parquet", dest,
+          quiet = TRUE
+        ),
+        case[[2]],
+        class = "brfssdata_download_error"
+      )
+    })
+  }
+  expect_false(file.exists(dest))
+})
+
+test_that("unclassed failures keep the generic offline hint", {
+  dir <- withr::local_tempdir()
+  withr::local_options(brfssdata.cache_dir = dir)
+  local_mocked_bindings(
+    perform_download = function(url, tmp, quiet) stop("plain transport error")
+  )
+  expect_error(
+    download_to_cache(
+      "https://example.invalid/x.parquet",
+      file.path(dir, "brfss_2023.parquet"),
+      quiet = TRUE
+    ),
+    "temporarily unavailable",
+    class = "brfssdata_download_error"
+  )
+})
+
 test_that("malformed years never reach the delete filter", {
   # brfss_cache_clear(2024.9) used to truncate to 2024 and silently
   # delete that year's file; "2024" coerced and deleted it too.

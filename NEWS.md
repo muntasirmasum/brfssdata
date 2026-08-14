@@ -219,6 +219,15 @@ Initial CRAN release.
   `brfss_cache_clear()` manage the cache. A cached file that fails
   integrity checks is re-downloaded automatically or named in a classed
   error with its remedy.
+* Downloads fail instead of hanging on a dead network: the transfer
+  aborts if a connection takes more than a minute to establish or an
+  established transfer sits below 100 bytes/s for five minutes, since
+  libcurl sets no ceiling of its own. When curl reports a classed
+  transport error, the `brfssdata_download_error` message names the
+  likely cause, distinguishing an unreachable GitHub (offline or
+  blocked network) from a proxy or TLS-interception failure, a stalled
+  connection, and a rejected request, each with its remedy. Failures
+  the transport cannot classify keep the generic wording.
 * Cached survey years are re-verified against the manifest's checksums
   at most once a day per session, the same cadence the metadata
   catalogs already use. A cached file whose hash no longer matches is
