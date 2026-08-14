@@ -12,8 +12,8 @@ codebooks over time. status records how far that review has gone
 for each family: &quot;verified&quot; means a person checked it,
 &quot;candidate&quot; means the rules proposed it and review is pending, so
 treat a candidate family as a strong hint, not a fact. A rename is
-never a promise of comparability – CDC renamed the variable for a
-reason – so combining generations is always your decision;
+never a promise of comparability (CDC renamed the variable for a
+reason), so combining generations is always your decision;
 read_brfss() points here (a brfssdata_rename_note message) when
 a requested variable is empty in years a sibling generation covers."><meta property="og:description" content="CDC renames a variable when its definition or its questionnaire
 context changes, usually by bumping a trailing digit: _DRNKWK1
@@ -28,14 +28,14 @@ codebooks over time. status records how far that review has gone
 for each family: &quot;verified&quot; means a person checked it,
 &quot;candidate&quot; means the rules proposed it and review is pending, so
 treat a candidate family as a strong hint, not a fact. A rename is
-never a promise of comparability – CDC renamed the variable for a
-reason – so combining generations is always your decision;
+never a promise of comparability (CDC renamed the variable for a
+reason), so combining generations is always your decision;
 read_brfss() points here (a brfssdata_rename_note message) when
 a requested variable is empty in years a sibling generation covers."><meta property="og:image" content="https://muntasirmasum.github.io/brfssdata/logo.svg"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
-    <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="light" aria-label="Site navigation"><div class="container">
+    <nav class="navbar navbar-expand-lg fixed-top bg-primary" data-bs-theme="dark" aria-label="Site navigation"><div class="container">
 
     <a class="navbar-brand me-2" href="../index.html">brfssdata</a>
 
@@ -51,12 +51,17 @@ a requested variable is empty in years a sibling generation covers."><meta prope
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/datasets.html">The datasets</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><h6 class="dropdown-header" data-toc-skip>Understand the data</h6></li>
+    <li><a class="dropdown-item" href="../articles/datasets.html">The datasets</a></li>
     <li><a class="dropdown-item" href="../articles/value-labels-missing-codes.html">Value labels and missing codes</a></li>
     <li><a class="dropdown-item" href="../articles/survey-design.html">Survey design in BRFSS</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Analyze</h6></li>
     <li><a class="dropdown-item" href="../articles/logistic-regression.html">Survey-weighted logistic regression</a></li>
     <li><a class="dropdown-item" href="../articles/age-adjustment.html">Age-adjusted prevalence</a></li>
     <li><a class="dropdown-item" href="../articles/validation.html">Validating against CDC's published estimates</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Combine and export</h6></li>
     <li><a class="dropdown-item" href="../articles/external-data.html">Merging BRFSS with external data</a></li>
     <li><a class="dropdown-item" href="../articles/outside-r.html">Using the data outside R</a></li>
   </ul></li>
@@ -90,8 +95,8 @@ codebooks over time. <code>status</code> records how far that review has gone
 for each family: <code>"verified"</code> means a person checked it,
 <code>"candidate"</code> means the rules proposed it and review is pending, so
 treat a candidate family as a strong hint, not a fact. A rename is
-<em>never</em> a promise of comparability – CDC renamed the variable for a
-reason – so combining generations is always your decision;
+<em>never</em> a promise of comparability (CDC renamed the variable for a
+reason), so combining generations is always your decision;
 <code><a href="read_brfss.html">read_brfss()</a></code> points here (a <code>brfssdata_rename_note</code> message) when
 a requested variable is empty in years a sibling generation covers.</p>
     </div>
@@ -108,7 +113,7 @@ a requested variable is empty in years a sibling generation covers.</p>
 <dl><dt id="arg-vars">vars<a class="anchor" aria-label="anchor" href="#arg-vars"></a></dt>
 <dd><p>Optional character vector of variable names, matched
 case-insensitively by exact name like in <code><a href="brfss_labels.html">brfss_labels()</a></code>. A match
-on <em>any</em> member of a family returns the whole family – that is
+on <em>any</em> member of a family returns the whole family; that is
 the point of the lookup.</p></dd>
 
 
@@ -151,7 +156,7 @@ thing as the generation immediately before it, closely enough to
 pool across the rename? <code>TRUE</code> means yes (the <code>note</code> gives the
 basis); <code>FALSE</code> means the definition changed (the <code>note</code> says what
 moved). On a family's first generation <code>comparable</code> is <code>NA</code> by
-construction – there is nothing earlier to compare against – while
+construction (there is nothing earlier to compare against), while
 <code>NA</code> on a later generation of a candidate family means unreviewed.</p>
 <p>Verdicts are per link and do not chain through a <code>FALSE</code>. In the
 falls-injury family, <code>FALLINJ2 -&gt; FALLINJ3</code> is <code>FALSE</code> (the injury

@@ -24,7 +24,7 @@
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
-    <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="light" aria-label="Site navigation"><div class="container">
+    <nav class="navbar navbar-expand-lg fixed-top bg-primary" data-bs-theme="dark" aria-label="Site navigation"><div class="container">
 
     <a class="navbar-brand me-2" href="../index.html">brfssdata</a>
 
@@ -42,12 +42,17 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/datasets.html">The datasets</a></li>
+<li><h6 class="dropdown-header" data-toc-skip>Understand the data</h6></li>
+    <li><a class="dropdown-item" href="../articles/datasets.html">The datasets</a></li>
     <li><a class="dropdown-item" href="../articles/value-labels-missing-codes.html">Value labels and missing codes</a></li>
     <li><a class="dropdown-item" href="../articles/survey-design.html">Survey design in BRFSS</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Analyze</h6></li>
     <li><a class="dropdown-item" href="../articles/logistic-regression.html">Survey-weighted logistic regression</a></li>
     <li><a class="dropdown-item" href="../articles/age-adjustment.html">Age-adjusted prevalence</a></li>
     <li><a class="dropdown-item" href="../articles/validation.html">Validating against CDC's published estimates</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Combine and export</h6></li>
     <li><a class="dropdown-item" href="../articles/external-data.html">Merging BRFSS with external data</a></li>
     <li><a class="dropdown-item" href="../articles/outside-r.html">Using the data outside R</a></li>
   </ul>
@@ -570,7 +575,7 @@ harmonize the variants deliberately, and the year ranges are what tell
 you where the seams are.</p>
 <p>Because variable sets differ, combining years fills a variable that a
 year does not carry with <code>NA</code> instead of failing. That is
-convenient but easy to misread, so it is worth confirming with
+convenient but easy to misread, so confirm with
 <code><a href="../reference/brfss_vars.html">brfss_vars()</a></code> that a variable actually exists in every year
 requested before treating a column of missing values as a real
 zero-prevalence result.</p>
@@ -586,7 +591,7 @@ rows would come back all <code>NA</code> for that column.</p>
 <div class="section level2">
 <h2 id="known-limitations">Known limitations<a class="anchor" aria-label="anchor" href="#known-limitations"></a>
 </h2>
-<p>A few gaps are worth knowing before building on the collection.</p>
+<p>The collection has a few known gaps.</p>
 <p>The files carry no upstream provenance yet.
 <code><a href="../reference/brfss_year_info.html">brfss_year_info()</a></code> reports what the hosted copy contains,
 but not the CDC URL it was built from, when it was retrieved, or the

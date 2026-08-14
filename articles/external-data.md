@@ -83,8 +83,8 @@ states
 
 Fifty-four codes appear, covering the fifty states, the District of
 Columbia, and three territories. The catalog describes what the CDC
-format library defines, not what a particular year contains, so it is
-worth checking the codes against the data before assuming full coverage.
+format library defines, not what a particular year contains, so check
+the codes against the data before assuming full coverage.
 
 ## Attaching Census regions
 
@@ -183,9 +183,9 @@ sum(is.na(dat$region))
 #> [1] 0
 ```
 
-No unmatched respondents, which is the check worth running after every
-merge. The reverse check is also informative, since a state can be in
-the lookup and still contribute no interviews.
+No unmatched respondents, which is the check to run after every merge.
+The reverse check is also informative, since a state can be in the
+lookup and still contribute no interviews.
 
 ``` r
 
@@ -317,10 +317,10 @@ every state the same code runs unchanged, and
 duplicated state-year row in the external table quietly multiplying
 respondent records.
 
-One type mismatch is worth anticipating. `_STATE` is numeric in BRFSS,
-while state FIPS codes elsewhere are often zero-padded character strings
-such as `"06"`. Build the padded key explicitly rather than hoping the
-join coerces.
+One type mismatch is common. `_STATE` is numeric in BRFSS, while state
+FIPS codes elsewhere are often zero-padded character strings such as
+`"06"`. Build the padded key explicitly rather than hoping the join
+coerces.
 
 ``` r
 

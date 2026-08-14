@@ -9,7 +9,7 @@ Matching is deliberately conservative. A label counts as missing when
 every part of it (split on /, ,, and the word &quot;or&quot;) is a known
 missing-answer phrase, or when the only parts beyond those phrases
 start with the word &quot;missing&quot; and at least one part names the answer
-itself (don't know / not sure / refused) – the shape of CDC's
+itself (don't know / not sure / refused), the shape of CDC's
 calculated-variable buckets such as &quot;Don't know, refused or missing
 values&quot; on _FRTLT1A. The abbreviations CDC's 1998 to 2001 format
 libraries use (&quot;UNK/REF&quot;, &quot;UNK&quot;, &quot;REF&quot;, &quot;UNKNOWN&quot;) count as those
@@ -30,7 +30,7 @@ Matching is deliberately conservative. A label counts as missing when
 every part of it (split on /, ,, and the word &quot;or&quot;) is a known
 missing-answer phrase, or when the only parts beyond those phrases
 start with the word &quot;missing&quot; and at least one part names the answer
-itself (don't know / not sure / refused) – the shape of CDC's
+itself (don't know / not sure / refused), the shape of CDC's
 calculated-variable buckets such as &quot;Don't know, refused or missing
 values&quot; on _FRTLT1A. The abbreviations CDC's 1998 to 2001 format
 libraries use (&quot;UNK/REF&quot;, &quot;UNK&quot;, &quot;REF&quot;, &quot;UNKNOWN&quot;) count as those
@@ -45,7 +45,7 @@ variable such as PHYSHLTH."><meta property="og:image" content="https://muntasirm
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
-    <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="light" aria-label="Site navigation"><div class="container">
+    <nav class="navbar navbar-expand-lg fixed-top bg-primary" data-bs-theme="dark" aria-label="Site navigation"><div class="container">
 
     <a class="navbar-brand me-2" href="../index.html">brfssdata</a>
 
@@ -61,12 +61,17 @@ variable such as PHYSHLTH."><meta property="og:image" content="https://muntasirm
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/datasets.html">The datasets</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><h6 class="dropdown-header" data-toc-skip>Understand the data</h6></li>
+    <li><a class="dropdown-item" href="../articles/datasets.html">The datasets</a></li>
     <li><a class="dropdown-item" href="../articles/value-labels-missing-codes.html">Value labels and missing codes</a></li>
     <li><a class="dropdown-item" href="../articles/survey-design.html">Survey design in BRFSS</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Analyze</h6></li>
     <li><a class="dropdown-item" href="../articles/logistic-regression.html">Survey-weighted logistic regression</a></li>
     <li><a class="dropdown-item" href="../articles/age-adjustment.html">Age-adjusted prevalence</a></li>
     <li><a class="dropdown-item" href="../articles/validation.html">Validating against CDC's published estimates</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Combine and export</h6></li>
     <li><a class="dropdown-item" href="../articles/external-data.html">Merging BRFSS with external data</a></li>
     <li><a class="dropdown-item" href="../articles/outside-r.html">Using the data outside R</a></li>
   </ul></li>
@@ -97,7 +102,7 @@ table for recoding by hand.</p>
 every part of it (split on <code>/</code>, <code>,</code>, and the word "or") is a known
 missing-answer phrase, or when the only parts beyond those phrases
 start with the word "missing" and at least one part names the answer
-itself (don't know / not sure / refused) – the shape of CDC's
+itself (don't know / not sure / refused), the shape of CDC's
 calculated-variable buckets such as "Don't know, refused or missing
 values" on <code>_FRTLT1A</code>. The abbreviations CDC's 1998 to 2001 format
 libraries use ("UNK/REF", "UNK", "REF", "UNKNOWN") count as those

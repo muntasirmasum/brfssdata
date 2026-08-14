@@ -262,7 +262,7 @@ you where the seams are.
 
 Because variable sets differ, combining years fills a variable that a
 year does not carry with `NA` instead of failing. That is convenient but
-easy to misread, so it is worth confirming with
+easy to misread, so confirm with
 [`brfss_vars()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_vars.md)
 that a variable actually exists in every year requested before treating
 a column of missing values as a real zero-prevalence result.
@@ -281,7 +281,7 @@ rows would come back all `NA` for that column.
 
 ## Known limitations
 
-A few gaps are worth knowing before building on the collection.
+The collection has a few known gaps.
 
 The files carry no upstream provenance yet.
 [`brfss_year_info()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_year_info.md)

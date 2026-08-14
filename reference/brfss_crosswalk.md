@@ -14,7 +14,7 @@ codebooks over time. `status` records how far that review has gone for
 each family: `"verified"` means a person checked it, `"candidate"` means
 the rules proposed it and review is pending, so treat a candidate family
 as a strong hint, not a fact. A rename is *never* a promise of
-comparability – CDC renamed the variable for a reason – so combining
+comparability (CDC renamed the variable for a reason), so combining
 generations is always your decision;
 [`read_brfss()`](https://muntasirmasum.github.io/brfssdata/reference/read_brfss.md)
 points here (a `brfssdata_rename_note` message) when a requested
@@ -33,7 +33,7 @@ brfss_crosswalk(vars = NULL, years = NULL, download = TRUE, quiet = TRUE)
   Optional character vector of variable names, matched
   case-insensitively by exact name like in
   [`brfss_labels()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_labels.md).
-  A match on *any* member of a family returns the whole family – that is
+  A match on *any* member of a family returns the whole family; that is
   the point of the lookup.
 
 - years:
@@ -71,8 +71,8 @@ one question: does this generation still measure the same thing as the
 generation immediately before it, closely enough to pool across the
 rename? `TRUE` means yes (the `note` gives the basis); `FALSE` means the
 definition changed (the `note` says what moved). On a family's first
-generation `comparable` is `NA` by construction – there is nothing
-earlier to compare against – while `NA` on a later generation of a
+generation `comparable` is `NA` by construction (there is nothing
+earlier to compare against), while `NA` on a later generation of a
 candidate family means unreviewed.
 
 Verdicts are per link and do not chain through a `FALSE`. In the

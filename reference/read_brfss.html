@@ -6,8 +6,7 @@ itself runs through DuckDB, so selecting a handful of variables from a
 300-plus column survey stays fast. Cached files are re-verified
 against the manifest's checksums at most once a day per session; a
 file that no longer matches is announced and re-downloaded verified.
-With download = FALSE nothing is checked, nothing is downloaded,
-and nothing is ever deleted.
+With download = FALSE no file is checked, downloaded, or deleted.
 Different survey years carry different variable sets. When years are
 combined, variables absent from a year are filled with NA. A year
 column always identifies the survey year of each row."><meta property="og:description" content="Returns respondent-level BRFSS data for one or more survey years as a
@@ -17,15 +16,14 @@ itself runs through DuckDB, so selecting a handful of variables from a
 300-plus column survey stays fast. Cached files are re-verified
 against the manifest's checksums at most once a day per session; a
 file that no longer matches is announced and re-downloaded verified.
-With download = FALSE nothing is checked, nothing is downloaded,
-and nothing is ever deleted.
+With download = FALSE no file is checked, downloaded, or deleted.
 Different survey years carry different variable sets. When years are
 combined, variables absent from a year are filled with NA. A year
 column always identifies the survey year of each row."><meta property="og:image" content="https://muntasirmasum.github.io/brfssdata/logo.svg"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
-    <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="light" aria-label="Site navigation"><div class="container">
+    <nav class="navbar navbar-expand-lg fixed-top bg-primary" data-bs-theme="dark" aria-label="Site navigation"><div class="container">
 
     <a class="navbar-brand me-2" href="../index.html">brfssdata</a>
 
@@ -41,12 +39,17 @@ column always identifies the survey year of each row."><meta property="og:image"
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/datasets.html">The datasets</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><h6 class="dropdown-header" data-toc-skip>Understand the data</h6></li>
+    <li><a class="dropdown-item" href="../articles/datasets.html">The datasets</a></li>
     <li><a class="dropdown-item" href="../articles/value-labels-missing-codes.html">Value labels and missing codes</a></li>
     <li><a class="dropdown-item" href="../articles/survey-design.html">Survey design in BRFSS</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Analyze</h6></li>
     <li><a class="dropdown-item" href="../articles/logistic-regression.html">Survey-weighted logistic regression</a></li>
     <li><a class="dropdown-item" href="../articles/age-adjustment.html">Age-adjusted prevalence</a></li>
     <li><a class="dropdown-item" href="../articles/validation.html">Validating against CDC's published estimates</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Combine and export</h6></li>
     <li><a class="dropdown-item" href="../articles/external-data.html">Merging BRFSS with external data</a></li>
     <li><a class="dropdown-item" href="../articles/outside-r.html">Using the data outside R</a></li>
   </ul></li>
@@ -74,8 +77,7 @@ itself runs through DuckDB, so selecting a handful of variables from a
 300-plus column survey stays fast. Cached files are re-verified
 against the manifest's checksums at most once a day per session; a
 file that no longer matches is announced and re-downloaded verified.
-With <code>download = FALSE</code> nothing is checked, nothing is downloaded,
-and nothing is ever deleted.</p>
+With <code>download = FALSE</code> no file is checked, downloaded, or deleted.</p>
 <p>Different survey years carry different variable sets. When years are
 combined, variables absent from a year are filled with <code>NA</code>. A <code>year</code>
 column always identifies the survey year of each row.</p>

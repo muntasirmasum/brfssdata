@@ -191,7 +191,7 @@ drift. Questions rotate on and off the core questionnaire, optional
 modules move between states, and CDC renames a calculated variable
 whenever its definition changes, usually by bumping a trailing digit.
 When a variable is absent from one of the requested years, it is filled
-with `NA` for those rows rather than causing an error.
+with `NA` for those rows, and no error is raised.
 
 Computed weekly alcohol consumption is a clean example. The variable is
 `_DRNKWK1` in 2019 to 2021, `_DRNKWK2` in 2022 and 2023, and `_DRNKWK3`
@@ -480,14 +480,14 @@ The data files live on GitHub releases, so any network that blocks or
 intercepts traffic to `github.com` blocks the download too. The common
 cases are hospital and corporate networks that terminate TLS at a proxy,
 campus networks with allowlists, and HPC compute nodes with no outbound
-access. A blocked download fails with an error naming the likely cause
-rather than hanging, and nothing partial is written to the cache. The
-prefetch recipe above is the way through. Populate the cache from an
-unrestricted machine (a modern survey year is 20 to 35 MB, all 40 years
-about 737 MB), copy the directory, and set
-`options(brfssdata.cache_dir = ...)` on the restricted one. A lab or a
-cluster needs only one such copy, since every user can point the same
-option at a shared directory. Variable discovery is never blocked.
+access. A blocked download fails with an error naming the likely cause,
+not a hang, and nothing partial is written to the cache. The prefetch
+recipe above is the way through. Populate the cache from an unrestricted
+machine (a modern survey year is 20 to 35 MB, all 40 years about 737
+MB), copy the directory, and set `options(brfssdata.cache_dir = ...)` on
+the restricted one. A lab or a cluster needs only one such copy, since
+every user can point the same option at a shared directory. Variable
+discovery is never blocked.
 [`brfss_vars()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_vars.md),
 [`brfss_labels()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_labels.md),
 [`brfss_codebook()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_codebook.md),
@@ -558,10 +558,10 @@ default (`na = TRUE`), which is why the filter above is on
 [`is.na()`](https://rdrr.io/r/base/NA.html) and not on code ranges; pass
 `na = FALSE` for the raw codes.
 
-A few behaviors are worth knowing about up front. Because BRFSS
-public-use files make each respondent their own primary sampling unit,
-single-PSU strata are common and would otherwise make variance
-estimation fail, so
+[`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
+sets a few defaults that change results. Because BRFSS public-use files
+make each respondent their own primary sampling unit, single-PSU strata
+are common and would otherwise make variance estimation fail, so
 [`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
 sets `options(survey.lonely.psu = "adjust")` if the option is unset, and
 says so once per session. Any value you set other than `"fail"` is
@@ -569,16 +569,16 @@ respected as yours; `"fail"` is what the survey package itself installs
 on load, so it reads as unset, and `options(brfssdata.lonely_psu = ...)`
 is the way to pin any handling, `"fail"` included. When you request
 several years, weights are divided by the number of years, so pooled
-estimates describe an average year rather than a summed population,
-while the strata become the year-by-stratum interaction, which treats
-each annual survey as an independent sample. Pass `pool_weights = FALSE`
-to leave the weights undivided; if state participation differs across
-the pooled years, a warning names the states involved. And when a
-requested variable has data almost only where a module weight such as
-`_CLLCPWT` does, a warning suggests that weight, because a module
-analysis under the full-sample default is very likely wrong; disable the
-check with `options(brfssdata.module_weight_check = FALSE)` if a
-state-optional module legitimately uses the core weight.
+estimates describe an average year, not a summed population, while the
+strata become the year-by-stratum interaction, which treats each annual
+survey as an independent sample. Pass `pool_weights = FALSE` to leave
+the weights undivided; if state participation differs across the pooled
+years, a warning names the states involved. And when a requested
+variable has data almost only where a module weight such as `_CLLCPWT`
+does, a warning suggests that weight, because a module analysis under
+the full-sample default is very likely wrong; disable the check with
+`options(brfssdata.module_weight_check = FALSE)` if a state-optional
+module legitimately uses the core weight.
 
 ### The 2011 boundary
 
@@ -589,7 +589,7 @@ of post-stratification. CDC advises data users not to make direct
 comparisons with data collected before 2011, and to begin new trend
 lines with that year.
 [`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
-enforces the advice rather than burying it in a help page, so a request
+enforces the advice instead of burying it in a help page, so a request
 spanning the boundary fails.
 
 ``` r

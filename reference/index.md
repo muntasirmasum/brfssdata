@@ -37,15 +37,21 @@ Search the catalogs, read the codebook, follow renames.
 
 ## Reference data
 
+Lookup tables bundled with the package.
+
 - [`brfss_states`](https://muntasirmasum.github.io/brfssdata/reference/brfss_states.md)
   : BRFSS reporting jurisdictions: FIPS codes, names, and Census regions
 
 ## Cite
 
+Citations for the package and the survey years an analysis used.
+
 - [`brfss_citation()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_citation.md)
   : Citations for the package and the survey years an analysis used
 
 ## Cache management
+
+Prefetch data and inspect, relocate, or clear the local cache.
 
 - [`brfss_download()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_download.md)
   : Prefetch BRFSS data and metadata into the local cache

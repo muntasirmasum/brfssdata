@@ -24,7 +24,7 @@
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
-    <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="light" aria-label="Site navigation"><div class="container">
+    <nav class="navbar navbar-expand-lg fixed-top bg-primary" data-bs-theme="dark" aria-label="Site navigation"><div class="container">
 
     <a class="navbar-brand me-2" href="../index.html">brfssdata</a>
 
@@ -42,12 +42,17 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/datasets.html">The datasets</a></li>
+<li><h6 class="dropdown-header" data-toc-skip>Understand the data</h6></li>
+    <li><a class="dropdown-item" href="../articles/datasets.html">The datasets</a></li>
     <li><a class="dropdown-item" href="../articles/value-labels-missing-codes.html">Value labels and missing codes</a></li>
     <li><a class="dropdown-item" href="../articles/survey-design.html">Survey design in BRFSS</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Analyze</h6></li>
     <li><a class="dropdown-item" href="../articles/logistic-regression.html">Survey-weighted logistic regression</a></li>
     <li><a class="dropdown-item" href="../articles/age-adjustment.html">Age-adjusted prevalence</a></li>
     <li><a class="dropdown-item" href="../articles/validation.html">Validating against CDC's published estimates</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Combine and export</h6></li>
     <li><a class="dropdown-item" href="../articles/external-data.html">Merging BRFSS with external data</a></li>
     <li><a class="dropdown-item" href="../articles/outside-r.html">Using the data outside R</a></li>
   </ul>
@@ -153,9 +158,8 @@ columns and a sort give a lookup table.</p>
 <span><span class="co">#&gt; <span style="color: #949494;"># ℹ 44 more rows</span></span></span></code></pre></div>
 <p>Fifty-four codes appear, covering the fifty states, the District of
 Columbia, and three territories. The catalog describes what the CDC
-format library defines, not what a particular year contains, so it is
-worth checking the codes against the data before assuming full
-coverage.</p>
+format library defines, not what a particular year contains, so check
+the codes against the data before assuming full coverage.</p>
 </div>
 <div class="section level2">
 <h2 id="attaching-census-regions">Attaching Census regions<a class="anchor" aria-label="anchor" href="#attaching-census-regions"></a>
@@ -239,9 +243,9 @@ one row per state.</p>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">region</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 0</span></span></code></pre></div>
-<p>No unmatched respondents, which is the check worth running after
-every merge. The reverse check is also informative, since a state can be
-in the lookup and still contribute no interviews.</p>
+<p>No unmatched respondents, which is the check to run after every
+merge. The reverse check is also informative, since a state can be in
+the lookup and still contribute no interviews.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">states</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="op">!</span><span class="va">state_fips</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">dat</span><span class="op">[[</span><span class="st">"_STATE"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
@@ -350,10 +354,10 @@ With a real file covering every state the same code runs unchanged, and
 <code>relationship = "many-to-one"</code> catches the most common merge
 bug, a duplicated state-year row in the external table quietly
 multiplying respondent records.</p>
-<p>One type mismatch is worth anticipating. <code>_STATE</code> is
-numeric in BRFSS, while state FIPS codes elsewhere are often zero-padded
-character strings such as <code>"06"</code>. Build the padded key
-explicitly rather than hoping the join coerces.</p>
+<p>One type mismatch is common. <code>_STATE</code> is numeric in BRFSS,
+while state FIPS codes elsewhere are often zero-padded character strings
+such as <code>"06"</code>. Build the padded key explicitly rather than
+hoping the join coerces.</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">states</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>geoid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"%02d"</span>, <span class="va">state_fips</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>

@@ -25,7 +25,7 @@ brfss_codebook(vars, years = NULL, download = TRUE, quiet = TRUE)
 - vars:
 
   Character vector of variable names, matched case-insensitively by
-  exact name (required – for browsing the whole catalog use
+  exact name (required; to browse the whole catalog use
   [`brfss_vars()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_vars.md)).
 
 - years:

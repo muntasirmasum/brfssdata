@@ -24,7 +24,7 @@
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
-    <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="light" aria-label="Site navigation"><div class="container">
+    <nav class="navbar navbar-expand-lg fixed-top bg-primary" data-bs-theme="dark" aria-label="Site navigation"><div class="container">
 
     <a class="navbar-brand me-2" href="../index.html">brfssdata</a>
 
@@ -42,12 +42,17 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/datasets.html">The datasets</a></li>
+<li><h6 class="dropdown-header" data-toc-skip>Understand the data</h6></li>
+    <li><a class="dropdown-item" href="../articles/datasets.html">The datasets</a></li>
     <li><a class="dropdown-item" href="../articles/value-labels-missing-codes.html">Value labels and missing codes</a></li>
     <li><a class="dropdown-item" href="../articles/survey-design.html">Survey design in BRFSS</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Analyze</h6></li>
     <li><a class="dropdown-item" href="../articles/logistic-regression.html">Survey-weighted logistic regression</a></li>
     <li><a class="dropdown-item" href="../articles/age-adjustment.html">Age-adjusted prevalence</a></li>
     <li><a class="dropdown-item" href="../articles/validation.html">Validating against CDC's published estimates</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Combine and export</h6></li>
     <li><a class="dropdown-item" href="../articles/external-data.html">Merging BRFSS with external data</a></li>
     <li><a class="dropdown-item" href="../articles/outside-r.html">Using the data outside R</a></li>
   </ul>
@@ -246,8 +251,8 @@ BRFSS variable sets drift. Questions rotate on and off the core
 questionnaire, optional modules move between states, and CDC renames a
 calculated variable whenever its definition changes, usually by bumping
 a trailing digit. When a variable is absent from one of the requested
-years, it is filled with <code>NA</code> for those rows rather than
-causing an error.</p>
+years, it is filled with <code>NA</code> for those rows, and no error is
+raised.</p>
 <p>Computed weekly alcohol consumption is a clean example. The variable
 is <code>_DRNKWK1</code> in 2019 to 2021, <code>_DRNKWK2</code> in 2022
 and 2023, and <code>_DRNKWK3</code> in 2024, with a change in definition
@@ -490,10 +495,10 @@ intercepts traffic to <code>github.com</code> blocks the download too.
 The common cases are hospital and corporate networks that terminate TLS
 at a proxy, campus networks with allowlists, and HPC compute nodes with
 no outbound access. A blocked download fails with an error naming the
-likely cause rather than hanging, and nothing partial is written to the
-cache. The prefetch recipe above is the way through. Populate the cache
-from an unrestricted machine (a modern survey year is 20 to 35 MB, all
-40 years about 737 MB), copy the directory, and set
+likely cause, not a hang, and nothing partial is written to the cache.
+The prefetch recipe above is the way through. Populate the cache from an
+unrestricted machine (a modern survey year is 20 to 35 MB, all 40 years
+about 737 MB), copy the directory, and set
 <code>options(brfssdata.cache_dir = ...)</code> on the restricted one. A
 lab or a cluster needs only one such copy, since every user can point
 the same option at a shared directory. Variable discovery is never
@@ -557,10 +562,10 @@ alongside them, unchanged. The don’t-know and refused codes arrive as
 <code>NA</code> here by default (<code>na = TRUE</code>), which is why
 the filter above is on <code><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na()</a></code> and not on code ranges; pass
 <code>na = FALSE</code> for the raw codes.</p>
-<p>A few behaviors are worth knowing about up front. Because BRFSS
-public-use files make each respondent their own primary sampling unit,
-single-PSU strata are common and would otherwise make variance
-estimation fail, so <code><a href="../reference/brfss_design.html">brfss_design()</a></code> sets
+<p><code><a href="../reference/brfss_design.html">brfss_design()</a></code> sets a few defaults that change results.
+Because BRFSS public-use files make each respondent their own primary
+sampling unit, single-PSU strata are common and would otherwise make
+variance estimation fail, so <code><a href="../reference/brfss_design.html">brfss_design()</a></code> sets
 <code>options(survey.lonely.psu = "adjust")</code> if the option is
 unset, and says so once per session. Any value you set other than
 <code>"fail"</code> is respected as yours; <code>"fail"</code> is what
@@ -568,8 +573,8 @@ the survey package itself installs on load, so it reads as unset, and
 <code>options(brfssdata.lonely_psu = ...)</code> is the way to pin any
 handling, <code>"fail"</code> included. When you request several years,
 weights are divided by the number of years, so pooled estimates describe
-an average year rather than a summed population, while the strata become
-the year-by-stratum interaction, which treats each annual survey as an
+an average year, not a summed population, while the strata become the
+year-by-stratum interaction, which treats each annual survey as an
 independent sample. Pass <code>pool_weights = FALSE</code> to leave the
 weights undivided; if state participation differs across the pooled
 years, a warning names the states involved. And when a requested
@@ -588,8 +593,8 @@ method, iterative proportional fitting, also known as raking, in place
 of post-stratification. CDC advises data users not to make direct
 comparisons with data collected before 2011, and to begin new trend
 lines with that year. <code><a href="../reference/brfss_design.html">brfss_design()</a></code> enforces the advice
-rather than burying it in a help page, so a request spanning the
-boundary fails.</p>
+instead of burying it in a help page, so a request spanning the boundary
+fails.</p>
 <div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/brfss_design.html">brfss_design</a></span><span class="op">(</span><span class="fl">2009</span><span class="op">:</span><span class="fl">2013</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;"> in `brfss_design()`:</span></span></span>
