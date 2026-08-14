@@ -89,8 +89,7 @@ itself runs through DuckDB, so selecting a handful of variables from a
 300-plus column survey stays fast. Cached files are re-verified
 against the manifest's checksums at most once a day per session; a
 file that no longer matches is announced and re-downloaded verified.
-With \code{download = FALSE} nothing is checked, nothing is downloaded,
-and nothing is ever deleted.
+With \code{download = FALSE} no file is checked, downloaded, or deleted.
 
 Different survey years carry different variable sets. When years are
 combined, variables absent from a year are filled with \code{NA}. A \code{year}

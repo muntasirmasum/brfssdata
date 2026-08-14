@@ -17,9 +17,8 @@ define, people answer at very different rates depending on who they are,
 and the frame reaches only adults who can be contacted on a landline or
 a cell phone. The final weight is built to correct those distortions;
 the strata and primary sampling units tell a variance estimator how the
-sample was actually drawn. Skipping either does not give you a slightly
-noisier answer. It gives you a different answer, with a standard error
-that means nothing.
+sample was actually drawn. Skipping either changes the answer itself,
+and the standard error attached to it means nothing.
 
 ## Why the design changes the answer
 

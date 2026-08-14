@@ -15,8 +15,8 @@
 #' for each family: `"verified"` means a person checked it,
 #' `"candidate"` means the rules proposed it and review is pending, so
 #' treat a candidate family as a strong hint, not a fact. A rename is
-#' *never* a promise of comparability -- CDC renamed the variable for a
-#' reason -- so combining generations is always your decision;
+#' *never* a promise of comparability (CDC renamed the variable for a
+#' reason), so combining generations is always your decision;
 #' [read_brfss()] points here (a `brfssdata_rename_note` message) when
 #' a requested variable is empty in years a sibling generation covers.
 #'
@@ -32,7 +32,7 @@
 #' pool across the rename? `TRUE` means yes (the `note` gives the
 #' basis); `FALSE` means the definition changed (the `note` says what
 #' moved). On a family's first generation `comparable` is `NA` by
-#' construction -- there is nothing earlier to compare against -- while
+#' construction (there is nothing earlier to compare against), while
 #' `NA` on a later generation of a candidate family means unreviewed.
 #'
 #' Verdicts are per link and do not chain through a `FALSE`. In the
@@ -68,7 +68,7 @@
 #'
 #' @param vars Optional character vector of variable names, matched
 #'   case-insensitively by exact name like in [brfss_labels()]. A match
-#'   on *any* member of a family returns the whole family -- that is
+#'   on *any* member of a family returns the whole family; that is
 #'   the point of the lookup.
 #' @param years Optional integer vector restricting the `year` rows.
 #'   The family membership shown is unaffected; only rows are filtered.

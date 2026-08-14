@@ -8,8 +8,8 @@ brfss_codebook(vars, years = NULL, download = TRUE, quiet = TRUE)
 }
 \arguments{
 \item{vars}{Character vector of variable names, matched
-case-insensitively by exact name (required -- for browsing the
-whole catalog use \code{\link[=brfss_vars]{brfss_vars()}}).}
+case-insensitively by exact name (required; to browse the whole
+catalog use \code{\link[=brfss_vars]{brfss_vars()}}).}
 
 \item{years}{Optional integer vector: restrict the value-label and
 availability detail to those years.}

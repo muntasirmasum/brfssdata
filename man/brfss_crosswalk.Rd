@@ -9,7 +9,7 @@ brfss_crosswalk(vars = NULL, years = NULL, download = TRUE, quiet = TRUE)
 \arguments{
 \item{vars}{Optional character vector of variable names, matched
 case-insensitively by exact name like in \code{\link[=brfss_labels]{brfss_labels()}}. A match
-on \emph{any} member of a family returns the whole family -- that is
+on \emph{any} member of a family returns the whole family; that is
 the point of the lookup.}
 
 \item{years}{Optional integer vector restricting the \code{year} rows.
@@ -45,8 +45,8 @@ codebooks over time. \code{status} records how far that review has gone
 for each family: \code{"verified"} means a person checked it,
 \code{"candidate"} means the rules proposed it and review is pending, so
 treat a candidate family as a strong hint, not a fact. A rename is
-\emph{never} a promise of comparability -- CDC renamed the variable for a
-reason -- so combining generations is always your decision;
+\emph{never} a promise of comparability (CDC renamed the variable for a
+reason), so combining generations is always your decision;
 \code{\link[=read_brfss]{read_brfss()}} points here (a \code{brfssdata_rename_note} message) when
 a requested variable is empty in years a sibling generation covers.
 }
@@ -63,7 +63,7 @@ thing as the generation immediately before it, closely enough to
 pool across the rename? \code{TRUE} means yes (the \code{note} gives the
 basis); \code{FALSE} means the definition changed (the \code{note} says what
 moved). On a family's first generation \code{comparable} is \code{NA} by
-construction -- there is nothing earlier to compare against -- while
+construction (there is nothing earlier to compare against), while
 \code{NA} on a later generation of a candidate family means unreviewed.
 
 Verdicts are per link and do not chain through a \code{FALSE}. In the

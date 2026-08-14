@@ -24,8 +24,8 @@
 #' is `brfss_year_info()$codebook_url`.
 #'
 #' @param vars Character vector of variable names, matched
-#'   case-insensitively by exact name (required -- for browsing the
-#'   whole catalog use [brfss_vars()]).
+#'   case-insensitively by exact name (required; to browse the whole
+#'   catalog use [brfss_vars()]).
 #' @param years Optional integer vector: restrict the value-label and
 #'   availability detail to those years.
 #' @inheritParams brfss_labels

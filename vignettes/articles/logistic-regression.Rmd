@@ -15,9 +15,9 @@ A standard epidemiologic question: how does the probability of reporting
 fair or poor general health vary by sex, age group, and education?
 Answering it properly with BRFSS requires the complex sampling design,
 the final weights, strata, and primary sampling units, or every standard
-error will be wrong. This article walks the full path with brfssdata:
-one call for a design object, familiar srvyr and survey verbs for the
-analysis.
+error will be wrong. This article works through the whole analysis with
+brfssdata: one call for a design object, familiar srvyr and survey verbs
+for the rest.
 
 ## Data
 

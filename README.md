@@ -43,7 +43,7 @@ install.packages("brfssdata")
 
 ## First estimate
 
-Three lines from install to a design-correct national estimate. The
+Three lines from install to a design-correct estimate. The
 first call downloads the year once (about 29 MB, checksum-verified),
 then everything is served from the local cache.
 

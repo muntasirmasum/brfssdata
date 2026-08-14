@@ -12,7 +12,7 @@
 #' every part of it (split on `/`, `,`, and the word "or") is a known
 #' missing-answer phrase, or when the only parts beyond those phrases
 #' start with the word "missing" and at least one part names the answer
-#' itself (don't know / not sure / refused) -- the shape of CDC's
+#' itself (don't know / not sure / refused), the shape of CDC's
 #' calculated-variable buckets such as "Don't know, refused or missing
 #' values" on `_FRTLT1A`. The abbreviations CDC's 1998 to 2001 format
 #' libraries use ("UNK/REF", "UNK", "REF", "UNKNOWN") count as those

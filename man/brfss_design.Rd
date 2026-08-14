@@ -180,8 +180,8 @@ That guard covers the one break CDC describes as disqualifying, and it
 is not a general promise that any two years on the same side are
 comparable. Raking margins, state participation, and collection
 conditions all move within an era. CDC publishes a comparability
-document with each annual release, and a year-over-year shift is worth
-reading there before it is read as a change in the population.
+document with each annual release; check a year-over-year shift
+there before reading it as a change in the population.
 
 When several years are combined, weights are divided by the number of
 years (\code{pool_weights = TRUE}, the default) so that pooled estimates
