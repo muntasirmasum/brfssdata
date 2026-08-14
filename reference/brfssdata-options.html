@@ -63,8 +63,10 @@ required for normal use.</p>
 <dd><p>Path used for the local data cache
 instead of the <code><a href="https://rdrr.io/r/tools/userdir.html" class="external-link">tools::R_user_dir()</a></code> default. Point it at a
 shared or project-local directory to reuse one set of downloads
-across machines or projects; see <code><a href="brfss_cache_dir.html">brfss_cache_dir()</a></code> and the
-<em>Getting started</em> vignette's offline recipe.</p></dd>
+across machines or projects; a lab or an HPC cluster needs only
+one populated copy on a shared filesystem, with every user's
+option pointing at it. See <code><a href="brfss_cache_dir.html">brfss_cache_dir()</a></code> and the <em>Getting
+started</em> vignette's offline recipe.</p></dd>
 
 <dt><code>brfssdata.lonely_psu</code></dt>
 <dd><p>A single string copied into
@@ -90,7 +92,11 @@ normal use.</p></dd>
 </dl><p>The package also <em>writes</em> one option while working:
 <code><a href="brfss_design.html">brfss_design()</a></code> sets <code>options(survey.lonely.psu)</code> for the session
 (announced once via <code>brfssdata_lonely_psu_note</code>), and downloads
-temporarily raise <code>options(timeout)</code> to at least an hour.</p>
+temporarily raise <code>options(timeout)</code> to at least an hour. Downloads
+through the preferred curl backend additionally abort if a
+connection takes over a minute to establish or a transfer sits below
+100 bytes/s for five minutes, so a dead proxy fails with an error
+instead of hanging.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

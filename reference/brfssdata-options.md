@@ -11,7 +11,9 @@ project `.Rprofile`; none is required for normal use.
   Path used for the local data cache instead of the
   [`tools::R_user_dir()`](https://rdrr.io/r/tools/userdir.html) default.
   Point it at a shared or project-local directory to reuse one set of
-  downloads across machines or projects; see
+  downloads across machines or projects; a lab or an HPC cluster needs
+  only one populated copy on a shared filesystem, with every user's
+  option pointing at it. See
   [`brfss_cache_dir()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_cache_dir.md)
   and the *Getting started* vignette's offline recipe.
 
@@ -41,7 +43,10 @@ The package also *writes* one option while working:
 [`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
 sets `options(survey.lonely.psu)` for the session (announced once via
 `brfssdata_lonely_psu_note`), and downloads temporarily raise
-`options(timeout)` to at least an hour.
+`options(timeout)` to at least an hour. Downloads through the preferred
+curl backend additionally abort if a connection takes over a minute to
+establish or a transfer sits below 100 bytes/s for five minutes, so a
+dead proxy fails with an error instead of hanging.
 
 ## See also
 

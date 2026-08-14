@@ -43,7 +43,7 @@ install.packages("brfssdata")
 ## First estimate
 
 Three lines from install to a design-correct national estimate. The
-first call downloads the year once (about 28 MB, checksum-verified),
+first call downloads the year once (about 29 MB, checksum-verified),
 then everything is served from the local cache.
 
 ``` r
@@ -120,6 +120,16 @@ and label catalogs, after which everything runs offline;
 and
 [`brfss_cache_clear()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_cache_dir.md)
 manage the cache.
+
+The files come from GitHub releases (a modern survey year is 20 to 35
+MB; all 40 years about 737 MB), so a network that blocks `github.com`, a
+TLS-intercepting proxy, or an air-gapped compute node blocks the
+download too. In that case prefetch on an unrestricted machine, copy the
+cache directory across, and point `options(brfssdata.cache_dir = ...)`
+at it; one shared directory serves a whole lab or cluster. The “Caching
+and offline work” section of the [getting-started
+vignette](https://muntasirmasum.github.io/brfssdata/articles/brfssdata.html)
+walks through it.
 
 ## The 2011 design break
 

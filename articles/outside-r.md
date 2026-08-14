@@ -18,7 +18,7 @@ For 2023 that resolves to:
 
     https://github.com/muntasirmasum/brfssdata/releases/download/data-2023/brfss_2023.parquet
 
-There is no token and no API. The 2023 file is about 28 MB and holds
+There is no token and no API. The 2023 file is about 29 MB and holds
 433,323 rows and 351 columns, compressed with zstd, which every parquet
 reader of the last few years handles. Columns keep CDC’s canonical
 uppercase names, leading underscores on calculated variables included
@@ -351,7 +351,7 @@ utils::write.csv(for_stata, "brfss_2023_extract.csv", row.names = FALSE)
 ```
 
 The cost is size and types. Written out in full, the 2023 file is about
-447 MB as CSV against 28 MB as parquet, roughly sixteen times larger.
+447 MB as CSV against 29 MB as parquet, roughly fifteen times larger.
 None of the column types survive the trip either, so every reader on the
 other end re-guesses whether a column is integer, double, or text, and a
 leading-zero FIPS code or a variable that is numeric in one year and

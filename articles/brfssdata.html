@@ -482,6 +482,25 @@ directory across, and point
 <code>options(brfssdata.cache_dir = ...)</code> at it.</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/brfss_download.html">brfss_download</a></span><span class="op">(</span><span class="fl">2019</span><span class="op">:</span><span class="fl">2023</span><span class="op">)</span></span></code></pre></div>
+<div class="section level3">
+<h3 id="restricted-networks">Restricted networks<a class="anchor" aria-label="anchor" href="#restricted-networks"></a>
+</h3>
+<p>The data files live on GitHub releases, so any network that blocks or
+intercepts traffic to <code>github.com</code> blocks the download too.
+The common cases are hospital and corporate networks that terminate TLS
+at a proxy, campus networks with allowlists, and HPC compute nodes with
+no outbound access. A blocked download fails with an error naming the
+likely cause rather than hanging, and nothing partial is written to the
+cache. The prefetch recipe above is the way through. Populate the cache
+from an unrestricted machine (a modern survey year is 20 to 35 MB, all
+40 years about 737 MB), copy the directory, and set
+<code>options(brfssdata.cache_dir = ...)</code> on the restricted one. A
+lab or a cluster needs only one such copy, since every user can point
+the same option at a shared directory. Variable discovery is never
+blocked. <code><a href="../reference/brfss_vars.html">brfss_vars()</a></code>, <code><a href="../reference/brfss_labels.html">brfss_labels()</a></code>,
+<code><a href="../reference/brfss_codebook.html">brfss_codebook()</a></code>, and <code><a href="../reference/brfss_crosswalk.html">brfss_crosswalk()</a></code> fall
+back to catalog snapshots bundled with the package, so codebook work
+runs before anything is downloaded.</p>
 <p>Downloads are verified against the sha256 checksums published with
 each release, and a cached file that later turns out damaged is either
 re-downloaded automatically or named in an error along with the exact
@@ -495,6 +514,7 @@ variable searches.</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/brfss_cache_dir.html">brfss_cache_clear</a></span><span class="op">(</span><span class="fl">2021</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/brfss_cache_dir.html">brfss_cache_clear</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/brfss_cache_dir.html">brfss_cache_clear</a></span><span class="op">(</span>catalogs <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+</div>
 </div>
 <div class="section level2">
 <h2 id="survey-weighted-analysis">Survey-weighted analysis<a class="anchor" aria-label="anchor" href="#survey-weighted-analysis"></a>
