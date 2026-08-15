@@ -40,9 +40,9 @@ releases: variables grouped into concept families, one row per
 variable and year, so the whole family is visible at once.
 
 Families are proposed mechanically (same stem, non-overlapping year
-ranges, similar label wording) and reviewed by hand against CDC's
-codebooks over time. \code{status} records how far that review has gone
-for each family: \code{"verified"} means a person checked it,
+ranges) and reviewed by hand against CDC's codebooks over time.
+\code{status} records how far that review has gone for each family:
+\code{"verified"} means a person checked it,
 \code{"candidate"} means the rules proposed it and review is pending, so
 treat a candidate family as a strong hint, not a fact. A rename is
 \emph{never} a promise of comparability (CDC renamed the variable for a

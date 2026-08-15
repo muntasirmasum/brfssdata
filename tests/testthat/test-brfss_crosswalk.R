@@ -27,6 +27,39 @@ test_that("a variable outside any family returns empty with a message", {
   expect_identical(nrow(out), 0L)
 })
 
+test_that("the zero-match message does not claim the name never changed", {
+  # No entry means no family has been curated for the name, which is not
+  # the same fact as CDC never renaming the variable. The message used to
+  # assert the second, which for a real but uncurated family steered the
+  # user away from the sibling generation holding their missing years.
+  local_brfss_cache(2023)
+  msg <- expect_message(
+    brfss_crosswalk("GENHLTH", download = FALSE),
+    class = "brfssdata_empty_result"
+  )
+  expect_no_match(conditionMessage(msg), "kept one name")
+  expect_no_match(conditionMessage(msg), "never renamed")
+  expect_match(conditionMessage(msg), "brfss_vars")
+})
+
+test_that("the bundled crosswalk carries the personal-doctor family", {
+  # PERSDOC (2000) -> PERSDOC2 (2001-2020) -> PERSDOC3 (2021-2024) was
+  # missing from the crosswalk while the proposer rejected candidates on
+  # label wording: CDC rewrote the 40-character label mid-life even
+  # though the answer scale never moved. Without the family,
+  # read_brfss(2019:2023, vars = "PERSDOC3") returns two silently empty
+  # years and no rename note, and the lookup denies the family exists.
+  local_brfss_cache(2023, crosswalk = FALSE)
+  suppressMessages(fam <- brfss_crosswalk("PERSDOC3", download = FALSE))
+  expect_setequal(fam$variable, c("PERSDOC", "PERSDOC2", "PERSDOC3"))
+  expect_identical(sort(unique(fam$generation)), 1:3)
+  # The years PERSDOC3 is empty must be covered by a sibling; that
+  # overlap is what makes the read path's rename note fire.
+  expect_true(all(
+    c(2019L, 2020L) %in% fam$year[fam$variable == "PERSDOC2"]
+  ))
+})
+
 test_that("malformed arguments are rejected", {
   expect_error(brfss_crosswalk(1), class = "brfssdata_bad_vars_arg")
   expect_error(

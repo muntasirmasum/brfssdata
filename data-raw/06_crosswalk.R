@@ -8,10 +8,10 @@
 #
 #   1. This script proposes candidate families from the variable
 #      catalog (same stem after stripping trailing digits, mutually
-#      non-overlapping year ranges, similar label wording) and merges
-#      them into data-raw/crosswalk_review.csv, PRESERVING every row a
-#      human has already touched. New candidates arrive with
-#      status = "candidate" and comparable = NA.
+#      non-overlapping year ranges) and merges them into
+#      data-raw/crosswalk_review.csv, PRESERVING every row a human has
+#      already touched. New candidates arrive with status = "candidate"
+#      and comparable = NA.
 #   2. The maintainer reviews candidates against the CDC codebooks:
 #      flips status to "verified", sets comparable (TRUE / FALSE vs the
 #      previous generation), and writes a note when the definition
@@ -35,7 +35,7 @@ on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
 catalog <- DBI::dbGetQuery(
   con,
   sprintf(
-    "SELECT variable, label, year FROM read_parquet('%s')",
+    "SELECT variable, year FROM read_parquet('%s')",
     file.path(out_dir, "brfss_variables.parquet")
   )
 )
@@ -51,34 +51,18 @@ stem_of <- function(x) sub("[0-9]+$", "", x)
 per_var <- do.call(
   rbind,
   lapply(split(catalog, catalog$variable), function(d) {
-    latest <- d[which.max(d$year), , drop = FALSE]
     data.frame(
-      variable = latest$variable,
-      stem = stem_of(latest$variable),
+      variable = d$variable[[1]],
+      stem = stem_of(d$variable[[1]]),
       first_year = min(d$year),
       last_year = max(d$year),
       n_years = length(unique(d$year)),
-      label = latest$label,
       stringsAsFactors = FALSE
     )
   })
 )
 rownames(per_var) <- NULL
 per_var <- per_var[grepl("^_?[A-Z]{3,}$", per_var$stem), , drop = FALSE]
-
-label_tokens <- function(x) {
-  x <- tolower(ifelse(is.na(x), "", x))
-  x <- gsub("[^a-z0-9 ]", " ", x)
-  tokens <- strsplit(trimws(gsub("[[:space:]]+", " ", x)), " ")[[1]]
-  setdiff(tokens, c("", "of", "the", "a", "an", "in", "or", "and", "to"))
-}
-
-jaccard <- function(a, b) {
-  if (length(a) == 0 || length(b) == 0) {
-    return(0)
-  }
-  length(intersect(a, b)) / length(union(a, b))
-}
 
 candidates <- do.call(
   rbind,
@@ -101,15 +85,16 @@ candidates <- do.call(
         return(NULL)
       }
     }
-    # Wording continuity: each consecutive pair must share label
-    # vocabulary. Permissive on purpose (0.25); the human review is the
-    # real filter, this only keeps the list reviewable.
-    toks <- lapply(fam$label, label_tokens)
-    for (i in seq_len(nrow(fam) - 1)) {
-      if (jaccard(toks[[i]], toks[[i + 1]]) < 0.25) {
-        return(NULL)
-      }
-    }
+    # Deliberately no label-wording gate here. CDC rewrites the
+    # 40-character variable label mid-life (PERSDOC2 was labelled HAVE
+    # PERS DOC OR HLTH CARE PROVIDER in 2001 and MULTIPLE HEALTH CARE
+    # PROFESSIONALS from 2005), so wording cannot separate "different
+    # question" from "new abbreviation", and a family the rules drop
+    # here leaves no trace at all: no candidate row to review, no
+    # tombstone. Wording continuity is evidence, not a filter, and it
+    # reaches the reviewer as label_similarity in
+    # data-raw/crosswalk_evidence.csv; a false pairing is rejected by
+    # hand in the review file, where the tombstone keeps it out.
     data.frame(
       concept = tolower(sub("^_", "", fam$stem[[1]])),
       variable = fam$variable,

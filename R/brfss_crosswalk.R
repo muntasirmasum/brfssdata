@@ -10,9 +10,9 @@
 #' variable and year, so the whole family is visible at once.
 #'
 #' Families are proposed mechanically (same stem, non-overlapping year
-#' ranges, similar label wording) and reviewed by hand against CDC's
-#' codebooks over time. `status` records how far that review has gone
-#' for each family: `"verified"` means a person checked it,
+#' ranges) and reviewed by hand against CDC's codebooks over time.
+#' `status` records how far that review has gone for each family:
+#' `"verified"` means a person checked it,
 #' `"candidate"` means the rules proposed it and review is pending, so
 #' treat a candidate family as a strong hint, not a fact. A rename is
 #' *never* a promise of comparability (CDC renamed the variable for a
@@ -152,9 +152,10 @@ brfss_crosswalk <- function(
         } else {
           "No crosswalk entries for {.val {vars}}."
         },
-        "i" = "The crosswalk only lists variables that belong to a
-               rename family; a variable that kept one name throughout
-               has no entry. Search names with {.fun brfss_vars}."
+        "i" = "The crosswalk lists a variable only once a rename family
+               has been curated for it, so no entry means no family is
+               recorded, not that the name was never changed. Check the
+               years a name actually covers with {.fun brfss_vars}."
       ),
       class = "brfssdata_empty_result"
     )
