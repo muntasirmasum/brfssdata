@@ -5,7 +5,9 @@
 #' directory so repeat use, and offline work, never re-download. The cache
 #' location follows [tools::R_user_dir()] and can be redirected with
 #' `options(brfssdata.cache_dir = ...)` or the `R_USER_CACHE_DIR`
-#' environment variable.
+#' environment variable. The option must be a single non-empty path
+#' that is not an existing regular file; anything else is rejected
+#' (`brfssdata_bad_option`) rather than read as an empty cache.
 #'
 #' * `brfss_cache_dir()` returns the cache directory path.
 #' * `brfss_cache_info()` lists cached files with their sizes. Rows with
@@ -51,16 +53,58 @@
 #'   reads.
 #' @export
 brfss_cache_dir <- function() {
-  getOption("brfssdata.cache_dir") %||%
-    tools::R_user_dir("brfssdata", "cache")
+  dir <- getOption("brfssdata.cache_dir")
+  if (is.null(dir)) {
+    return(tools::R_user_dir("brfssdata", "cache"))
+  }
+  # The documented way to set this is a line in .Rprofile, where a typo
+  # is invisible: "" or a path that is really a file used to sail
+  # through, and the whole package then reported an empty cache and
+  # wrote downloads to a nonsensical path. Validated here because this
+  # is the single place the option is read.
+  shaped <- is.character(dir) &&
+    length(dir) == 1L &&
+    !is.na(dir) &&
+    nzchar(trimws(dir))
+  is_file <- shaped && file.exists(dir) && !dir.exists(dir)
+  if (!shaped || is_file) {
+    why <- if (is_file) {
+      "{.path {dir}} is a file, not a directory."
+    } else {
+      "Got {.obj_type_friendly {dir}}."
+    }
+    cli::cli_abort(
+      c(
+        "{.code options(brfssdata.cache_dir)} must be a single path to a
+         directory.",
+        "x" = why,
+        "i" = "Set it to a writable directory, e.g.
+               {.code options(brfssdata.cache_dir = \"~/brfss-cache\")},
+               or unset it to use {.path {tools::R_user_dir('brfssdata',
+               'cache')}}."
+      ),
+      class = "brfssdata_bad_option"
+    )
+  }
+  dir
 }
 
 #' @rdname brfss_cache_dir
 #' @export
 brfss_cache_info <- function(verify = FALSE) {
+  # Gated rather than read through isTRUE(): verify = "yes" used to skip
+  # every hash while reading, to the person who typed it, as a request
+  # to check them all.
+  verify <- check_bool_arg(verify, "verify")
   dir <- brfss_cache_dir()
   files <- list.files(dir, full.names = TRUE)
-  info <- file.info(files)
+  info <- file.info(files, extra_cols = FALSE)
+  # Regular files only: a stray subdirectory has no meaningful cache
+  # size (file.info() reports its inode size), and listing one as a
+  # cached file inflated the total brfss_download() prints.
+  keep <- !is.na(info$isdir) & !info$isdir
+  files <- files[keep]
+  info <- info[keep, , drop = FALSE]
   out <- tibble::tibble(
     file = basename(files),
     year = cached_file_year(basename(files)),
@@ -140,12 +184,14 @@ note_bundled_asset <- function(what) {
 #' brfss_download(2019:2023)
 #' @export
 brfss_download <- function(years = NULL, catalogs = TRUE, quiet = FALSE) {
+  catalogs <- check_bool_arg(catalogs, "catalogs")
+  quiet <- check_bool_arg(quiet, "quiet")
   if (!is.null(years)) {
     years <- validate_years(years)
     ensure_years_cached(years, download = TRUE, quiet = quiet)
   }
-  if (isTRUE(catalogs)) {
-    read_manifest()
+  if (catalogs) {
+    read_manifest(quiet = quiet)
     # fallback = FALSE: a prefetch must cache real files or fail
     # loudly; serving the bundled snapshot here would report success
     # while caching nothing.
@@ -194,6 +240,7 @@ brfss_cache_clear <- function(years = NULL, catalogs = FALSE) {
   # no-prompt escape hatch for scripts, so only the no-argument form
   # ever confirms.
   no_years_given <- missing(years)
+  catalogs <- check_bool_arg(catalogs, "catalogs")
   # Validated before anything is touched: as.integer() truncation here
   # meant brfss_cache_clear(2024.9) silently deleted the 2024 file.
   # integer(0) stays the documented remove-nothing request.
@@ -313,14 +360,38 @@ perform_download <- function(url, tmp, quiet) {
 # curl signals one classed condition per libcurl error code, which is
 # enough to name the likely cause. Anything unrecognized -- including
 # every download.file() failure, which arrives as text only -- keeps the
-# generic wording.
-download_failure_hint <- function(cond) {
+# generic wording. `dir` is the directory the transfer had to land in:
+# when it cannot be written, the failure is local and the offline hint
+# would send the reader chasing their network instead of their
+# permissions.
+download_failure_hint <- function(cond, dir = NULL) {
   generic <- c(
     "i" = "The resource may be temporarily unavailable, or you may
            be offline."
   )
+  if (!is.null(dir) && !cache_dir_writable(dir)) {
+    return(c(
+      "i" = "Nothing could be written to {.path {dir}}, so this is a
+             local file-system failure, not a network one.",
+      "i" = "Point the cache at a writable directory with
+             {.code options(brfssdata.cache_dir = ...)}."
+    ))
+  }
   if (is.null(cond)) {
     return(generic)
+  }
+  # Both downloaders report a failed local write in English text of
+  # their own making (curl's "Failed to open file", download.file()'s
+  # "cannot open destfile"), with no class to dispatch on. A writable
+  # directory with no room left is the case the check above misses.
+  local_write <- "Failed to open file|cannot open destfile"
+  if (grepl(local_write, conditionMessage(cond))) {
+    return(c(
+      "i" = "The file could not be written locally, so this is not a
+             network failure.",
+      "i" = "Check that {.fun brfss_cache_dir} is writable and that the
+             disk or quota has room."
+    ))
   }
   cls <- class(cond)
   unreachable <- c(
@@ -367,26 +438,139 @@ cache_path <- function(asset) {
   file.path(brfss_cache_dir(), asset)
 }
 
-ensure_cache_dir <- function() {
+# file.access() reports the real uid's permissions and is advisory on
+# Windows ACLs, so it is used to refuse before a 30 MB transfer and to
+# explain a failure afterwards, never as a promise that a write will
+# succeed.
+cache_dir_writable <- function(dir) {
+  dir.exists(dir) && file.access(dir, mode = 2L)[[1L]] == 0L
+}
+
+ensure_cache_dir <- function(quiet = FALSE, call = rlang::caller_env()) {
   dir <- brfss_cache_dir()
   if (!dir.exists(dir)) {
-    dir.create(dir, recursive = TRUE)
-    cli::cli_inform(
+    # dir.create() reports failure through a warning and a FALSE
+    # return, and both used to be dropped: the note below then
+    # announced a directory that does not exist, and the first
+    # download blamed the network for a local permission problem. The
+    # dir.exists() recheck keeps a concurrent session's creation from
+    # counting as failure.
+    created <- suppressWarnings(dir.create(dir, recursive = TRUE))
+    if (!isTRUE(created) && !dir.exists(dir)) {
+      cli::cli_abort(
+        c(
+          "Could not create the cache directory {.path {dir}}.",
+          "x" = "Its parent directory is missing or not writable.",
+          "i" = "Point the cache somewhere writable with
+                 {.code options(brfssdata.cache_dir = ...)}, in
+                 {.file .Rprofile} to make it stick."
+        ),
+        class = c("brfssdata_cache_unwritable", "brfssdata_download_error"),
+        call = call
+      )
+    }
+    if (!isTRUE(quiet)) {
+      cli::cli_inform(
+        c(
+          "i" = "Downloaded BRFSS data will be cached in {.path {dir}}.",
+          "i" = "Manage it with {.fun brfss_cache_info} and
+                 {.fun brfss_cache_clear}."
+        ),
+        class = "brfssdata_cache_note"
+      )
+    }
+  }
+  if (!cache_dir_writable(dir)) {
+    cli::cli_abort(
       c(
-        "i" = "Downloaded BRFSS data will be cached in {.path {dir}}.",
-        "i" = "Manage it with {.fun brfss_cache_info} and
-               {.fun brfss_cache_clear}."
+        "The cache directory {.path {dir}} is not writable.",
+        "x" = "This is a local permission problem, not a network one.",
+        "i" = "Point the cache somewhere writable with
+               {.code options(brfssdata.cache_dir = ...)}, in
+               {.file .Rprofile} to make it stick."
       ),
-      class = "brfssdata_cache_note"
+      class = c("brfssdata_cache_unwritable", "brfssdata_download_error"),
+      call = call
     )
   }
+  sweep_stale_tmp(dir)
   dir
+}
+
+# The staging names this package generates inside the cache directory,
+# and nothing else does: download_to_cache()'s per-asset temp file
+# (curl appends its own .curltmp while a transfer is live) and
+# refresh_manifest()'s staged manifest. Anchored and hex-tailed so a
+# user's own file is never matched; every sweep runs through here, so
+# this is the one place that decides what the package may delete.
+package_tmp_file <- function(file) {
+  assets <- c(
+    "brfss_[0-9]{4}\\.parquet",
+    gsub(".", "\\.", CACHE_META_FILES, fixed = TRUE),
+    "manifest-[0-9a-f]+\\.json"
+  )
+  staging <- sprintf(
+    "^(%s)-[0-9a-f]+\\.tmp(\\.curltmp)?$",
+    paste(assets, collapse = "|")
+  )
+  grepl(staging, file) | grepl("^manifest-[0-9a-f]+\\.json(\\.curltmp)?$", file)
+}
+
+# Partial downloads are unlinked on error and on interrupt, but a
+# SIGKILL or a power cut leaves one behind for good: brfss_cache_clear()
+# reads it as a foreign file and keeps it, and brfss_cache_info() counts
+# its bytes toward the cache total. The manifest's max age is the age
+# threshold because no transfer this package starts survives a day, so
+# nothing older can still be live in another session.
+sweep_stale_tmp <- function(dir) {
+  files <- list.files(dir)
+  files <- files[package_tmp_file(files)]
+  if (length(files) == 0) {
+    return(invisible(character(0)))
+  }
+  paths <- file.path(dir, files)
+  age <- difftime(Sys.time(), file.mtime(paths), units = "secs")
+  stale <- !is.na(age) & as.numeric(age) > MANIFEST_MAX_AGE
+  unlink(paths[stale])
+  invisible(paths[stale])
 }
 
 # A NULL binding so tests can mock base file.rename (the rename-to-copy
 # fallback below). R's call lookup skips non-function bindings, so
 # base::file.rename still runs everywhere outside that mock.
 file.rename <- NULL
+
+# Move a staged file into its cache path. The rename is atomic on every
+# platform the package supports, so a concurrent reader sees the whole
+# old file or the whole new one. On Windows it fails while either end is
+# held open (an antivirus scanner, another R session reading the year),
+# and the byte-by-byte copy that used to follow immediately can be
+# observed half-written, leaving a truncated year behind if the session
+# dies mid-copy. So: retry the rename briefly, then try once more from a
+# fresh staging name that nothing else can be holding, and only then
+# copy. Residual limitation: a destination held open for the whole retry
+# window still ends in a non-atomic copy, which no portable R call can
+# avoid (base R exposes no MoveFileEx replace).
+replace_cached_file <- function(from, to, tries = 4L, wait = 0.05) {
+  for (i in seq_len(tries)) {
+    if (isTRUE(file.rename(from, to))) {
+      return(TRUE)
+    }
+    if (i < tries) {
+      Sys.sleep(wait)
+    }
+  }
+  staged <- tempfile(
+    pattern = paste0(basename(to), "-"),
+    tmpdir = dirname(to),
+    fileext = ".tmp"
+  )
+  on.exit(unlink(staged), add = TRUE)
+  if (isTRUE(file.copy(from, staged)) && isTRUE(file.rename(staged, to))) {
+    return(TRUE)
+  }
+  isTRUE(file.copy(from, to, overwrite = TRUE))
+}
 
 # Download a release asset into the cache, failing with an informative,
 # classed error (never a warning) if the resource is unavailable. When
@@ -401,7 +585,7 @@ download_to_cache <- function(
   retries = 1L,
   call = rlang::caller_env()
 ) {
-  ensure_cache_dir()
+  ensure_cache_dir(quiet = quiet, call = call)
   # Unique tmp in the cache dir itself: concurrent sessions cannot
   # interleave writes, and the final rename stays same-filesystem.
   tmp <- tempfile(
@@ -444,7 +628,7 @@ download_to_cache <- function(
         c(
           "Could not download {.url {url}}.",
           if (!is.null(why)) c("x" = "{why}"),
-          download_failure_hint(cond),
+          download_failure_hint(cond, dir = dirname(dest)),
           "i" = "Cached years remain usable; see {.fun brfss_cache_info}."
         ),
         class = "brfssdata_download_error",
@@ -476,10 +660,7 @@ download_to_cache <- function(
       )
     }
   }
-  if (
-    !isTRUE(file.rename(tmp, dest)) &&
-      !isTRUE(file.copy(tmp, dest, overwrite = TRUE))
-  ) {
+  if (!replace_cached_file(tmp, dest)) {
     cli::cli_abort(
       c(
         "Downloaded {.url {url}} but could not move it into the cache

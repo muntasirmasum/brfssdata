@@ -258,6 +258,58 @@ test_that("a successful refresh clears the failure memo", {
   expect_null(manifest_state$last_failure)
 })
 
+test_that("brfss_years validates its boolean arguments", {
+  local_brfss_manifest(2023)
+  expect_error(brfss_years(refresh = "x"), class = "brfssdata_bad_refresh_arg")
+  expect_error(brfss_years(download = 1), class = "brfssdata_bad_download_arg")
+  expect_error(brfss_years(quiet = NULL), class = "brfssdata_bad_quiet_arg")
+  expect_error(brfss_years(refresh = NA), class = "brfssdata_bad_bool_arg")
+})
+
+test_that("brfss_years(download = FALSE) never touches the network", {
+  dir <- local_brfss_manifest(c(2020, 2021))
+  aged <- Sys.setFileTime(
+    file.path(dir, "manifest.json"),
+    Sys.time() - 2 * 86400
+  )
+  skip_if_not(isTRUE(aged), "cannot set file mtime on this filesystem")
+  # guard_network() is still installed: any attempt fails the test.
+  expect_identical(brfss_years(download = FALSE), c(2020L, 2021L))
+
+  # download = FALSE is the stronger promise, so refresh cannot override
+  # it, and the skipped refresh is reported rather than assumed.
+  expect_message(
+    expect_identical(
+      brfss_years(refresh = TRUE, download = FALSE),
+      c(2020L, 2021L)
+    ),
+    class = "brfssdata_manifest_note"
+  )
+  expect_no_message(
+    brfss_years(refresh = TRUE, download = FALSE, quiet = TRUE),
+    class = "brfssdata_manifest_note"
+  )
+})
+
+test_that("brfss_years(quiet = TRUE) silences the fallback note", {
+  dir <- local_brfss_manifest(c(2020, 2021))
+  aged <- Sys.setFileTime(
+    file.path(dir, "manifest.json"),
+    Sys.time() - 2 * 86400
+  )
+  skip_if_not(isTRUE(aged), "cannot set file mtime on this filesystem")
+  local_mocked_bindings(
+    download_to_cache = function(...) {
+      cli::cli_abort("offline", class = "brfssdata_download_error")
+    }
+  )
+  expect_no_message(
+    years <- brfss_years(quiet = TRUE),
+    class = "brfssdata_manifest_note"
+  )
+  expect_identical(years, c(2020L, 2021L))
+})
+
 # These two run as a pair, in file order: the first deliberately drives
 # the failure memo inside a fixture scope, the second proves the scope
 # restored it. This is the contract that keeps devtools::test() from

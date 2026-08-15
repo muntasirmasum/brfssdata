@@ -109,3 +109,17 @@ test_that("every weight is excluded from labeling and recoding", {
   expect_true(all(FINAL_WEIGHTS$weight %in% LABEL_EXCLUDE))
   expect_true(all(INTERMEDIATE_WEIGHTS %in% LABEL_EXCLUDE))
 })
+
+# The duckdb floor is stated twice: DESCRIPTION's Imports pin, which
+# only R CMD INSTALL enforces, and DUCKDB_MIN_VERSION, which
+# duckdb_connect() enforces in the running session. A bump to one
+# without the other would leave the runtime guard checking for a version
+# nobody installs.
+test_that("the duckdb version floor matches the DESCRIPTION pin", {
+  imports <- read.dcf(
+    system.file("DESCRIPTION", package = "brfssdata"),
+    fields = "Imports"
+  )[[1L]]
+  pin <- regmatches(imports, regexpr("duckdb \\(>= [0-9.]+\\)", imports))
+  expect_identical(pin, sprintf("duckdb (>= %s)", DUCKDB_MIN_VERSION))
+})

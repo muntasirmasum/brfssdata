@@ -51,8 +51,9 @@ refusal.}
 \item{\code{brfssdata_bad_n_arg}}{\code{n} in \code{print.brfss_codebook()} is not
 a single positive number.}
 \item{\code{brfssdata_bad_option}}{\code{options(brfssdata.lonely_psu)} is
-not a single string, or \code{options(brfssdata.module_weight_check)}
-is not \code{TRUE} or \code{FALSE}.}
+not a single string, \code{options(brfssdata.module_weight_check)}
+is not \code{TRUE} or \code{FALSE}, or \code{options(brfssdata.cache_dir)} is
+not a single non-empty path to a directory.}
 \item{\code{brfssdata_bad_design_var}}{A design variable (era weight,
 \verb{_STSTR}, \verb{_PSU}) is absent or carries missing or invalid
 values, so no valid design can be built; for a final analysis
@@ -71,9 +72,19 @@ parent class of \code{brfssdata_checksum_error}, so one handler
 catches both.}
 \item{\code{brfssdata_checksum_error}}{A downloaded file did not match
 the manifest's sha256 after a retry; nothing was cached.}
+\item{\code{brfssdata_cache_unwritable}}{The cache directory could not
+be created, or exists but cannot be written to, so no download
+can land: a local permission problem, named as one instead of
+being reported as a network failure. Also carries
+\code{brfssdata_download_error}, so the metadata lookups' bundled
+fallback still applies.}
 \item{\code{brfssdata_corrupt_cache}}{A cached file is unreadable
 (typically a corrupted download from before verification); the
 message names the file and the \code{\link[=brfss_cache_clear]{brfss_cache_clear()}} remedy.}
+\item{\code{brfssdata_duckdb_version}}{The installed duckdb is older
+than the version this package requires, so the argument that
+keeps DuckDB from writing to the home directory is unavailable;
+the message names the required and the found version.}
 \item{\code{brfssdata_type_conflict}}{A requested column is stored as
 text in some requested years' files and as a number in others,
 so combining them would silently corrupt values; usually stale

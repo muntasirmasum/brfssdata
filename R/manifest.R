@@ -6,8 +6,20 @@
 #' locally and refreshed at most once a day; pass `refresh = TRUE` to force
 #' a new download.
 #'
+#' The three arguments cover the three questions in order. `download`
+#' decides whether the network may be touched at all, `refresh` forces a
+#' download that the daily cadence would otherwise skip, and `quiet`
+#' silences the housekeeping notes. `download = FALSE` therefore wins
+#' over `refresh = TRUE`: the strictly offline promise is the stronger
+#' one, and the skipped refresh is reported rather than assumed.
+#'
 #' @param refresh If `TRUE`, re-download the manifest even if a fresh
-#'   cached copy exists.
+#'   cached copy exists. Ignored under `download = FALSE`.
+#' @param download If `FALSE`, only the cached (or bundled) manifest is
+#'   read and the network is never touched.
+#' @param quiet If `TRUE`, suppress the housekeeping notes about which
+#'   copy was used (`brfssdata_manifest_note`). The returned years are
+#'   the same either way.
 #'
 #' @return An integer vector of available survey years. If the manifest
 #'   cannot be refreshed, or the cached copy is unreadable, a message
@@ -16,9 +28,40 @@
 #' @examplesIf interactive()
 #' brfss_years()
 #' @export
-brfss_years <- function(refresh = FALSE) {
-  manifest <- read_manifest(refresh = refresh)
+brfss_years <- function(refresh = FALSE, download = TRUE, quiet = FALSE) {
+  refresh <- check_bool_arg(refresh, "refresh")
+  download <- check_bool_arg(download, "download")
+  quiet <- check_bool_arg(quiet, "quiet")
+  if (!download) {
+    if (refresh && !quiet) {
+      cli::cli_inform(
+        c(
+          "!" = "{.code download = FALSE} was set, so the BRFSS data
+                 manifest was not refreshed; using the cached or
+                 bundled copy."
+        ),
+        class = "brfssdata_manifest_note"
+      )
+    }
+    manifest <- quiet_manifest_notes(read_manifest_cached(), quiet)
+  } else {
+    manifest <- quiet_manifest_notes(
+      read_manifest(refresh = refresh, quiet = quiet),
+      quiet
+    )
+  }
   sort(as.integer(manifest$years))
+}
+
+# quiet = TRUE silences the manifest's housekeeping notes the same way
+# it does on the read path, by class rather than by flag, so the notes
+# stay one implementation for every caller. `expr` is a promise, forced
+# inside the handler.
+quiet_manifest_notes <- function(expr, quiet) {
+  if (!quiet) {
+    return(expr)
+  }
+  suppressMessages(expr, classes = "brfssdata_manifest_note")
 }
 
 MANIFEST_MAX_AGE <- 60 * 60 * 24 # one day, in seconds
@@ -88,7 +131,7 @@ manifest_json <- function(path) {
   value
 }
 
-read_manifest <- function(refresh = FALSE) {
+read_manifest <- function(refresh = FALSE, quiet = FALSE) {
   path <- cache_path("manifest.json")
 
   fresh <- manifest_usable(path) &&
@@ -100,7 +143,7 @@ read_manifest <- function(refresh = FALSE) {
   download_failed <- FALSE
   if (refresh || (!fresh && !recently_failed)) {
     ok <- tryCatch(
-      refresh_manifest(path),
+      refresh_manifest(path, quiet = quiet),
       brfssdata_download_error = function(e) FALSE
     )
     if (ok) {
@@ -134,8 +177,11 @@ read_manifest <- function(refresh = FALSE) {
 # only once it parses. A payload that is not a manifest is treated as a
 # failed refresh, so a good cached copy survives an error page and the
 # daily failure memo keeps the next call from retrying immediately.
-refresh_manifest <- function(path) {
-  ensure_cache_dir()
+refresh_manifest <- function(path, quiet = FALSE) {
+  # The manifest refresh usually creates the cache directory before any
+  # year download reaches it, so this is where the first-run cache note
+  # is really emitted and where quiet has to be honored.
+  ensure_cache_dir(quiet = quiet)
   staged <- tempfile(
     pattern = "manifest-",
     tmpdir = dirname(path),

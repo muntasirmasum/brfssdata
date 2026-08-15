@@ -4,11 +4,18 @@
 \alias{brfss_years}
 \title{List the BRFSS survey years available for download}
 \usage{
-brfss_years(refresh = FALSE)
+brfss_years(refresh = FALSE, download = TRUE, quiet = FALSE)
 }
 \arguments{
 \item{refresh}{If \code{TRUE}, re-download the manifest even if a fresh
-cached copy exists.}
+cached copy exists. Ignored under \code{download = FALSE}.}
+
+\item{download}{If \code{FALSE}, only the cached (or bundled) manifest is
+read and the network is never touched.}
+
+\item{quiet}{If \code{TRUE}, suppress the housekeeping notes about which
+copy was used (\code{brfssdata_manifest_note}). The returned years are
+the same either way.}
 }
 \value{
 An integer vector of available survey years. If the manifest
@@ -20,6 +27,13 @@ Reads the data manifest that accompanies the hosted parquet releases and
 returns the survey years currently published. The manifest is cached
 locally and refreshed at most once a day; pass \code{refresh = TRUE} to force
 a new download.
+
+The three arguments cover the three questions in order. \code{download}
+decides whether the network may be touched at all, \code{refresh} forces a
+download that the daily cadence would otherwise skip, and \code{quiet}
+silences the housekeeping notes. \code{download = FALSE} therefore wins
+over \code{refresh = TRUE}: the strictly offline promise is the stronger
+one, and the skipped refresh is reported rather than assumed.
 }
 \examples{
 \dontshow{if (interactive()) withAutoprint(\{ # examplesIf}

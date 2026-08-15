@@ -159,6 +159,33 @@ check_years_arg <- function(
   sort(unique(as.integer(years)))
 }
 
+# The one gate for every TRUE/FALSE argument in the package. The
+# switches used to divide into three camps: `na` and `unsafe_weight`
+# aborted with a class, `download` and friends reached `&&` and died
+# with base R's "invalid 'y' type in 'x && y'" (no class, no argument
+# named), and `verify` and `catalogs` took anything at all through
+# isTRUE() and quietly behaved as FALSE, so `verify = "yes"` hashed
+# nothing while reading as a request to hash. Each caller passes the
+# per-argument class the conditions page already documents.
+check_bool_arg <- function(
+  x,
+  arg,
+  class = paste0("brfssdata_bad_", arg, "_arg"),
+  call = rlang::caller_env()
+) {
+  if (isTRUE(x) || isFALSE(x)) {
+    return(x)
+  }
+  cli::cli_abort(
+    c(
+      "{.arg {arg}} must be TRUE or FALSE.",
+      "x" = "Got {.obj_type_friendly {x}}."
+    ),
+    class = c(class, "brfssdata_bad_bool_arg"),
+    call = call
+  )
+}
+
 # Shared year-sniff for the metadata lookups' vars guards: when a
 # numeric first argument looks like survey years, say which argument
 # they belong in. Returns a cli bullet to append to the abort, or NULL.
@@ -297,7 +324,10 @@ var_not_found_hints <- function(unknown, catalog_vars, catalog_years, scope_vars
     utils::head(unknown[exists_elsewhere], 3L),
     function(u) {
       yrs <- catalog_years[up == toupper(u)]
-      cli::format_inline("{.val {u}} is available in {summarize_years(yrs)}.")
+      shown <- truncate_values(u)
+      cli::format_inline(
+        "{.val {shown}} is available in {summarize_years(yrs)}."
+      )
     },
     character(1),
     USE.NAMES = FALSE
@@ -307,6 +337,19 @@ var_not_found_hints <- function(unknown, catalog_vars, catalog_years, scope_vars
     hints <- c(hints, cli::format_inline("Did you mean {.val {sugg}}?"))
   }
   escape_cli_braces(hints)
+}
+
+# User-typed values are quoted back so the reader recognizes what they
+# passed, and the head is what makes them recognizable: a 10,000-
+# character "variable name" reproduced whole turned a 130-character
+# error into a 10,132-character one. Only the rendered text is
+# shortened; matching and lookups still use the value as typed.
+truncate_values <- function(x, max_chars = 40L) {
+  x <- as.character(x)
+  n <- nchar(x, type = "chars", allowNA = TRUE)
+  long <- !is.na(x) & !is.na(n) & n > max_chars
+  x[long] <- paste0(substr(x[long], 1L, max_chars), "...")
+  x
 }
 
 # cli re-reads message vectors as glue templates, so text that is
@@ -326,7 +369,46 @@ quote_literal <- function(x) {
   paste0("'", gsub("'", "''", x, fixed = TRUE), "'")
 }
 
-duckdb_connect <- function() {
+# The first duckdb release carrying shared_home; kept in step with
+# DESCRIPTION's Imports pin by tests/testthat/test-constants.R.
+DUCKDB_MIN_VERSION <- "1.5.5"
+
+# Split out so tests can pin a version without disturbing the installed
+# package.
+duckdb_version <- function() {
+  utils::packageVersion("duckdb")
+}
+
+# DESCRIPTION's pin is enforced at install time only: duckdb's namespace
+# is not loaded when brfssdata loads, so R's load-time version check
+# never runs, and a later downgrade (or an older duckdb earlier in
+# .libPaths()) would silently drop shared_home below, either resuming
+# home-directory writes or failing with an argument error that never
+# mentions the version. Checked per connection rather than memoized:
+# packageVersion() reads the loaded namespace's metadata and measures at
+# roughly 1% of the cost of opening a connection.
+check_duckdb_version <- function(call = rlang::caller_env()) {
+  have <- duckdb_version()
+  if (have >= DUCKDB_MIN_VERSION) {
+    return(invisible(have))
+  }
+  cli::cli_abort(
+    c(
+      "{.pkg duckdb} {DUCKDB_MIN_VERSION} or later is required; found
+       {as.character(have)}.",
+      "x" = "Earlier versions have no {.arg shared_home} argument, which
+             is what keeps DuckDB from writing to your home directory.",
+      "i" = "Update with {.code install.packages(\"duckdb\")}, and check
+             {.code find.package(\"duckdb\", .libPaths())} if an older
+             copy shadows it."
+    ),
+    class = "brfssdata_duckdb_version",
+    call = call
+  )
+}
+
+duckdb_connect <- function(call = rlang::caller_env()) {
+  check_duckdb_version(call = call)
   # shared_home = FALSE keeps DuckDB from writing to ~/.duckdb; local
   # parquet queries need no extensions, so a temporary home is fine (and
   # required by CRAN policy on writing outside the session tempdir).
@@ -372,9 +454,17 @@ resolve_states <- function(states, call = rlang::caller_env()) {
     )
   }
   if (is.numeric(states)) {
-    if (any(states != trunc(states))) {
+    # is.finite() is the guard that rejects Inf, because Inf == trunc(Inf);
+    # without it as.integer(Inf) reached the FIPS lookup as NA and the
+    # error named NA rather than what the user typed. check_years_arg()
+    # makes the same point with its abs() bound.
+    bad <- states[!is.finite(states) | states != trunc(states)]
+    if (length(bad) > 0) {
       cli::cli_abort(
-        "Numeric {.arg states} must be whole FIPS codes.",
+        c(
+          "Numeric {.arg states} must be whole FIPS codes.",
+          "x" = "Got {.val {bad}}."
+        ),
         class = "brfssdata_bad_states_arg",
         call = call
       )
@@ -398,9 +488,10 @@ resolve_states <- function(states, call = rlang::caller_env()) {
     fips <- brfss_states$fips[idx[!is.na(idx)]]
   }
   if (length(unknown) > 0) {
+    shown <- truncate_values(unknown)
     cli::cli_abort(
       c(
-        "Unknown state{?s} {.val {as.character(unknown)}}.",
+        "Unknown state{?s} {.val {shown}}.",
         "i" = "See {.code brfss_states} for the FIPS codes, postal
                abbreviations, and names of every BRFSS jurisdiction."
       ),
@@ -452,9 +543,10 @@ query_parquet <- function(
         catalog_years = integer(0),
         scope_vars = schema$column_name
       )
+      shown <- truncate_values(unknown)
       cli::cli_abort(
         c(
-          "Variable{?s} {.val {unknown}} {?was/were} not found in the
+          "Variable{?s} {.val {shown}} {?was/were} not found in the
            requested years.",
           rlang::set_names(hints, rep("i", length(hints))),
           "i" = "Use {.fun brfss_vars} to search available variables

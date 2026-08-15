@@ -37,7 +37,9 @@ Downloaded survey years are stored as parquet files in a per-user cache
 directory so repeat use, and offline work, never re-download. The cache
 location follows \code{\link[tools:R_user_dir]{tools::R_user_dir()}} and can be redirected with
 \code{options(brfssdata.cache_dir = ...)} or the \code{R_USER_CACHE_DIR}
-environment variable.
+environment variable. The option must be a single non-empty path
+that is not an existing regular file; anything else is rejected
+(\code{brfssdata_bad_option}) rather than read as an empty cache.
 \itemize{
 \item \code{brfss_cache_dir()} returns the cache directory path.
 \item \code{brfss_cache_info()} lists cached files with their sizes. Rows with

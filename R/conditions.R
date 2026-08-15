@@ -48,8 +48,9 @@
 #'   \item{`brfssdata_bad_n_arg`}{`n` in `print.brfss_codebook()` is not
 #'     a single positive number.}
 #'   \item{`brfssdata_bad_option`}{`options(brfssdata.lonely_psu)` is
-#'     not a single string, or `options(brfssdata.module_weight_check)`
-#'     is not `TRUE` or `FALSE`.}
+#'     not a single string, `options(brfssdata.module_weight_check)`
+#'     is not `TRUE` or `FALSE`, or `options(brfssdata.cache_dir)` is
+#'     not a single non-empty path to a directory.}
 #'   \item{`brfssdata_bad_design_var`}{A design variable (era weight,
 #'     `_STSTR`, `_PSU`) is absent or carries missing or invalid
 #'     values, so no valid design can be built; for a final analysis
@@ -68,9 +69,19 @@
 #'     catches both.}
 #'   \item{`brfssdata_checksum_error`}{A downloaded file did not match
 #'     the manifest's sha256 after a retry; nothing was cached.}
+#'   \item{`brfssdata_cache_unwritable`}{The cache directory could not
+#'     be created, or exists but cannot be written to, so no download
+#'     can land: a local permission problem, named as one instead of
+#'     being reported as a network failure. Also carries
+#'     `brfssdata_download_error`, so the metadata lookups' bundled
+#'     fallback still applies.}
 #'   \item{`brfssdata_corrupt_cache`}{A cached file is unreadable
 #'     (typically a corrupted download from before verification); the
 #'     message names the file and the [brfss_cache_clear()] remedy.}
+#'   \item{`brfssdata_duckdb_version`}{The installed duckdb is older
+#'     than the version this package requires, so the argument that
+#'     keeps DuckDB from writing to the home directory is unavailable;
+#'     the message names the required and the found version.}
 #'   \item{`brfssdata_type_conflict`}{A requested column is stored as
 #'     text in some requested years' files and as a number in others,
 #'     so combining them would silently corrupt values; usually stale

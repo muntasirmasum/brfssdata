@@ -62,3 +62,23 @@ test_that("quiet suppresses the summary", {
   local_brfss_cache(2023, catalog = TRUE)
   expect_no_message(brfss_download(2023, quiet = TRUE))
 })
+
+test_that("quiet still reports a cached year re-fetched for integrity", {
+  # A republished asset changes the bytes under a stable URL. Progress
+  # narration is silenceable; the fact that the input changed is not.
+  local_brfss_cache(2023, catalog = TRUE)
+  # One byte appended puts the file's size at odds with the manifest.
+  cat("x", file = cache_path("brfss_2023.parquet"), append = TRUE)
+  local_mocked_bindings(
+    download_to_cache = function(...) {
+      cli::cli_abort("offline", class = "brfssdata_download_error")
+    }
+  )
+  expect_message(
+    expect_error(
+      brfss_download(2023, quiet = TRUE),
+      class = "brfssdata_download_error"
+    ),
+    class = "brfssdata_cache_note"
+  )
+})

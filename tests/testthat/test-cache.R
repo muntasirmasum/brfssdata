@@ -385,3 +385,160 @@ test_that("non-interactive sessions clear without prompting", {
   suppressMessages(brfss_cache_clear())
   expect_false(file.exists(file.path(dir, "brfss_2023.parquet")))
 })
+
+# Dropping write permission is a no-op for a superuser, and some
+# filesystems ignore it outright, so the permission tests below check
+# that the chmod took before they assert on it.
+skip_if_still_writable <- function(dir) {
+  testthat::skip_if(
+    file.access(dir, mode = 2L)[[1L]] == 0L,
+    "cannot drop write permission on this filesystem"
+  )
+}
+
+test_that("an uncreatable cache directory names the permission problem", {
+  parent <- withr::local_tempdir()
+  target <- file.path(parent, "cache")
+  Sys.chmod(parent, "0555")
+  withr::defer(Sys.chmod(parent, "0755"))
+  skip_if_still_writable(parent)
+  withr::local_options(brfssdata.cache_dir = target)
+  # dir.create()'s FALSE used to be ignored, so this printed the
+  # first-run cache note for a directory that was never created.
+  expect_error(ensure_cache_dir(), class = "brfssdata_cache_unwritable")
+  expect_false(dir.exists(target))
+})
+
+test_that("a read-only cache dir fails as local, never as offline", {
+  dir <- withr::local_tempdir()
+  withr::local_options(brfssdata.cache_dir = dir)
+  src <- withr::local_tempfile()
+  writeLines("payload", src)
+  Sys.chmod(dir, "0555")
+  withr::defer(Sys.chmod(dir, "0755"))
+  skip_if_still_writable(dir)
+  e <- expect_error(
+    download_to_cache(
+      local_file_url(paste0("file://", src)),
+      file.path(dir, "brfss_2023.parquet"),
+      quiet = TRUE
+    ),
+    class = "brfssdata_cache_unwritable"
+  )
+  expect_match(conditionMessage(e), "not writable")
+  expect_false(grepl("offline", conditionMessage(e)))
+  # The metadata fallbacks catch the download class, so it must stay.
+  expect_s3_class(e, "brfssdata_download_error")
+})
+
+test_that("the download hint separates a local write failure from offline", {
+  dir <- withr::local_tempdir()
+  expect_match(download_failure_hint(NULL), "offline", all = FALSE)
+  Sys.chmod(dir, "0555")
+  withr::defer(Sys.chmod(dir, "0755"))
+  skip_if_still_writable(dir)
+  hint <- download_failure_hint(NULL, dir = dir)
+  expect_match(hint, "local file-system failure", all = FALSE)
+  expect_false(any(grepl("offline", hint)))
+  # A writable directory with no room left: the downloaders say so in
+  # text, with no class to dispatch on.
+  wrote <- simpleError("Failed to open file /tmp/x.tmp.curltmp")
+  expect_match(
+    download_failure_hint(wrote),
+    "could not be written locally",
+    all = FALSE
+  )
+})
+
+test_that("a malformed cache_dir option is rejected where it is read", {
+  # The documented way to set this is a line in .Rprofile, where a typo
+  # used to read as an empty cache rather than as a mistake.
+  for (bad in list("", "   ", c("a", "b"), NA_character_, 1L, TRUE)) {
+    withr::local_options(brfssdata.cache_dir = bad)
+    expect_error(brfss_cache_dir(), class = "brfssdata_bad_option")
+  }
+  path <- withr::local_tempfile()
+  writeLines("not a directory", path)
+  withr::local_options(brfssdata.cache_dir = path)
+  expect_error(brfss_cache_info(), class = "brfssdata_bad_option")
+})
+
+test_that("stale partial downloads are swept and foreign files are not", {
+  dir <- local_brfss_cache(2023)
+  ours <- file.path(
+    dir,
+    c(
+      "brfss_2019.parquet-0123abcd.tmp",
+      "brfss_labels.parquet-89ab12.tmp.curltmp",
+      "manifest-4f2a99.json"
+    )
+  )
+  # Same age, not ours: the only thing keeping these is the name rule.
+  theirs <- file.path(
+    dir,
+    c("notes.txt", "brfss_2019.parquet.tmp", "my-brfss_2020.parquet-x.tmp")
+  )
+  live <- file.path(dir, "brfss_2021.parquet-beef00.tmp")
+  for (f in c(ours, theirs, live)) {
+    writeLines("partial", f)
+  }
+  for (f in c(ours, theirs)) {
+    Sys.setFileTime(f, Sys.time() - 3 * MANIFEST_MAX_AGE)
+  }
+  ensure_cache_dir(quiet = TRUE)
+  expect_false(any(file.exists(ours)))
+  expect_true(all(file.exists(theirs)))
+  # A transfer younger than the manifest max age may still be running.
+  expect_true(file.exists(live))
+  expect_true(file.exists(file.path(dir, "brfss_2023.parquet")))
+  # The real manifest shares the staging file's stem; only the hex tail
+  # tells them apart.
+  expect_true(file.exists(file.path(dir, "manifest.json")))
+  expect_false(any(basename(ours) %in% brfss_cache_info()$file))
+})
+
+test_that("quiet suppresses the first-run cache directory note", {
+  dir <- file.path(withr::local_tempdir(), "brfss-cache")
+  withr::local_options(brfssdata.cache_dir = dir)
+  src <- withr::local_tempfile()
+  writeLines("payload", src)
+  expect_no_message(
+    download_to_cache(
+      local_file_url(paste0("file://", src)),
+      file.path(dir, "brfss_2023.parquet"),
+      quiet = TRUE
+    )
+  )
+  expect_true(file.exists(file.path(dir, "brfss_2023.parquet")))
+})
+
+test_that("a transient rename failure is retried instead of copied", {
+  dir <- withr::local_tempdir()
+  withr::local_options(brfssdata.cache_dir = dir)
+  src <- withr::local_tempfile()
+  writeLines("payload", src)
+  dest <- file.path(dir, "brfss_2023.parquet")
+  # Windows fails the rename while another process holds either end
+  # open; one retry clears the common case, and only the retried rename
+  # keeps the replacement atomic.
+  calls <- 0L
+  local_mocked_bindings(
+    file.rename = function(from, to) {
+      calls <<- calls + 1L
+      if (calls == 1L) FALSE else base::file.rename(from, to)
+    }
+  )
+  download_to_cache(local_file_url(paste0("file://", src)), dest, quiet = TRUE)
+  expect_identical(calls, 2L)
+  expect_identical(readLines(dest), "payload")
+  expect_length(list.files(dir, pattern = "\\.tmp$"), 0)
+})
+
+test_that("cache info lists files only, never subdirectories", {
+  dir <- local_brfss_cache(2023)
+  dir.create(file.path(dir, "stray-subdir"))
+  info <- brfss_cache_info()
+  expect_false("stray-subdir" %in% info$file)
+  expect_true("brfss_2023.parquet" %in% info$file)
+  expect_false(anyNA(info$size))
+})

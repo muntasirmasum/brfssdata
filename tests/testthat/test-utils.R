@@ -95,3 +95,58 @@ test_that("query_parquet does not create ~/.duckdb", {
   query_parquet(path)
   expect_identical(dir.exists(duck_home), existed)
 })
+
+test_that("non-finite states are rejected, naming what was passed", {
+  # as.integer(Inf) used to leak a base warning and then report the
+  # unknown state as NA, naming the coercion result rather than the
+  # input. check_years_arg() guards the same shape with its abs() bound.
+  expect_no_warning(
+    expect_error(resolve_states(Inf), class = "brfssdata_bad_states_arg")
+  )
+  e <- expect_error(
+    resolve_states(c(48, -Inf)),
+    class = "brfssdata_bad_states_arg"
+  )
+  expect_match(conditionMessage(e), "-Inf")
+  expect_identical(resolve_states(c(48, 6)), c(6L, 48L))
+})
+
+test_that("error messages truncate pathological user values", {
+  dir <- withr::local_tempdir()
+  path <- write_fixture_parquet(
+    data.frame(year = 2023L, GENHLTH = 1),
+    file.path(dir, "probe.parquet")
+  )
+  huge <- strrep("A", 10000)
+  e <- expect_error(
+    query_parquet(path, vars = huge),
+    class = "brfssdata_bad_var"
+  )
+  expect_lt(nchar(conditionMessage(e)), 500)
+  # Still recognizable as what was typed.
+  expect_match(conditionMessage(e), "AAAAAAAA")
+})
+
+test_that("truncation keeps short values whole", {
+  expect_identical(truncate_values(c("GENHLTH", NA)), c("GENHLTH", NA))
+  expect_identical(truncate_values(48), "48")
+  expect_identical(
+    truncate_values(strrep("A", 50), max_chars = 5L),
+    "AAAAA..."
+  )
+})
+
+test_that("an older duckdb is refused before a connection is opened", {
+  # DESCRIPTION's pin is checked at install time only: duckdb's
+  # namespace is not loaded when brfssdata loads, so a downgrade, or an
+  # older copy earlier in .libPaths(), would otherwise silently lose the
+  # shared_home guard.
+  local_mocked_bindings(duckdb_version = function() package_version("1.5.4"))
+  e <- expect_error(duckdb_connect(), class = "brfssdata_duckdb_version")
+  expect_match(conditionMessage(e), DUCKDB_MIN_VERSION, fixed = TRUE)
+  expect_match(conditionMessage(e), "1.5.4", fixed = TRUE)
+})
+
+test_that("the installed duckdb satisfies the package's own floor", {
+  expect_true(duckdb_version() >= DUCKDB_MIN_VERSION)
+})
