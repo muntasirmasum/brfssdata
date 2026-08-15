@@ -24,12 +24,64 @@ read_sas_text <- function(path) {
   gsub("/\\*.*?\\*/", " ", text, perl = TRUE) # strip block comments
 }
 
+# Split a VALUE block body into its `codes = "label"` entries. The
+# labels are found first, as SAS quoted literals in either quote style
+# with a doubled quote standing for one literal quote, so that an "="
+# or a comma inside label text ("Missing (_BMI2 = 9999)") cannot be
+# read as structure. Whatever sits between the previous label and this
+# label's "=" is this entry's code list, however it is written.
+value_entries <- function(body) {
+  literal_re <- "'(?:[^']|'')*'|\"(?:[^\"]|\"\")*\""
+  m <- gregexpr(literal_re, body, perl = TRUE)[[1]]
+  if (m[[1]] < 0) {
+    return(NULL)
+  }
+  starts <- as.integer(m)
+  ends <- starts + attr(m, "match.length") - 1L
+  codes <- character(0)
+  labels <- character(0)
+  from <- 1L
+  for (i in seq_along(starts)) {
+    lhs <- trimws(substr(body, from, starts[[i]] - 1L))
+    from <- ends[[i]] + 1L
+    # A literal with no "=" in front of it is not an entry label, so it
+    # is skipped rather than guessed at: CDC's older libraries carry
+    # stray apostrophes that split one label into two literals.
+    if (!endsWith(lhs, "=")) {
+      next
+    }
+    quote <- substr(body, starts[[i]], starts[[i]])
+    text <- substr(body, starts[[i]] + 1L, ends[[i]] - 1L)
+    codes <- c(codes, trimws(sub("=$", "", lhs)))
+    labels <- c(labels, gsub(paste0(quote, quote), quote, text, fixed = TRUE))
+  }
+  if (length(codes) == 0) {
+    return(NULL)
+  }
+  data.frame(codes = codes, label = labels, stringsAsFactors = FALSE)
+}
+
+# What one comma-separated token on the left of a VALUE entry is. Only
+# "code" becomes a catalog row. "range" covers everything that is not a
+# single integer (a range such as 1-30, 244-<777, or LOW-<0, and the
+# LOW/HIGH/OTHER keywords) and marks the whole format ineligible for
+# factor conversion, because the format then maps values the catalog
+# cannot enumerate. A SAS missing value says nothing either way: R
+# stores it as NA whatever its label.
+token_kind <- function(x) {
+  ifelse(
+    grepl("^-?[0-9]+$", x),
+    "code",
+    ifelse(grepl("^\\.[A-Za-z_]?$", x), "missing", "range")
+  )
+}
+
 # Parse every PROC FORMAT VALUE block. Returns one row per integer
 # code = "label" entry plus a per-format `complete` flag: TRUE when the
-# format is a pure integer-to-label map. Entries for SAS missing codes
-# (".", ".A", ...) are dropped without affecting completeness (they map
-# to NA in R anyway); ranges (1-30) and LOW/HIGH/OTHER mark the format
-# incomplete because factor conversion would be unsafe.
+# format is a pure integer-to-label map. One entry may name several
+# codes ("77,99 = 'UNK/REF'" in the 1998-2001 libraries), and may mix
+# codes with ranges ("5,401-411,555 = ..."), so each comma-separated
+# token is classified on its own.
 parse_value_blocks <- function(path) {
   text <- read_sas_text(path)
 
@@ -38,12 +90,6 @@ parse_value_blocks <- function(path) {
     return(NULL)
   }
   blocks <- regmatches(text, gregexpr(block_re, text, perl = TRUE))[[1]]
-
-  entry_re <- paste0(
-    "([A-Za-z0-9_.'\"-]+(?:\\s*-\\s*[A-Za-z0-9_.]+)?)",
-    "\\s*=\\s*",
-    "(\"[^\"]*\"|'[^']*')"
-  )
 
   out <- lapply(blocks, function(b) {
     name <- sub(block_re, "\\1", b, perl = TRUE)
@@ -56,28 +102,28 @@ parse_value_blocks <- function(path) {
       return(NULL)
     }
     body <- sub(block_re, "\\2", b, perl = TRUE)
-    m <- regmatches(body, gregexpr(entry_re, body, perl = TRUE))[[1]]
-    if (length(m) == 0) {
+    entries <- value_entries(body)
+    if (is.null(entries)) {
       return(NULL)
     }
-    lhs <- trimws(sub(paste0(entry_re, ".*"), "\\1", m, perl = TRUE))
-    lab <- sub(paste0(".*?=\\s*(\"[^\"]*\"|'[^']*')"), "\\1", m, perl = TRUE)
-    lab <- substr(lab, 2, nchar(lab) - 1)
-
-    is_int <- grepl("^-?[0-9]+$", lhs)
-    is_missing <- grepl("^\\.[A-Za-z_]?$", lhs)
-    complete <- all(is_int | is_missing)
+    tokens <- strsplit(entries$codes, ",", fixed = TRUE)
+    lab <- rep(entries$label, lengths(tokens))
+    tokens <- trimws(unlist(tokens))
+    lab <- lab[nzchar(tokens)]
+    tokens <- tokens[nzchar(tokens)]
+    kind <- token_kind(tokens)
+    if (!any(kind == "code")) {
+      return(NULL)
+    }
     data.frame(
       format = toupper(sub("\\.$", "", name)),
-      code = suppressWarnings(as.integer(lhs)),
-      label = lab,
-      complete = complete,
-      keep = is_int,
+      code = as.integer(tokens[kind == "code"]),
+      label = lab[kind == "code"],
+      complete = !any(kind == "range"),
       stringsAsFactors = FALSE
     )
   })
   out <- do.call(rbind, out)
-  out <- out[out$keep, c("format", "code", "label", "complete")]
   # A format defined twice keeps its last definition (SAS semantics).
   out[!duplicated(out[c("format", "code")], fromLast = TRUE), ]
 }
@@ -191,8 +237,145 @@ labels_year <- function(year) {
   )
 }
 
+# Corrections to CDC's own format libraries, applied after the join.
+# Each row rewrites the label of exactly one (year, variable, code)
+# whose format CDC shared with variables it does not describe, and
+# names the CDC source that settles the wording. This is not a general
+# rewrite layer: apply_label_corrections() stops the build when a row
+# matches nothing, so the table cannot quietly go stale, and nothing is
+# corrected without a source in the comment above it.
+label_corrections <- rbind(
+  # 2002 hands the generic UNK2DIG format to 17 variables (assign_2002.sas
+  # names them all) and writes its code 88 as "Never smoked regularly"
+  # (labels_2002.sas, Value UNK2DIG). That wording belongs to the two
+  # smoking items, FIRSTSMK and REGSMK, which keep it here and which
+  # labels_2003.sas still writes that way. The count items read 88 as
+  # none on both sides of 2002: the 2001 edition of UNK2DIG writes
+  # 88 = "NONE" (labels_2001.sas) and assign_2001.sas gives it to the
+  # twelve of them that 2001 asked, and labels_2003.sas writes
+  # 88 = "None" per variable for CASTHDX, CASTHNOW, DOCTDIAB, DRNK2GE5
+  # (VALUE DRNK25GE), FEETCHK, MENTHLTH, PHYSHLTH and POORHLTH, with
+  # labels_2004.sas adding DRINKDRI. CASTHDX, CASTHNOW and DRINKDRI are
+  # the three with no 2001 label, so 2003 and 2004 settle those.
+  data.frame(
+    year = 2002L,
+    variable = c(
+      "AVEDRNK", "CASTHDX", "CASTHNOW", "DOCTDIAB", "DRINKDRI",
+      "DRNK2GE5", "FEETCHK", "MENTHLTH", "PAINACT2", "PHYSHLTH",
+      "POORHLTH", "QLHLTH2", "QLMENTL2", "QLREST2", "QLSTRES2"
+    ),
+    code = 88L,
+    label = "None",
+    stringsAsFactors = FALSE
+  ),
+  # 1999 writes DISPCODE's disposition category 2 as the bare word
+  # "REFUSED", which reads as a refused answer rather than as one of
+  # eleven call outcomes, so the missing-code matcher counts a
+  # substantive category as missing. CDC's 2000 library (labels_2000.sas,
+  # VALUE DISPFMT) numbers the identical eleven-category list and writes
+  # this one "02-REFUSED".
+  data.frame(
+    year = 1999L,
+    variable = "DISPCODE",
+    code = 2L,
+    label = "02-REFUSED",
+    stringsAsFactors = FALSE
+  ),
+  # 2002 is the one year that labels the imputed phone count _IMPNPH
+  # with NUMPHONS, the format of the raw question, whose code 7 is
+  # "Do not know/Not Sure". An imputed count cannot carry a don't-know
+  # answer, and CDC's own VALUE _IMPNPH counts phones at 7: "7" in
+  # labels_2001.sas, a rung below "8 or more" in labels_2003.sas and
+  # labels_2004.sas.
+  data.frame(
+    year = 2002L,
+    variable = "_IMPNPH",
+    code = 7L,
+    label = "7",
+    stringsAsFactors = FALSE
+  )
+)
+
+# Variables are matched case-insensitively because the catalog keeps
+# each data file's own spelling of the name.
+apply_label_corrections <- function(rows) {
+  key <- paste(rows$year, toupper(rows$variable), rows$code)
+  want <- paste(
+    label_corrections$year,
+    toupper(label_corrections$variable),
+    label_corrections$code
+  )
+  missed <- want[!want %in% key]
+  if (length(missed) > 0) {
+    stop(
+      "label corrections matched no catalog row: ",
+      paste(missed, collapse = "; ")
+    )
+  }
+  hit <- match(key, want)
+  rows$label[!is.na(hit)] <- label_corrections$label[hit[!is.na(hit)]]
+  message(sprintf(
+    "label corrections: %d rows rewritten from %d table entries",
+    sum(!is.na(hit)),
+    nrow(label_corrections)
+  ))
+  rows
+}
+
+# Build-time guard against the contamination this catalog has already
+# shipped: a (variable, code) whose label reads as a missing answer in
+# one year and as a substantive one in the year next door. Printed for
+# review rather than acted on, because either side can be the wrong one
+# (CDC's 2002 UNK2DIG was) and a genuine recode between years does
+# happen. Review each entry against the CDC codebooks for both years,
+# and correct through label_corrections above.
+report_year_flips <- function(rows) {
+  pkgload::load_all(quiet = TRUE)
+  rows <- rows[
+    !duplicated(paste(toupper(rows$variable), rows$code, rows$year)),
+    ,
+    drop = FALSE
+  ]
+  rows$missing <- is_missing_label(rows$label)
+  flips <- lapply(
+    split(rows, paste(toupper(rows$variable), rows$code)),
+    function(d) {
+      d <- d[order(d$year), , drop = FALSE]
+      if (nrow(d) < 2) {
+        return(NULL)
+      }
+      i <- which(diff(d$year) == 1L & d$missing[-1] != d$missing[-nrow(d)])
+      if (length(i) == 0) {
+        return(NULL)
+      }
+      data.frame(
+        variable = d$variable[i],
+        code = d$code[i],
+        year = d$year[i],
+        label = d$label[i],
+        next_label = d$label[i + 1],
+        stringsAsFactors = FALSE
+      )
+    }
+  )
+  flips <- do.call(rbind, flips)
+  n <- if (is.null(flips)) 0L else nrow(flips)
+  message(sprintf(
+    "missing-status year flips: %d (variable, code, year) rows whose %s",
+    n,
+    "label flips missing/substantive in the next year; review each:"
+  ))
+  if (n > 0) {
+    flips <- flips[order(flips$variable, flips$code, flips$year), ]
+    print(flips, row.names = FALSE)
+  }
+  invisible(flips)
+}
+
 build_labels <- function(years) {
   rows <- do.call(rbind, lapply(years, labels_year))
+  rows <- apply_label_corrections(rows)
+  report_year_flips(rows)
   out <- file.path(out_dir, "brfss_labels.parquet")
   con <- DBI::dbConnect(duckdb::duckdb(shared_home = FALSE))
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
