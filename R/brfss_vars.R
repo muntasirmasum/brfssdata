@@ -6,6 +6,15 @@
 #' reports, for each match, which years carry the variable. The catalog is
 #' downloaded once and cached like the data itself.
 #'
+#' The label text searched here is CDC's SAS variable label, capped at
+#' 40 characters: its wording is not the questionnaire's, and long ones
+#' are cut off, sometimes mid-word (`PERSDOC3` reads "HAVE PERSONAL
+#' HEALTH CARE PROVIDER?", `BPMEDS` reads "CURRENTLY TAKING BLOOD
+#' PRESSURE MEDICATI"). So a search that finds nothing is as often the
+#' vocabulary as the survey. Search single words and synonyms rather
+#' than a phrase, and try the name stem too: BRFSS abbreviates in names,
+#' so "doctor" lives in `PERSDOC3` as "doc".
+#'
 #' A search that matches nothing says so and suggests near misses:
 #' variables whose name or label is a small edit away (a typo'd
 #' pattern), variables matching every word of a multi-word pattern in
@@ -13,8 +22,11 @@
 #' other years.
 #'
 #' @param pattern Optional single regular expression matched
-#'   (case-insensitively) against variable names and labels. The default
-#'   lists every variable.
+#'   (case-insensitively) against variable names and labels. Labels are
+#'   CDC's 40-character SAS labels, so match on single words rather than
+#'   questionnaire phrasing, and use alternation
+#'   (`"smoke|cigarette"`) for synonyms. The default lists every
+#'   variable.
 #' @param years Optional integer vector restricting the search to
 #'   particular survey years.
 #' @param download If `FALSE`, only a cached catalog is used, and a
@@ -198,9 +210,10 @@ inform_vars_empty <- function(pattern, years, catalog_all) {
   # Scanned over the whole catalog so a match confined to other years
   # still surfaces; the years annotation says where it lives.
   if (plain && length(tokens) > 1 && nrow(catalog_all) > 0) {
+    names_u <- unique(catalog_all$variable)
     hit <- Reduce(
       `&`,
-      lapply(tokens, function(t) match_catalog_pattern(t, catalog_all))
+      lapply(tokens, function(t) token_matches(t, catalog_all, names_u))
     )
     if (any(hit)) {
       s <- utils::head(summarize_catalog(catalog_all[hit, , drop = FALSE]), 5L)
@@ -251,7 +264,22 @@ inform_vars_empty <- function(pattern, years, catalog_all) {
     }
   }
 
-  if (length(hints) == 0 && length(coverage) == 0) {
+  # A multi-word pattern is the one shape where suggestions alone
+  # mislead: they are near misses on the words, never the phrase, and a
+  # reader who takes the list as the answer concludes BRFSS does not ask
+  # the question. Say how to search instead, whatever the tiers found.
+  if (length(coverage) == 0 && plain && length(tokens) > 1) {
+    hints <- c(
+      hints,
+      cli::format_inline(
+        "A multi-word pattern is matched literally, so those words must
+         sit together and in that order in one name or label. Search a
+         single word ({.val {tokens[[1]]}}) or an alternation
+         ({.val {paste(tokens, collapse = \"|\")}}); names and labels
+         are both searched."
+      )
+    )
+  } else if (length(hints) == 0 && length(coverage) == 0) {
     hints <- cli::format_inline(
       "Try a shorter substring or a single word; names and labels are
        both searched, and alternation like {.val smoke|cigarette} works
@@ -266,6 +294,30 @@ inform_vars_empty <- function(pattern, years, catalog_all) {
     ),
     class = "brfssdata_empty_result"
   )
+}
+
+# A token of a multi-word pattern matches a catalog row when it matches
+# a name or label outright, or when a prefix of it appears in a variable
+# NAME. CDC abbreviates in names, so the questionnaire word is never
+# there in full: "doctor" reaches PERSDOC3 only through "doc". One
+# prefix length suffices because prefix containment is monotone (a name
+# holding "docto" holds "doc"), and the shortest allowed prefix is at
+# least three characters and at least half the token, so a two-letter
+# stub never opens the search up. The tier still requires every token to
+# match the same row, which is what keeps this a match and not a guess.
+token_matches <- function(token, catalog, names_u) {
+  hit <- match_catalog_pattern(token, catalog)
+  min_len <- max(3L, ceiling(nchar(token) / 2))
+  if (nchar(token) <= min_len) {
+    return(hit)
+  }
+  # Only called for a plain pattern, so a substring of it is a literal.
+  matched <- names_u[grepl(
+    substr(token, 1L, min_len),
+    names_u,
+    ignore.case = TRUE
+  )]
+  hit | catalog$variable %in% matched
 }
 
 # "VAR (label), VAR (label)" for suggestion bullets; NA labels drop

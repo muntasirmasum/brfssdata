@@ -176,3 +176,74 @@ test_that("a malformed years argument is rejected", {
     class = "brfssdata_bad_years_arg"
   )
 })
+
+test_that("a multi-word miss says how to search, even with suggestions", {
+  # The suggestion tiers are near misses on the words, never on the
+  # phrase, so the rescue hint has to survive them: without it a
+  # confident wrong list reads as the answer.
+  local_brfss_cache(2020, catalog = TRUE)
+  cnd <- expect_message(
+    brfss_vars("cigarettes smoked"),
+    class = "brfssdata_empty_result"
+  )
+  expect_match(conditionMessage(cnd), "SMOKE100", fixed = TRUE)
+  expect_match(conditionMessage(cnd), "matched literally", fixed = TRUE)
+  expect_match(conditionMessage(cnd), "cigarettes|smoked", fixed = TRUE)
+})
+
+test_that("a single-word miss keeps its own shorter-substring hint", {
+  local_brfss_cache(2020, catalog = TRUE)
+  cnd <- expect_message(
+    brfss_vars("zzz_no_such_thing"),
+    class = "brfssdata_empty_result"
+  )
+  expect_match(conditionMessage(cnd), "shorter substring", fixed = TRUE)
+  expect_no_match(conditionMessage(cnd), "matched literally", fixed = TRUE)
+})
+
+test_that("multi-word suggestions reach names that abbreviate the word", {
+  # CDC abbreviates in names, so a questionnaire word is never there in
+  # full: "doctor" reaches PERSDOC3 only through "doc".
+  dir <- local_brfss_cache(2020)
+  write_fixture_parquet(
+    data.frame(
+      variable = c("PERSDOC3", "CRGVPERS"),
+      label = c(
+        "HAVE PERSONAL HEALTH CARE PROVIDER?",
+        "MANAGED PERSONAL CARE"
+      ),
+      year = c(2020L, 2020L),
+      stringsAsFactors = FALSE
+    ),
+    file.path(dir, "brfss_variables.parquet")
+  )
+  write_fixture_manifest(dir, 2020)
+  cnd <- expect_message(
+    brfss_vars("personal doctor"),
+    class = "brfssdata_empty_result"
+  )
+  expect_match(conditionMessage(cnd), "PERSDOC3", fixed = TRUE)
+  # Honest, not generous: CRGVPERS carries neither word's name stem.
+  expect_no_match(conditionMessage(cnd), "CRGVPERS", fixed = TRUE)
+})
+
+test_that("a name-stem prefix never matches on its own", {
+  # The every-word rule still has to hold for every token, so a prefix
+  # match on one word cannot carry a variable into the suggestions.
+  dir <- local_brfss_cache(2020)
+  write_fixture_parquet(
+    data.frame(
+      variable = "PERSDOC3",
+      label = "HAVE PERSONAL HEALTH CARE PROVIDER?",
+      year = 2020L,
+      stringsAsFactors = FALSE
+    ),
+    file.path(dir, "brfss_variables.parquet")
+  )
+  write_fixture_manifest(dir, 2020)
+  cnd <- expect_message(
+    brfss_vars("doctor zzzqqq"),
+    class = "brfssdata_empty_result"
+  )
+  expect_no_match(conditionMessage(cnd), "Every word matches", fixed = TRUE)
+})

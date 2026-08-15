@@ -249,3 +249,30 @@ test_that("printing caps the cards and points at n = Inf", {
   expect_error(print(cb, n = 0), class = "brfssdata_bad_n_arg")
   expect_error(print(cb, n = "all"), class = "brfssdata_bad_n_arg")
 })
+
+test_that("the card says what a blank value is", {
+  # CDC's own codebooks carry a BLANK row; without one here a first
+  # mean() returning NA has nothing on the card to explain it.
+  local_brfss_cache(2023, catalog = TRUE)
+  card <- gsub(
+    "\\s+",
+    " ",
+    paste(
+      cli::cli_fmt(print(brfss_codebook("GENHLTH", download = FALSE))),
+      collapse = " "
+    )
+  )
+  expect_match(card, "Blank:", fixed = TRUE)
+  expect_match(card, "skip patterns", fixed = TRUE)
+  # Also on a card with no coded values at all, where a reader has even
+  # less to go on.
+  empty <- gsub(
+    "\\s+",
+    " ",
+    paste(
+      cli::cli_fmt(print(brfss_codebook("MYSTVAR", download = FALSE))),
+      collapse = " "
+    )
+  )
+  expect_match(empty, "Blank:", fixed = TRUE)
+})

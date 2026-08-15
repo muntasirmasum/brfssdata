@@ -25,6 +25,17 @@
 #' never matched; recode it to 0 yourself before averaging a count
 #' variable such as `PHYSHLTH`.
 #'
+#' @details
+#' This function says what `na = TRUE` *would* clear. For what a
+#' particular read did clear, `read_brfss(na = TRUE)` leaves the count
+#' on the tibble it returns, as a `brfss_na_recode` attribute: one row
+#' per variable, year, and code, with the number of values set to `NA`.
+#' It is there under `quiet = TRUE` too, when nothing is printed, so a
+#' missingness audit needs no second read of the raw year.
+#' `attr(dat, "brfss_na_recode")` reads it; dplyr verbs drop it, as they
+#' drop any attribute they do not know, so take it off the tibble
+#' `read_brfss()` handed you.
+#'
 #' @inheritParams brfss_labels
 #'
 #' @return A tibble with columns `year`, `variable`, `code`, and
@@ -195,6 +206,16 @@ is_missing_label <- function(labels) {
   out
 }
 
+# CDC's answer of zero on the count variables, carried by code 88/888.
+# Matched exactly rather than by prefix: 88 also carries labels that are
+# neither zero nor missing ("Invalid response" on a handful of
+# variables), and a note that named those would be wrong.
+is_none_label <- function(labels) {
+  out <- normalize_label(labels) %in% c("none", "zero")
+  out[is.na(labels)] <- FALSE
+  out
+}
+
 # Set catalog-identified missing-type codes to NA. Applied per year: a
 # code is cleared only in rows of years where its label matched, so a
 # code that means something substantive in one year and "refused" in
@@ -222,11 +243,17 @@ apply_missing_codes <- function(
     unique(catalog$variable[catalog$year == y])
   })
   names(covered_vars_by_year) <- as.character(covered_years)
+  # Read before the missing-label filter, because 88/888 "None" is
+  # precisely what the filter keeps out: the recode leaves it in place,
+  # and a tally that reported only what it cleared would read as
+  # "missing codes handled" on a variable that still means zero by 88.
+  none_catalog <- catalog[is_none_label(catalog$label), , drop = FALSE]
   catalog <- catalog[is_missing_label(catalog$label), , drop = FALSE]
 
   vars <- setdiff(intersect(unique(catalog$variable), names(dat)), exclude)
   cleared <- 0L
   touched <- character(0)
+  tally <- list()
   for (v in vars) {
     sub <- catalog[catalog$variable == v, , drop = FALSE]
     # Matched with %in% per year, never through paste()/as.character():
@@ -234,31 +261,108 @@ apply_missing_codes <- function(
     # renders as "100000", so string matching would silently skip any
     # round code at or above 1e5.
     hit <- rep(FALSE, nrow(dat))
+    rows <- list()
     for (y in unique(sub$year)) {
       codes <- sub$code[sub$year == y]
-      hit <- hit | (dat$year == y & !is.na(dat[[v]]) & dat[[v]] %in% codes)
+      hit_y <- dat$year == y & !is.na(dat[[v]]) & dat[[v]] %in% codes
+      if (any(hit_y)) {
+        # Tabulated over the matched rows alone, so the per-code audit
+        # trail costs one small subset per year rather than a pass over
+        # the column per code.
+        n_by_code <- table(dat[[v]][hit_y])
+        rows[[length(rows) + 1L]] <- tibble::tibble(
+          variable = v,
+          year = y,
+          code = as.numeric(names(n_by_code)),
+          n = as.integer(n_by_code)
+        )
+      }
+      hit <- hit | hit_y
     }
     if (any(hit)) {
       dat[[v]][hit] <- NA
       cleared <- cleared + sum(hit)
       touched <- c(touched, v)
+      tally[[v]] <- do.call(rbind, rows)
     }
   }
+  recode_tally <- na_recode_tally(tally)
+  # 88/888 survives the recode by design, so name the variables where it
+  # does. Confined to what was actually loaded and actually touched: a
+  # catalog row alone would announce a code the extract does not carry.
+  none_vars <- intersect(touched, unique(none_catalog$variable))
+  none_vars <- none_vars[vapply(
+    none_vars,
+    function(v) {
+      codes <- none_catalog$code[none_catalog$variable == v]
+      any(dat[[v]] %in% codes)
+    },
+    logical(1)
+  )]
   if (cleared > 0 && !quiet) {
+    by_var <- summarize_recode_tally(recode_tally)
+    none_txt <- cli::cli_vec(none_vars, list("vec-trunc" = 5))
     cli::cli_inform(
       c(
         "i" = "Set {cleared} response{?s} across {length(touched)}
                variable{?s} to NA (don't know / refused / missing codes).",
+        "i" = "By variable: {by_var}.",
+        if (length(none_vars) > 0) {
+          c(
+            "!" = "{.val {none_txt}} still carr{?ies/y} code 88/888
+                   ({.val None}), an answer of zero rather than a missing
+                   code: recode {?it/them} to 0 before averaging."
+          )
+        },
         "i" = "See {.fun brfss_missing_codes} for the affected codes;
                disable with {.code na = FALSE}."
       ),
       class = "brfssdata_na_note"
     )
   }
+  # The tally rides along as an attribute so the audit survives
+  # quiet = TRUE, where the note above never prints. Ordinary dplyr
+  # verbs drop it, which is why the note carries a summary too.
+  attr(dat, "brfss_na_recode") <- recode_tally
   # The coverage signals are analytical, not progress output, so they
   # are deliberately not gated on quiet; silence them by class.
   note_na_coverage(dat, years, catalog_years, covered_vars_by_year, exclude)
   dat
+}
+
+# The per-variable, per-year, per-code recode tally, in a stable order.
+# Built even when nothing was cleared, so the attribute's shape is the
+# same on every na = TRUE read and a caller can rbind() several.
+na_recode_tally <- function(tally) {
+  empty <- tibble::tibble(
+    variable = character(0),
+    year = integer(0),
+    code = numeric(0),
+    n = integer(0)
+  )
+  if (length(tally) == 0) {
+    return(empty)
+  }
+  out <- do.call(rbind, unname(tally))
+  # radix ordering is locale-independent, per the package's policy for
+  # anything a user might compare across machines.
+  out[order(out$variable, out$year, out$code, method = "radix"), ]
+}
+
+# "PHYSHLTH 12345, GENHLTH 6789, and 4 more" for the recode note.
+# Capped like a tibble print: a full-width read touches hundreds of
+# variables, and the whole list is on the attribute for whoever wants it.
+summarize_recode_tally <- function(tally, n_show = 5L) {
+  by_var <- tapply(tally$n, tally$variable, sum)
+  # Largest first, name as the tie-break so the order is reproducible.
+  by_var <- by_var[order(-unname(by_var), names(by_var), method = "radix")]
+  shown <- utils::head(by_var, n_show)
+  txt <- paste0(names(shown), " ", unname(shown), collapse = ", ")
+  n_more <- length(by_var) - length(shown)
+  if (n_more > 0) {
+    txt <- paste0(txt, ", and ", n_more, " more")
+  }
+  txt
 }
 
 # na = TRUE is only as good as the catalog behind it. The catalog has no
@@ -282,40 +386,65 @@ note_na_coverage <- function(
     return(invisible())
   }
   uncovered <- setdiff(years, catalog_years)
+  unrecoded <- integer(0)
   partial <- character(0)
-  if (length(data_cols) > 0) {
-    for (y in intersect(years, catalog_years)) {
-      n_covered <- sum(data_cols %in% covered_vars_by_year[[as.character(y)]])
-      # Below half is a coverage cliff worth a note (1998 sits at ~23%
-      # over a full file); modern years land well above 0.8 and stay
-      # quiet.
-      if (n_covered / length(data_cols) < 0.5) {
-        partial <- c(
-          partial,
-          sprintf("%d (%d of %d)", y, n_covered, length(data_cols))
-        )
-      }
+  for (y in intersect(years, catalog_years)) {
+    n_covered <- sum(data_cols %in% covered_vars_by_year[[as.character(y)]])
+    if (n_covered == 0) {
+      # The catalog knows the year but none of the loaded variables, so
+      # na = TRUE cleared nothing there. Graded with the no-catalog
+      # years below, not as partial coverage: the consequence for the
+      # estimates is identical, and 1998 reaches it easily (the year's
+      # catalog covers under a quarter of the file).
+      unrecoded <- c(unrecoded, y)
+    } else if (n_covered / length(data_cols) < 0.5) {
+      # Below half is a coverage cliff worth a note; modern years land
+      # well above 0.8 and stay quiet.
+      partial <- c(
+        partial,
+        sprintf("%d (%d of %d)", y, n_covered, length(data_cols))
+      )
     }
   }
-  if (length(uncovered) == 0 && length(partial) == 0) {
+  if (length(uncovered) == 0 && length(unrecoded) == 0 &&
+      length(partial) == 0) {
     return(invisible())
   }
-  uncovered_txt <- summarize_years(uncovered)
   partial_txt <- paste(partial, collapse = "; ")
   n_uncovered <- length(uncovered)
+  n_unrecoded <- length(unrecoded)
+  n_noop <- n_uncovered + n_unrecoded
   n_partial <- length(partial)
-  # Two severities: no catalog at all means na = TRUE was a complete
-  # no-op for those years, which is warning-grade (a 1993 PHYSHLTH mean
-  # with 77/99 left in is off by a third); partial coverage still
-  # cleared something and stays a note. Both arms can co-fire (a
-  # 1993 + 1998 request) and each is self-contained, because either
-  # class can be suppressed independently.
-  if (n_uncovered > 0) {
+  # Two severities, keyed on whether anything was recoded rather than on
+  # whether the year is in the catalog at all: a year where nothing was
+  # cleared leaves the estimates exactly as raw as a pre-1998 year does
+  # (a PHYSHLTH mean with 77/99 left in is off by a factor of ten), so
+  # it is warning-grade either way. Partial coverage did clear something
+  # and stays a note. Both arms can co-fire (a 1993 + 1998 request) and
+  # each is self-contained, because either class can be suppressed
+  # independently.
+  if (n_noop > 0) {
+    reasons <- c(
+      if (n_uncovered > 0) {
+        cli::format_inline(
+          "{cli::qty(n_uncovered)}Year{?s} {summarize_years(uncovered)}:
+           no value-label catalog at all (labels cover 1998 on)."
+        )
+      },
+      if (n_unrecoded > 0) {
+        cli::format_inline(
+          "{cli::qty(n_unrecoded)}Year{?s} {summarize_years(unrecoded)}:
+           the catalog has no entry for any of the loaded variables."
+        )
+      }
+    )
+    noop_txt <- summarize_years(sort(c(uncovered, unrecoded)))
     cli::cli_warn(
       c(
-        "{.code na = TRUE} had no value-label catalog to consult for
-         {cli::qty(n_uncovered)}year{?s} {uncovered_txt}; codes there
-         pass through unchanged (labels cover 1998 on).",
+        "{.code na = TRUE} recoded nothing in
+         {cli::qty(n_noop)}year{?s} {noop_txt}; every code there passes
+         through unchanged.",
+        rlang::set_names(reasons, rep("x", length(reasons))),
         "x" = "Estimates over those years still contain CDC's don't
                know and refused codes (77/99 and kin).",
         "i" = "See {.fun brfss_labels} for coverage and

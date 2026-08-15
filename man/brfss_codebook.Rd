@@ -49,6 +49,11 @@ looks no different here from an unscaled one, and a range format
 lists its special codes without the ordinary values around them.
 Read magnitudes against CDC's codebook for the year, whose address
 is \code{brfss_year_info()$codebook_url}.
+
+It documents codes that exist, too. A column also carries blanks,
+from skip patterns and partial interviews, which reach R as \code{NA} with
+no code of their own; the card says so but cannot count them, since
+that is a property of the year's file rather than of the catalogs.
 }
 \examples{
 brfss_codebook("GENHLTH", years = 2023, download = FALSE)

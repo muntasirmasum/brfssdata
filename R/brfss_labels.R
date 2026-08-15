@@ -7,10 +7,16 @@
 #' distribute usable format libraries for earlier years.
 #'
 #' The `complete` column marks variables whose format for that year is a
-#' pure code-to-label map (no numeric ranges such as `1-30` days). Only
-#' those variables are eligible for automatic factor conversion via
-#' `read_brfss(labels = TRUE)`; for the rest, the catalog still documents
-#' the special codes (typically 77/88/99) so you can recode by hand.
+#' pure code-to-label map (no numeric ranges such as `1-30` days). It is
+#' a necessary condition for automatic factor conversion via
+#' `read_brfss(labels = TRUE)`, not a sufficient one: conversion also
+#' needs the map to be one-to-one, and CDC ships complete formats that
+#' give several codes the same label (`NUMPHON2` in 2003 labels codes 2
+#' through 6 "Residential telephone numbers"). Those keep their numeric
+#' codes, because a factor would merge the codes into one level, and the
+#' read paths say so with a `brfssdata_duplicate_label_note` message. For
+#' variables that are not `complete`, the catalog still documents the
+#' special codes (typically 77/88/99) so you can recode by hand.
 #'
 #' @param vars Optional character vector restricting to those variables,
 #'   matched case-insensitively by exact name. (Contrast [brfss_vars()],
@@ -22,7 +28,9 @@
 #' @param quiet If `TRUE`, suppress download progress output.
 #'
 #' @return A tibble with columns `year`, `variable`, `code`, `label`,
-#'   and `complete`. A lookup that matches nothing returns zero rows and
+#'   and `complete`, ordered by year, variable, and code, so a lookup
+#'   reads like a codebook page without a further `arrange()`. A lookup
+#'   that matches nothing returns zero rows and
 #'   says so with a `brfssdata_empty_result` message (regardless of
 #'   `quiet`, which governs download output only). When only some
 #'   requested variables match, the matching rows are returned and a
@@ -96,7 +104,14 @@ brfss_labels <- function(
       class = "brfssdata_empty_result"
     )
   }
-  catalog
+  # The catalog arrives in the parquet's own order, which is neither
+  # stable nor readable; radix ordering is locale-independent, per the
+  # package's policy for anything a user compares across machines.
+  catalog[
+    order(catalog$year, catalog$variable, catalog$code, method = "radix"),
+    ,
+    drop = FALSE
+  ]
 }
 
 labels_catalog <- function(
@@ -150,6 +165,7 @@ apply_labels <- function(
     exclude
   )
   drifted <- character(0)
+  duplicated_labels <- character(0)
   for (v in candidates) {
     sub <- catalog[catalog$variable == v, , drop = FALSE]
 
@@ -186,6 +202,13 @@ apply_labels <- function(
         anyNA(latest$label) ||
         !all(nzchar(trimws(latest$label)))
     ) {
+      # A refusal here is invisible in the result (the column simply
+      # keeps its codes) and the catalog's `complete` column says the
+      # opposite, so the reused-label case, the one a user cannot
+      # reconstruct from the card, says so below.
+      if (anyDuplicated(latest$label) > 0L) {
+        duplicated_labels <- c(duplicated_labels, v)
+      }
       next
     }
 
@@ -236,6 +259,21 @@ apply_labels <- function(
       vals,
       levels = as.numeric(latest$code),
       labels = level_labels
+    )
+  }
+  if (length(duplicated_labels) > 0) {
+    dup_txt <- cli::cli_vec(duplicated_labels, list("vec-trunc" = 5))
+    cli::cli_inform(
+      c(
+        "!" = "CDC's format gives several codes the same label for
+               {.val {dup_txt}}, so {?it/they} kept the numeric codes: a
+               factor would merge those codes into one level.",
+        "i" = "{cli::qty(length(duplicated_labels))}The catalog marks
+               {?it/them} {.field complete}, which says the format
+               carries no numeric range, not that the map is
+               one-to-one. See the codes with {.fun brfss_labels}."
+      ),
+      class = "brfssdata_duplicate_label_note"
     )
   }
   if (length(drifted) > 0) {

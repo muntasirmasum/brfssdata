@@ -10,6 +10,29 @@
 
 Download, cache, and analyze annual microdata from the United States Centers for Disease Control and Prevention Behavioral Risk Factor Surveillance System (BRFSS) \url{https://www.cdc.gov/brfss/}. Each requested survey year is downloaded once as a compact file hosted on public releases, verified against a published checksum, and cached locally; queries then run through 'DuckDB' (via the 'duckdb' package), so column selection and repeat analyses never re-transfer data. Survey-design helpers construct 'srvyr' design objects with year-appropriate weights, strata, and primary sampling units, including explicit handling of the 2011 weighting methodology change and of the codes CDC uses for missing-type answers.
 }
+\section{Getting started}{
+
+\code{\link[=read_brfss]{read_brfss()}} downloads a survey year once, caches it, and reads the
+columns you name into a tibble. \code{\link[=brfss_design]{brfss_design()}} returns the same
+extract as an srvyr survey design with the year's own weight,
+strata, and PSU already set, which is what prevalence estimates and
+their intervals need.
+
+To find out what to ask for, \code{\link[=brfss_vars]{brfss_vars()}} searches variable names
+and labels across years, \code{\link[=brfss_codebook]{brfss_codebook()}} prints what the catalogs
+know about a variable, and \code{\link[=brfss_crosswalk]{brfss_crosswalk()}} follows CDC's renames
+across generations. \code{\link[=brfss_labels]{brfss_labels()}} and \code{\link[=brfss_missing_codes]{brfss_missing_codes()}} are
+the value-label and missing-code tables behind the \code{labels} and \code{na}
+arguments of the two read paths.
+
+\code{\link[=brfss_years]{brfss_years()}}, \code{\link[=brfss_year_info]{brfss_year_info()}}, and \code{\link[=brfss_download]{brfss_download()}} cover
+what is published and what is cached; \code{\link[=brfss_cache_dir]{brfss_cache_dir()}},
+\code{\link[=brfss_cache_info]{brfss_cache_info()}}, and \code{\link[=brfss_cache_clear]{brfss_cache_clear()}} manage the cache
+itself, and \code{\link[=brfss_citation]{brfss_citation()}} cites the years you used.
+\link{brfssdata-conditions} lists the class of every error, warning, and
+message the package signals.
+}
+
 \seealso{
 Useful links:
 \itemize{

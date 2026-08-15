@@ -49,6 +49,17 @@ match. Code 88/888 ("None") is an answer of zero, not missing, and is
 never matched; recode it to 0 yourself before averaging a count
 variable such as \code{PHYSHLTH}.
 }
+\details{
+This function says what \code{na = TRUE} \emph{would} clear. For what a
+particular read did clear, \code{read_brfss(na = TRUE)} leaves the count
+on the tibble it returns, as a \code{brfss_na_recode} attribute: one row
+per variable, year, and code, with the number of values set to \code{NA}.
+It is there under \code{quiet = TRUE} too, when nothing is printed, so a
+missingness audit needs no second read of the raw year.
+\code{attr(dat, "brfss_na_recode")} reads it; dplyr verbs drop it, as they
+drop any attribute they do not know, so take it off the tibble
+\code{read_brfss()} handed you.
+}
 \examples{
 brfss_missing_codes("GENHLTH", years = 2023, download = FALSE)
 }

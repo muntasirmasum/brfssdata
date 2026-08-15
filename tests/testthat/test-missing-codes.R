@@ -388,3 +388,106 @@ test_that("a year-shaped vars argument gets the years hint", {
   err <- expect_error(brfss_missing_codes(1), class = "brfssdata_bad_vars_arg")
   expect_no_match(conditionMessage(err), "years = ")
 })
+
+test_that("a year that recodes nothing warns, whatever the catalog knows", {
+  # The fixture catalog carries GENHLTH and _STATE for 1998 but nothing
+  # for PHYSHLTH, so this read is as complete a no-op as a pre-1998 one:
+  # the grade follows what was recoded, not whether the year is in the
+  # catalog at all.
+  local_brfss_cache(1998)
+  cnd <- expect_warning(
+    dat <- read_brfss(1998, vars = "PHYSHLTH", quiet = TRUE, na = TRUE),
+    class = "brfssdata_na_coverage_warning"
+  )
+  expect_match(conditionMessage(cnd), "recoded nothing", fixed = TRUE)
+  expect_match(conditionMessage(cnd), "1998", fixed = TRUE)
+  raw <- read_brfss(1998, vars = "PHYSHLTH", quiet = TRUE)
+  expect_identical(dat$PHYSHLTH, raw$PHYSHLTH)
+})
+
+test_that("a zero-coverage year does not settle for the partial note", {
+  local_brfss_cache(1998)
+  expect_no_message(
+    suppressWarnings(
+      read_brfss(1998, vars = "PHYSHLTH", quiet = TRUE, na = TRUE)
+    ),
+    class = "brfssdata_na_coverage_note"
+  )
+})
+
+test_that("the recode note names the variables that still code None as 88", {
+  # PHYSHLTH's fixture catalog is CDC's shape: 77 and 99 are missing, 88
+  # is "None" and must survive the recode.
+  local_brfss_cache(2023)
+  cnd <- expect_message(
+    dat <- read_brfss(2023, vars = c("PHYSHLTH", "GENHLTH"), na = TRUE),
+    class = "brfssdata_na_note"
+  )
+  expect_match(conditionMessage(cnd), "PHYSHLTH", fixed = TRUE)
+  expect_match(conditionMessage(cnd), "88/888", fixed = TRUE)
+  # and the warning is only about the reading of the data, never about
+  # the data: 88 is still there, untouched.
+  expect_true(any(dat$PHYSHLTH %in% 88))
+})
+
+test_that("a recode with no surviving None code says nothing about 88", {
+  local_brfss_cache(2023)
+  cnd <- expect_message(
+    read_brfss(2023, vars = "GENHLTH", na = TRUE),
+    class = "brfssdata_na_note"
+  )
+  expect_no_match(conditionMessage(cnd), "88/888", fixed = TRUE)
+})
+
+test_that("the recode note breaks the tally down by variable", {
+  local_brfss_cache(2023)
+  cnd <- expect_message(
+    read_brfss(2023, vars = c("PHYSHLTH", "GENHLTH"), na = TRUE),
+    class = "brfssdata_na_note"
+  )
+  expect_match(conditionMessage(cnd), "By variable:", fixed = TRUE)
+  expect_match(conditionMessage(cnd), "GENHLTH \\d+")
+})
+
+test_that("the per-code recode tally rides along under quiet = TRUE", {
+  local_brfss_cache(2023)
+  dat <- read_brfss(
+    2023,
+    vars = c("PHYSHLTH", "GENHLTH"),
+    quiet = TRUE,
+    na = TRUE
+  )
+  tally <- attr(dat, "brfss_na_recode")
+  expect_s3_class(tally, "tbl_df")
+  expect_identical(names(tally), c("variable", "year", "code", "n"))
+  expect_setequal(tally$variable, c("GENHLTH", "PHYSHLTH"))
+  expect_setequal(tally$code[tally$variable == "PHYSHLTH"], c(77, 99))
+  # 88 is not a missing code, so it is never in the tally.
+  expect_false(88 %in% tally$code)
+  # The counts are the recode's own, not an estimate of it.
+  raw <- read_brfss(2023, vars = "PHYSHLTH", quiet = TRUE)
+  expect_identical(
+    tally$n[tally$variable == "PHYSHLTH" & tally$code == 77],
+    sum(raw$PHYSHLTH == 77)
+  )
+  expect_identical(sum(tally$n), sum(is.na(dat$PHYSHLTH), is.na(dat$GENHLTH)))
+})
+
+test_that("the recode tally survives the labels pass and an empty recode", {
+  local_brfss_cache(2023)
+  dat <- read_brfss(
+    2023,
+    vars = "GENHLTH",
+    quiet = TRUE,
+    na = TRUE,
+    labels = TRUE
+  )
+  expect_gt(nrow(attr(dat, "brfss_na_recode")), 0)
+  # Nothing to clear still gives the attribute its documented shape.
+  none <- read_brfss(2023, vars = "_STATE", quiet = TRUE, na = TRUE)
+  expect_identical(nrow(attr(none, "brfss_na_recode")), 0L)
+  expect_identical(
+    names(attr(none, "brfss_na_recode")),
+    c("variable", "year", "code", "n")
+  )
+})

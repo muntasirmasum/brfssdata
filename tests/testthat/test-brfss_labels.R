@@ -309,3 +309,38 @@ test_that("a full miss signals only the empty result", {
     class = "brfssdata_partial_match_note"
   )
 })
+
+test_that("brfss_labels returns codes in year, variable, code order", {
+  # Without this every lookup needs a manual arrange() to read like a
+  # codebook page; brfss_codebook() already sorts.
+  local_brfss_cache(c(2022, 2023))
+  out <- brfss_labels(c("GENHLTH", "DRIFTVAR"), years = 2022:2023)
+  expect_identical(
+    out[order(out$year, out$variable, out$code, method = "radix"), ],
+    out
+  )
+  genhlth <- out[out$variable == "GENHLTH" & out$year == 2023, ]
+  expect_identical(genhlth$code, c(1L, 2L, 3L, 4L, 5L, 7L, 9L))
+})
+
+test_that("a reused label is announced, not silently refused", {
+  # complete = TRUE says the format carries no numeric range; it does
+  # not say the map is one-to-one, and the refusal is otherwise
+  # invisible in the result.
+  local_brfss_cache(2023, extra = list("2023" = "DUPLABEL"))
+  cnd <- expect_message(
+    dat <- read_brfss(2023, quiet = TRUE, labels = TRUE),
+    class = "brfssdata_duplicate_label_note"
+  )
+  expect_match(conditionMessage(cnd), "DUPLABEL", fixed = TRUE)
+  expect_false(is.factor(dat$DUPLABEL))
+  expect_s3_class(dat$GENHLTH, "factor")
+})
+
+test_that("a clean map converts without the duplicate-label note", {
+  local_brfss_cache(2023)
+  expect_no_message(
+    read_brfss(2023, vars = "GENHLTH", quiet = TRUE, labels = TRUE),
+    class = "brfssdata_duplicate_label_note"
+  )
+})

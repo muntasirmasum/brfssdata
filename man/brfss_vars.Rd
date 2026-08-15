@@ -8,8 +8,11 @@ brfss_vars(pattern = NULL, years = NULL, download = TRUE, quiet = TRUE)
 }
 \arguments{
 \item{pattern}{Optional single regular expression matched
-(case-insensitively) against variable names and labels. The default
-lists every variable.}
+(case-insensitively) against variable names and labels. Labels are
+CDC's 40-character SAS labels, so match on single words rather than
+questionnaire phrasing, and use alternation
+(\code{"smoke|cigarette"}) for synonyms. The default lists every
+variable.}
 
 \item{years}{Optional integer vector restricting the search to
 particular survey years.}
@@ -33,6 +36,15 @@ BRFSS variable names and availability drift across years. This function
 searches the variable catalog that accompanies the data releases and
 reports, for each match, which years carry the variable. The catalog is
 downloaded once and cached like the data itself.
+
+The label text searched here is CDC's SAS variable label, capped at
+40 characters: its wording is not the questionnaire's, and long ones
+are cut off, sometimes mid-word (\code{PERSDOC3} reads "HAVE PERSONAL
+HEALTH CARE PROVIDER?", \code{BPMEDS} reads "CURRENTLY TAKING BLOOD
+PRESSURE MEDICATI"). So a search that finds nothing is as often the
+vocabulary as the survey. Search single words and synonyms rather
+than a phrase, and try the name stem too: BRFSS abbreviates in names,
+so "doctor" lives in \code{PERSDOC3} as "doc".
 
 A search that matches nothing says so and suggests near misses:
 variables whose name or label is a small edit away (a typo'd

@@ -32,3 +32,24 @@ test_that("the age19 set is 19 rows in ascending age order, summing to 1", {
   expect_identical(age19$age_max[19], NA_integer_)
   expect_equal(sum(age19$std_weight), 1)
 })
+
+test_that("adult6 collapses onto the published age-adjustment groups", {
+  # adult6 is the 2000 standard cut to _AGE_G, a finer partition than
+  # anything published: Klein & Schoenborn's distribution #9 combines
+  # 45-64, and CDC's BRFSS age-adjustment guide uses three groups. The
+  # data documentation tells readers to sum rows to reproduce either,
+  # so the sums are pinned here.
+  adult6 <- brfss_std_pop_2000[brfss_std_pop_2000$set == "adult6", ]
+  w <- stats::setNames(adult6$std_weight, adult6$age_group)
+
+  # Tolerance is the published tables' own rounding, not slack: SEER's
+  # single-age rendering aggregates to within about 2e-6 of them.
+  expect_equal(unname(w[["45-54"]] + w[["55-64"]]), 0.299194, tolerance = 1e-4)
+  expect_equal(
+    unname(w[["18-24"]] + w[["25-34"]] + w[["35-44"]]),
+    0.530535,
+    tolerance = 1e-4
+  )
+  expect_equal(unname(w[["65+"]]), 0.170271, tolerance = 1e-4)
+  expect_equal(unname(w[["18-24"]]), 0.128810, tolerance = 1e-4)
+})

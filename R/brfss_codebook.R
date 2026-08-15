@@ -23,6 +23,11 @@
 #' Read magnitudes against CDC's codebook for the year, whose address
 #' is `brfss_year_info()$codebook_url`.
 #'
+#' It documents codes that exist, too. A column also carries blanks,
+#' from skip patterns and partial interviews, which reach R as `NA` with
+#' no code of their own; the card says so but cannot count them, since
+#' that is a property of the year's file rather than of the catalogs.
+#'
 #' @param vars Character vector of variable names, matched
 #'   case-insensitively by exact name (required; to browse the whole
 #'   catalog use [brfss_vars()]).
@@ -270,6 +275,17 @@ print.brfss_codebook <- function(x, ..., n = NULL) {
         )
       }
     }
+    # CDC's own codebooks carry a BLANK row, and without one here the
+    # first mean() returning NA has nothing on the card to explain it.
+    # Static, because the count is a property of the year's file, not of
+    # the catalogs this card is built from.
+    cli::cli_text(
+      "Blank: not every respondent is asked every question (skip
+       patterns, partial interviews), and those answers carry no code.
+       They arrive as {.code NA}, this card cannot count them, and they
+       are why {.fun mean} returns {.code NA} without
+       {.code na.rm = TRUE}."
+    )
     cli::cli_text("")
   }
   if (nrow(x) > n_show) {

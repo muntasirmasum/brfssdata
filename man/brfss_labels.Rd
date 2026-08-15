@@ -21,7 +21,9 @@ missing catalog raises an error instead of being downloaded.}
 }
 \value{
 A tibble with columns \code{year}, \code{variable}, \code{code}, \code{label},
-and \code{complete}. A lookup that matches nothing returns zero rows and
+and \code{complete}, ordered by year, variable, and code, so a lookup
+reads like a codebook page without a further \code{arrange()}. A lookup
+that matches nothing returns zero rows and
 says so with a \code{brfssdata_empty_result} message (regardless of
 \code{quiet}, which governs download output only). When only some
 requested variables match, the matching rows are returned and a
@@ -35,10 +37,16 @@ CDC's SAS format libraries. Labels cover 1998 onward; CDC does not
 distribute usable format libraries for earlier years.
 
 The \code{complete} column marks variables whose format for that year is a
-pure code-to-label map (no numeric ranges such as \code{1-30} days). Only
-those variables are eligible for automatic factor conversion via
-\code{read_brfss(labels = TRUE)}; for the rest, the catalog still documents
-the special codes (typically 77/88/99) so you can recode by hand.
+pure code-to-label map (no numeric ranges such as \code{1-30} days). It is
+a necessary condition for automatic factor conversion via
+\code{read_brfss(labels = TRUE)}, not a sufficient one: conversion also
+needs the map to be one-to-one, and CDC ships complete formats that
+give several codes the same label (\code{NUMPHON2} in 2003 labels codes 2
+through 6 "Residential telephone numbers"). Those keep their numeric
+codes, because a factor would merge the codes into one level, and the
+read paths say so with a \code{brfssdata_duplicate_label_note} message. For
+variables that are not \code{complete}, the catalog still documents the
+special codes (typically 77/88/99) so you can recode by hand.
 }
 \examples{
 # download = FALSE reads the cached catalog, or the snapshot bundled
