@@ -76,6 +76,87 @@ Initial CRAN release.
 * Blank SAS character fields are stored as missing values, not `""`,
   and code matching is proof against R's scientific notation, so a
   future round code at or above 100,000 cannot be skipped.
+* The label-catalog builder reads two SAS syntaxes it used to
+  mis-parse, so the shipped catalog gains rows it had been dropping and
+  loses rows it had invented. A comma-separated code list
+  (`77,99 = 'UNK/REF'`, CDC's style through 2001) previously kept only
+  the last code, which is why the whole 7, 77, and 777 don't-know
+  family was missing from 1998 to 2001 and `na = TRUE` left those codes
+  in place: a 2000 `PHYSHLTH` mean computed the documented way was 4.41
+  days against 3.34 once the don't-know answers are cleared. A range
+  written `244-<777` previously matched its bare endpoint, so the
+  catalog claimed `WEIGHT` code 777 meant "244 +" when 777 is the
+  don't-know sentinel, and 2,736 respondents in 2000 alone carried it.
+  Ranges now emit no code and mark their format incomplete, which keeps
+  factor conversion refused where it always should have been.
+* Four label errors CDC published are corrected in the catalog, each
+  recorded with the source that justifies it. CDC's 2002 library
+  assigns one generic format to 17 variables and labels its code 88
+  "Never smoked regularly", so `PHYSHLTH`, `MENTHLTH`, `POORHLTH` and
+  a dozen others carried a smoking label on a code that means None
+  there; the smoking items keep CDC's wording. `DISPCODE` 1999 code 2
+  read "REFUSED", which the missing-code matcher took for a missing
+  bucket although it names an interview disposition, and now reads
+  "02-REFUSED" as CDC wrote it from 2000. `_IMPNPH` 2002 code 7 no
+  longer inherits a don't-know label from the raw question's format.
+  The builder now also reports every code whose missing or substantive
+  status flips between adjacent years, so this class of error cannot
+  ship unnoticed again.
+* `TYPEARTH` code 88 is now read as CDC labeled it in 1998 and 1999,
+  where their format libraries group it with 77 and 99 as unknown or
+  refused; CDC splits it out as "NEVER SAW A DOCTOR" from 2000 on.
+  Under `na = TRUE` this clears 11 rows in 1998 and 49 in 1999 that
+  previously survived. The package reports each year's published
+  labels and does not reinterpret one year's codebook with another's.
+* The rename crosswalk covers the personal-doctor family (`PERSDOC`,
+  `PERSDOC2`, `PERSDOC3`), one of CDC's flagship healthcare-access
+  measures. Reading `PERSDOC3` across 2019 to 2023 returned 820,226
+  silently empty rows for 2019 and 2020 with no rename note, and
+  `brfss_crosswalk("PERSDOC3")` reported that the variable had kept one
+  name throughout, which was false. The zero-match message no longer
+  makes that claim for any variable.
+* Pooled designs no longer dilute totals through a year that
+  contributed nothing. `brfss_design(2022:2023, states = "KY")` built a
+  design of 2022 rows alone, Kentucky having collected no 2023 data,
+  yet divided every weight by the two requested years, so
+  `survey_total()` reported half the state's adult population. The
+  participation check now treats a requested year with no in-scope rows
+  as an empty year rather than skipping it. Means and proportions were
+  never affected, because the rescaling cancels.
+* A cached year whose checksum fails verification can no longer be
+  served silently for the rest of the session. The daily recheck marked
+  every due file as checked before the repair was attempted, so a
+  failed re-download (offline, or a 404) left the memo in place and the
+  next call in the same session returned the unverified file with no
+  message, while `brfss_cache_info(verify = TRUE)` reported it as
+  failing. Only files that pass are marked.
+* `read_brfss()` checks that the years it read are the years asked
+  for. A parquet file carrying the wrong year under the right filename,
+  which a botched hand-copy of a cache produces, was served as a
+  plausible tibble of the wrong survey year under `download = FALSE`.
+* `na = TRUE` warns, rather than merely noting, when the catalog covers
+  none of the variables loaded for a year. The grade was keyed on
+  whether the year had any catalog entries at all, so a 1998 request
+  for six uncatalogued variables recoded nothing and said so only in a
+  message, which `message = FALSE` in a report suppresses entirely.
+* Every `TRUE`/`FALSE` argument is now validated at entry with a
+  classed error naming the argument and the value it received. Half of
+  them reached base R's `&&` and failed with "invalid 'y' type in 'x &&
+  y'", which named nothing and carried no condition class, and
+  `verify` and `catalogs` accepted anything at all: `brfss_cache_info(
+  verify = "yes")` hashed nothing while reading, to the person who
+  typed it, as a request to hash everything.
+* `brfss_design()` sets `options(survey.lonely.psu = "adjust")` only
+  when the design it built actually contains a single-PSU stratum. It
+  previously wrote the option on every call, including for years that
+  have none (1995 and 2003 have no such stratum; 2023 has 101 of
+  2,146), so an unrelated survey analysis later in the session
+  inherited the adjustment in place of survey's fail-fast default. A
+  pinned `brfssdata.lonely_psu` is still honored unconditionally.
+* A design variable missing from a damaged or foreign cached file now
+  raises `brfssdata_bad_design_var`, the class the conditions page
+  documents for it, and points at the cache remedy instead of at
+  variable search.
 
 ## Discovery and metadata
 
@@ -136,6 +217,20 @@ Initial CRAN release.
 * The variable, label, and crosswalk catalogs ship as bundled snapshots,
   so metadata functions work on first use with no network; a snapshot
   is never served silently (`brfssdata_bundled_fallback_note`).
+* A `brfss_vars()` search that matches nothing keeps its single-word
+  hint even when it has close matches to offer, and a search token now
+  also reaches a variable through its name stem. Searching CDC's own
+  questionnaire wording, "personal doctor", previously matched nothing
+  and suggested five caregiving variables, none of them the
+  personal-doctor question. The help now says that searches run over
+  CDC's 40-character SAS labels, whose wording differs from the
+  questionnaire and is sometimes cut mid-word.
+* `brfss_labels()` returns codes in ascending order within a variable
+  and year, the order a codebook reads in and the order
+  `brfss_codebook()` already used.
+* Codebook cards say that a column may also be blank, from a question
+  that was not asked or an interview that ended early, so the first
+  `mean()` returning `NA` has an explanation on the card.
 
 ## Access
 
@@ -308,6 +403,35 @@ Initial CRAN release.
 * Every session option the package reads is documented in one place,
   `?brfssdata-options`, including the previously undocumented
   `brfssdata.repo`.
+* A cache directory that cannot be created or written to is reported as
+  the permission problem it is. The failure previously arrived as a
+  download error suggesting the user might be offline, and a failed
+  directory creation was followed by a note saying where downloads
+  would be cached, which is the one population the package documents
+  restricted-network workarounds for.
+* `brfssdata.cache_dir` is validated where it is read, so a mistyped
+  path in `.Rprofile` fails immediately instead of reporting an empty
+  cache. Partial downloads left behind by a killed session are swept,
+  while files the package did not write are still never touched.
+  `brfss_cache_info()` lists regular files only.
+* `quiet = TRUE` suppresses the first-run cache-directory note, which
+  reached the console through the manifest refresh whatever the caller
+  asked for. A re-download caused by a failed integrity check now
+  reports itself even under `quiet = TRUE`, being an integrity event
+  rather than progress narration.
+* The `duckdb (>= 1.5.5)` requirement is checked when a connection is
+  opened, not only at install time. duckdb loads lazily and is not in
+  the package's imports for version purposes, so a downgrade or a
+  shadowing site library silently removed the guard that keeps duckdb
+  from writing to the user's home directory.
+* `brfss_years()` takes `download` and `quiet`, the vocabulary the
+  other exports use, so a strictly offline call is expressible.
+* srvyr's `survey_mean()`, `survey_prop()`, `survey_total()`,
+  `unweighted()`, and `as_survey_design()` are re-exported, so the
+  README's three-line estimate runs with `library(brfssdata)` and
+  dplyr alone. Forgetting `library(srvyr)` previously let the design
+  build and `group_by()` succeed, then failed at the last verb with a
+  bare "could not find function" and no mention of srvyr.
 
 ## Documentation
 
@@ -332,6 +456,35 @@ Initial CRAN release.
   public-use file covers 52 reporting areas, 48 states plus the
   District of Columbia, Guam, Puerto Rico, and the U.S. Virgin Islands,
   with Kentucky and Pennsylvania absent.
+* The age-adjustment article states which standard reproduces CDC's
+  published tables. CDC age-adjusts most BRFSS questions with three
+  age groups, 18 to 44, 45 to 64, and 65 and over, and the article
+  previously presented its six-group result as the number CDC's tables
+  report, which it is not: 2023 Florida came out 0.26 points below
+  CDC's published figure. The three-group recipe, obtainable by summing
+  the shipped standard-population rows, matches to rounding, and six
+  groups are shown as the finer alternative. `?brfss_std_pop_2000` no
+  longer claims the six-group set is what CDC uses.
+* The Stata section no longer promises that value labels carry CDC's
+  codes through `haven::write_dta()`. Factor export renumbers values to
+  level positions, so code 7 arrives as 6 and a "Never" answer coded 8
+  arrives as 5, and a code-based recode in Stata silently misses the
+  answers it names. The article gives routes that keep the codes.
+* The Korn-Graubard interval in the validation article returns a number.
+  It was demonstrated without `na.rm = TRUE` on a design that recodes
+  missing values, so the published page showed `NA NA NA` for the
+  method the section recommends.
+* Corrected doc claims: a modern survey year runs to 45 MB, not 35;
+  DuckDB accepts unquoted underscore-prefixed identifiers, so quoting
+  them is portability advice and not a syntax requirement; the
+  `data-meta` tag hosts nine assets, including the crosswalk and year
+  inventory a mirror needs; srvyr's `filter()` on a design deletes rows
+  and estimates the domain through each stratum's recorded PSU count,
+  rather than keeping respondents at zero weight; `labels = TRUE` alone
+  signals nothing on pre-1998 years and the recode tally is governed by
+  `quiet`. The articles also note how a degenerate subgroup behaves,
+  which variables are stored as text, and how to keep don't-know and
+  refused apart, the distinction R's single `NA` cannot hold.
 
 ## Known limitations
 
@@ -351,6 +504,12 @@ Initial CRAN release.
   nothing to consult there and warns instead of guessing; special
   codes in 1985 to 1997 must be recoded by hand from CDC's codebooks.
   This is a deliberate policy of signaling over hand-curation.
+* Coverage inside 1998 to 2001 is uneven for the same reason. CDC's
+  1999 library defines no format for the variables its assignment file
+  points at, `PHYSHLTH` and `MENTHLTH` among them, so those columns
+  have no catalog entries that year and `na = TRUE` cannot clear their
+  77s. A read that touches them says how many of the loaded variables
+  the catalog covered.
 * Module analyses that require CDC's questionnaire-version datasets
   and their `_LCPWTV1` to `_LCPWTV3` final weights are unsupported;
   the hosted annual files do not include those weights. The
