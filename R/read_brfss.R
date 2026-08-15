@@ -19,8 +19,11 @@
 #' @param vars Optional character vector of variable names to return.
 #'   The default returns every variable. Names are matched
 #'   case-insensitively (`"genhlth"` finds `GENHLTH`), and returned
-#'   columns always carry CDC's canonical spelling. Use [brfss_vars()]
-#'   to search names across years.
+#'   columns always carry CDC's canonical spelling; a name that matched
+#'   only case-insensitively is reported in a
+#'   `brfssdata_case_match_note` message, because the spelling that
+#'   worked here will not work in the next `dplyr` verb. Use
+#'   [brfss_vars()] to search names across years.
 #' @param states Optional vector restricting rows to those reporting
 #'   jurisdictions: state FIPS codes, postal abbreviations, or names,
 #'   mixed freely and matched case-insensitively (`c(48, "CA",
@@ -33,10 +36,13 @@
 #' @param download If `FALSE`, only cached years are used and missing
 #'   years raise an error instead of being downloaded.
 #' @param quiet If `TRUE`, suppress progress and housekeeping output:
-#'   download progress, cache notes, the full-load hint, and the
-#'   `na = TRUE` recode tally. Notes and warnings about what the data
-#'   mean (renames, missing-code coverage, weight-domain subsetting)
-#'   signal regardless of `quiet`; silence a specific one by its class,
+#'   download progress, cache notes, the full-load hint, the
+#'   case-matching note, and the `na = TRUE` recode tally. Notes and
+#'   warnings about what the data mean (renames, missing-code coverage,
+#'   weight-domain subsetting) signal regardless of `quiet`, as does the
+#'   note that a cached file failed its size or checksum check and was
+#'   re-downloaded, which reports that the input bytes changed rather
+#'   than narrating progress; silence a specific one by its class,
 #'   e.g. `suppressMessages(..., classes = "brfssdata_rename_note")`.
 #'   See [brfssdata-conditions] for every class.
 #' @param labels Controls value-label conversion via CDC's format
@@ -90,6 +96,9 @@ read_brfss <- function(
   labels = FALSE,
   na = FALSE
 ) {
+  download <- check_bool_arg(download, "download")
+  quiet <- check_bool_arg(quiet, "quiet")
+  na <- check_bool_arg(na, "na")
   years <- validate_years(years, download = download)
   if (
     !is.null(vars) &&
@@ -103,20 +112,18 @@ read_brfss <- function(
       class = "brfssdata_bad_vars_arg"
     )
   }
-  if (!isTRUE(na) && !isFALSE(na)) {
-    cli::cli_abort(
-      "{.arg na} must be TRUE or FALSE.",
-      class = "brfssdata_bad_na_arg"
-    )
-  }
   states <- resolve_states(states)
   # Validated eagerly: passed lazily, an invalid labels value would only
   # surface if some variable actually converted.
   labels_mode <- if (isFALSE(labels)) NULL else labels_how(labels)
+  cached <- file.exists(cache_path(year_asset(years)))
   # Modern years are 350-plus columns wide, so the default selection
   # materializes about 1.1 GB for 2023 alone. Said before anything is
-  # downloaded or read, while narrowing the request still helps.
-  if (is.null(vars) && !quiet) {
+  # downloaded or read, while narrowing the request still helps. Under
+  # download = FALSE the cache alone decides whether the years can be
+  # read at all, so the note waits for that verdict rather than
+  # announcing a load ensure_years_cached() is about to refuse.
+  if (is.null(vars) && !quiet && (download || all(cached))) {
     cli::cli_inform(
       c(
         "i" = "Loading every column for {summarize_years(years)}; pass
@@ -131,11 +138,7 @@ read_brfss <- function(
   # download = FALSE a missing year must keep its brfssdata_not_cached
   # error, and for fully cached requests query_parquet() stays the sole
   # authority on which columns exist.
-  if (
-    !is.null(vars) &&
-      download &&
-      !all(file.exists(cache_path(year_asset(years))))
-  ) {
+  if (!is.null(vars) && download && !all(cached)) {
     check_vars_before_download(vars, years)
   }
   paths <- ensure_years_cached(years, download = download, quiet = quiet)
@@ -145,6 +148,8 @@ read_brfss <- function(
     vars = if (is.null(vars) || is.null(states)) vars else union(vars, "_STATE"),
     states = states
   )
+  check_year_contents(dat, years, paths)
+  note_case_matches(dat, vars, quiet)
   warn_state_coverage(dat, years, states)
   # No rename note under a states filter: a module a filtered state
   # did not field would look identical to a rename (all-NA in a year a
@@ -173,6 +178,106 @@ read_brfss <- function(
     )
   }
   dat
+}
+
+# A cache directory copied by hand is the documented air-gapped
+# workflow, and a botched copy can leave a file whose name says one
+# survey year and whose rows are another. Nothing downstream would
+# notice: the weights, the design variables, and the codes all look
+# plausible, so the analysis is simply of the wrong year. The `year`
+# column is always selected, so the comparison is free.
+#
+# Only years the request did not ask for count as evidence. A year that
+# contributes no rows (a states filter that no respondent of that year
+# satisfies) is legitimate, and so is a request spanning several years,
+# so the test is subset, not equality.
+check_year_contents <- function(
+  dat,
+  years,
+  paths,
+  call = rlang::caller_env()
+) {
+  if (!"year" %in% names(dat) || nrow(dat) == 0) {
+    return(invisible())
+  }
+  extra <- setdiff(unique(dat$year), years)
+  if (length(extra) == 0) {
+    return(invisible())
+  }
+  # Only reached on a real mismatch, so the per-file probe costs nothing
+  # in the normal case. A file that cannot be read is left to
+  # query_parquet()'s corrupt-cache path, which already names it.
+  culprits <- vapply(
+    paths,
+    function(p) {
+      found <- tryCatch(
+        unique(query_parquet(p, vars = "year")$year),
+        error = function(e) integer(0)
+      )
+      any(!found %in% years)
+    },
+    logical(1)
+  )
+  bad <- basename(paths[culprits])
+  n_bad <- length(bad)
+  bad_years <- cached_file_year(bad)
+  bad_years <- bad_years[!is.na(bad_years)]
+  remedy <- if (length(bad_years) > 0) {
+    "Run {.code brfss_cache_clear(years = c({paste(bad_years,
+     collapse = ', ')}))} and read again on a connected machine, or
+     re-copy {cli::qty(n_bad)}{?the file/the files} from the cache
+     {?it/they} came from."
+  } else {
+    "Remove {.file {bad}} from {.path {brfss_cache_dir()}} and fetch
+     {cli::qty(n_bad)}{?it/them} again."
+  }
+  cli::cli_abort(
+    c(
+      "Cached file{?s} {.file {bad}} {?holds/hold} data that was not
+       requested.",
+      "x" = "Requested {summarize_years(years)}; the rows also carry
+             {summarize_years(extra)}.",
+      "i" = "A file whose name and contents disagree is a damaged cache
+             copy, not a survey-year quirk.",
+      "i" = remedy
+    ),
+    class = c("brfssdata_wrong_year_cache", "brfssdata_corrupt_cache"),
+    call = call
+  )
+}
+
+# Case-insensitive `vars` matching is a convenience on the way in only:
+# the columns come back in CDC's canonical spelling, so the lowercase
+# name that just worked fails in the next dplyr verb, with no hint that
+# the two are the same variable. Summarized rather than one note per
+# column, because a wide lowercase request would otherwise print dozens
+# of lines. Quiet-gated: it is about the call, not about the data.
+note_case_matches <- function(dat, vars, quiet) {
+  if (quiet || is.null(vars)) {
+    return(invisible())
+  }
+  cols <- names(dat)
+  ci <- match(toupper(vars), toupper(cols))
+  changed <- !is.na(ci) & !vars %in% cols
+  if (!any(changed)) {
+    return(invisible())
+  }
+  pairs <- unique(sprintf("%s as %s", vars[changed], cols[ci[changed]]))
+  n <- length(pairs)
+  shown <- paste(utils::head(pairs, 3L), collapse = ", ")
+  if (n > 3L) {
+    shown <- paste0(shown, ", and ", n - 3L, " more")
+  }
+  cli::cli_inform(
+    c(
+      "i" = "{n} requested name{?s} matched case-insensitively; the
+             column{?s} returned carr{?ies/y} CDC's spelling
+             ({shown}).",
+      "i" = "Use the returned spelling in later steps; a
+             {.code group_by()} on the name you typed will not find it."
+    ),
+    class = "brfssdata_case_match_note"
+  )
 }
 
 # A requested state can be genuinely absent from a year (Kentucky and
@@ -349,7 +454,11 @@ ensure_years_cached <- function(
   # corrected republish, within a day, via the recheck below. With
   # download = FALSE nothing ever touches the network, so fully cached
   # offline requests behave exactly as before.
-  manifest <- if (download) read_manifest() else read_manifest_cached()
+  manifest <- if (download) {
+    read_manifest(quiet = quiet)
+  } else {
+    read_manifest_cached()
+  }
 
   # Self-heal: a cached file whose size disagrees with the manifest is a
   # truncated download from before checksum verification existed, or a
@@ -361,17 +470,21 @@ ensure_years_cached <- function(
   # download_to_cache() renames a verified temp file over it on success,
   # and if the download fails (offline after a manifest refresh, say)
   # the user still has whatever was readable before.
+  #
+  # The note is not quiet-gated. Ordinary download progress is
+  # narration, but bytes that no longer match the manifest are a
+  # statement about the input: the hosted assets are occasionally
+  # republished, and a pipeline that ran quietly should still record
+  # that what it read changed underneath it.
   if (download && any(present)) {
     expected <- vapply(assets, manifest_size, numeric(1), manifest = manifest)
     damaged <- present & !is.na(expected) & file.size(paths) != expected
     if (any(damaged)) {
-      if (!quiet) {
-        cli::cli_inform(
-          "Cached file{?s} {.file {assets[damaged]}} {?has/have} an
-           unexpected size; re-downloading.",
-          class = "brfssdata_cache_note"
-        )
-      }
+      cli::cli_inform(
+        "Cached file{?s} {.file {assets[damaged]}} {?has/have} an
+         unexpected size; re-downloading.",
+        class = "brfssdata_cache_note"
+      )
       present[damaged] <- FALSE
     }
   }
@@ -383,7 +496,15 @@ ensure_years_cached <- function(
   # verified. No manifest entry, no verdict. Skipped entirely under
   # download = FALSE, which must not delete what it cannot replace;
   # the never-delete rule holds here too, because download_to_cache()
-  # only renames a verified temp file over the old one.
+  # only renames a verified temp file over the old one. Like the size
+  # check above, a mismatch is announced even under quiet: it reports
+  # that the input bytes changed, not that work is in progress.
+  #
+  # Only the assets that passed are marked checked. A failed asset stays
+  # due, so if the re-download below aborts (offline, or the release
+  # withdrawn) the next call hashes it again and says so again, instead
+  # of serving a file known not to match for the rest of the session.
+  # The successful re-downloads mark themselves once verified.
   if (download && any(present)) {
     due <- present & vapply(assets, asset_check_due, logical(1))
     if (any(due)) {
@@ -398,17 +519,15 @@ ensure_years_cached <- function(
       )
       bad <- which(due)[failed]
       if (length(bad) > 0) {
-        if (!quiet) {
-          cli::cli_inform(
-            "Cached file{?s} {.file {assets[bad]}} no longer
-             {?matches/match} the data manifest's checksum;
-             re-downloading.",
-            class = "brfssdata_cache_note"
-          )
-        }
+        cli::cli_inform(
+          "Cached file{?s} {.file {assets[bad]}} no longer
+           {?matches/match} the data manifest's checksum;
+           re-downloading.",
+          class = "brfssdata_cache_note"
+        )
         present[bad] <- FALSE
       }
-      for (a in assets[due]) {
+      for (a in assets[which(due)[!failed]]) {
         asset_checked(a)
       }
     }
@@ -417,14 +536,43 @@ ensure_years_cached <- function(
   missing <- years[!present]
 
   if (length(missing) > 0 && !download) {
-    cli::cli_abort(
-      c(
-        "Year{?s} {.val {as.character(missing)}} {?is/are} not in the
-         local cache and {.code download = FALSE} was set.",
-        "i" = "Cached years: see {.fun brfss_cache_info}.",
+    # The manifest is readable offline, so a year that was never
+    # published can be told apart from one merely not cached here.
+    # Advising a prefetch of an unpublished year sends the user to a
+    # command that can only fail with brfssdata_bad_year. An empty
+    # published list (no cached or bundled manifest at all) tells us
+    # nothing, so the split is skipped and every year keeps the hint.
+    published <- as.integer(manifest$years)
+    unpublished <- if (length(published) > 0) {
+      setdiff(missing, published)
+    } else {
+      integer(0)
+    }
+    prefetchable <- setdiff(missing, unpublished)
+    bullets <- c(
+      "Year{?s} {.val {as.character(missing)}} {?is/are} not in the
+       local cache and {.code download = FALSE} was set.",
+      "i" = "Cached years: see {.fun brfss_cache_info}."
+    )
+    if (length(prefetchable) > 0) {
+      bullets <- c(
+        bullets,
         "i" = "Prefetch on a connected machine with
-               {.code brfss_download(c({paste(missing, collapse = ', ')}))}."
-      ),
+               {.code brfss_download(c({paste(prefetchable,
+               collapse = ', ')}))}."
+      )
+    }
+    if (length(unpublished) > 0) {
+      bullets <- c(
+        bullets,
+        "i" = "Year{?s} {.val {as.character(unpublished)}} {?is/are} not
+               among the published releases, so no prefetch can supply
+               {?it/them}.",
+        "i" = "Published years: {summarize_years(published)}."
+      )
+    }
+    cli::cli_abort(
+      bullets,
       class = "brfssdata_not_cached",
       call = call
     )

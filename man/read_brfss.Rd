@@ -21,8 +21,11 @@ read_brfss(
 \item{vars}{Optional character vector of variable names to return.
 The default returns every variable. Names are matched
 case-insensitively (\code{"genhlth"} finds \code{GENHLTH}), and returned
-columns always carry CDC's canonical spelling. Use \code{\link[=brfss_vars]{brfss_vars()}}
-to search names across years.}
+columns always carry CDC's canonical spelling; a name that matched
+only case-insensitively is reported in a
+\code{brfssdata_case_match_note} message, because the spelling that
+worked here will not work in the next \code{dplyr} verb. Use
+\code{\link[=brfss_vars]{brfss_vars()}} to search names across years.}
 
 \item{states}{Optional vector restricting rows to those reporting
 jurisdictions: state FIPS codes, postal abbreviations, or names,
@@ -37,10 +40,13 @@ rather than returning silently fewer rows.}
 years raise an error instead of being downloaded.}
 
 \item{quiet}{If \code{TRUE}, suppress progress and housekeeping output:
-download progress, cache notes, the full-load hint, and the
-\code{na = TRUE} recode tally. Notes and warnings about what the data
-mean (renames, missing-code coverage, weight-domain subsetting)
-signal regardless of \code{quiet}; silence a specific one by its class,
+download progress, cache notes, the full-load hint, the
+case-matching note, and the \code{na = TRUE} recode tally. Notes and
+warnings about what the data mean (renames, missing-code coverage,
+weight-domain subsetting) signal regardless of \code{quiet}, as does the
+note that a cached file failed its size or checksum check and was
+re-downloaded, which reports that the input bytes changed rather
+than narrating progress; silence a specific one by its class,
 e.g. \code{suppressMessages(..., classes = "brfssdata_rename_note")}.
 See \link{brfssdata-conditions} for every class.}
 

@@ -285,3 +285,207 @@ test_that("download = FALSE keeps the not-cached error, even for a typo", {
     class = "brfssdata_not_cached"
   )
 })
+
+# Rewrite a fixture manifest so one asset's sha256 cannot match, the
+# shape a republished release leaves behind.
+break_manifest_hash <- function(dir, asset) {
+  path <- file.path(dir, "manifest.json")
+  m <- jsonlite::read_json(path)
+  m$files[[asset]]$sha256 <- strrep("a", 64)
+  jsonlite::write_json(m, path, auto_unbox = TRUE)
+  invisible(path)
+}
+
+test_that("a failed checksum heal stays due and re-announces every call", {
+  # The daily recheck used to be memoized before the re-download was
+  # known to have succeeded, so an offline session announced the
+  # mismatch once and then served the mismatched file in silence for the
+  # rest of the session.
+  dir <- local_brfss_cache(2023)
+  break_manifest_hash(dir, "brfss_2023.parquet")
+  local_mocked_bindings(
+    download_to_cache = function(...) {
+      cli::cli_abort("offline", class = "brfssdata_download_error")
+    }
+  )
+  for (i in 1:2) {
+    expect_message(
+      expect_error(
+        read_brfss(2023, vars = "GENHLTH", quiet = TRUE),
+        class = "brfssdata_download_error"
+      ),
+      class = "brfssdata_cache_note"
+    )
+  }
+  expect_true(asset_check_due("brfss_2023.parquet"))
+})
+
+test_that("a passing checksum recheck is memoized for the session", {
+  local_brfss_cache(2023)
+  expect_no_message(read_brfss(2023, vars = "GENHLTH", quiet = TRUE))
+  expect_false(asset_check_due("brfss_2023.parquet"))
+})
+
+test_that("an integrity re-download is announced even under quiet", {
+  # A republished asset changes the bytes under a stable URL. The
+  # self-heal is silent progress, but the fact that the input changed is
+  # not, so quiet = TRUE must not hide it.
+  local_brfss_cache(2023)
+  # One byte appended puts the file's size at odds with the manifest.
+  cat("x", file = cache_path("brfss_2023.parquet"), append = TRUE)
+  local_mocked_bindings(
+    download_to_cache = function(...) {
+      cli::cli_abort("offline", class = "brfssdata_download_error")
+    }
+  )
+  expect_message(
+    expect_error(
+      read_brfss(2023, vars = "GENHLTH", quiet = TRUE),
+      class = "brfssdata_download_error"
+    ),
+    class = "brfssdata_cache_note"
+  )
+})
+
+test_that("boolean arguments are validated at entry", {
+  local_brfss_cache(2023)
+  expect_error(
+    read_brfss(2023, vars = "GENHLTH", download = "nope"),
+    class = "brfssdata_bad_download_arg"
+  )
+  expect_error(
+    read_brfss(2023, vars = "GENHLTH", download = NA),
+    class = "brfssdata_bad_download_arg"
+  )
+  # quiet used to crash only when vars was NULL and be accepted
+  # silently otherwise, so both shapes are pinned.
+  expect_error(
+    read_brfss(2023, vars = "GENHLTH", quiet = "loud"),
+    class = "brfssdata_bad_quiet_arg"
+  )
+  expect_error(
+    read_brfss(2023, quiet = "loud"),
+    class = "brfssdata_bad_quiet_arg"
+  )
+  expect_error(
+    read_brfss(2023, na = "x", quiet = TRUE),
+    class = "brfssdata_bad_na_arg"
+  )
+  # Every one of them also carries the shared parent class.
+  expect_error(
+    read_brfss(2023, download = 1),
+    class = "brfssdata_bad_bool_arg"
+  )
+})
+
+test_that("a cached file holding another year's data is refused", {
+  # The air-gapped workflow is to hand-copy a cache directory, and a
+  # botched copy leaves a plausible tibble of the wrong survey year.
+  dir <- local_brfss_cache(c(2022, 2023))
+  file.copy(
+    file.path(dir, "brfss_2022.parquet"),
+    file.path(dir, "brfss_2023.parquet"),
+    overwrite = TRUE
+  )
+  err <- expect_error(
+    read_brfss(2023, vars = "GENHLTH", download = FALSE, quiet = TRUE),
+    class = "brfssdata_wrong_year_cache"
+  )
+  expect_s3_class(err, "brfssdata_corrupt_cache")
+  expect_match(conditionMessage(err), "brfss_2023.parquet", fixed = TRUE)
+  expect_match(conditionMessage(err), "2022", fixed = TRUE)
+  expect_match(conditionMessage(err), "brfss_cache_clear", fixed = TRUE)
+})
+
+test_that("the year check passes multi-year and legitimately empty years", {
+  local_brfss_cache(
+    c(2022, 2023),
+    states = list("2022" = 1, "2023" = 2)
+  )
+  dat <- read_brfss(2022:2023, vars = "GENHLTH", download = FALSE, quiet = TRUE)
+  expect_identical(sort(unique(dat$year)), c(2022L, 2023L))
+  # A states filter can leave a requested year with no rows at all,
+  # which is an answer, not a damaged cache.
+  filtered <- suppressWarnings(
+    read_brfss(2022:2023, vars = "GENHLTH", states = 1, download = FALSE, quiet = TRUE)
+  )
+  expect_identical(unique(filtered$year), 2022L)
+})
+
+test_that("the full-load hint waits until the years are known available", {
+  local_brfss_manifest(2023)
+  expect_no_message(
+    expect_error(
+      read_brfss(2023, download = FALSE),
+      class = "brfssdata_not_cached"
+    ),
+    class = "brfssdata_full_load_note"
+  )
+})
+
+test_that("the not-cached error tells unpublished years from prefetchable", {
+  local_brfss_manifest(2023)
+  err <- expect_error(
+    read_brfss(2050, download = FALSE, quiet = TRUE),
+    class = "brfssdata_not_cached"
+  )
+  expect_match(conditionMessage(err), "not among the published releases")
+  # Following the old advice failed with brfssdata_bad_year.
+  expect_false(grepl("brfss_download(c(2050))", conditionMessage(err), fixed = TRUE))
+
+  # A published year that is merely not cached keeps the prefetch hint.
+  err2 <- expect_error(
+    read_brfss(2023, download = FALSE, quiet = TRUE),
+    class = "brfssdata_not_cached"
+  )
+  expect_match(
+    conditionMessage(err2),
+    "brfss_download(c(2023))",
+    fixed = TRUE
+  )
+
+  # Mixed requests get both halves.
+  err3 <- expect_error(
+    read_brfss(c(2023, 2050), download = FALSE, quiet = TRUE),
+    class = "brfssdata_not_cached"
+  )
+  expect_match(
+    conditionMessage(err3),
+    "brfss_download(c(2023))",
+    fixed = TRUE
+  )
+  expect_match(conditionMessage(err3), "not among the published releases")
+})
+
+test_that("a case-insensitive match says which spelling came back", {
+  # The lowercase name works here and then fails in the next dplyr
+  # verb, which reports only that the column does not exist.
+  local_brfss_cache(2023)
+  msg <- expect_message(
+    read_brfss(2023, vars = "genhlth", download = FALSE),
+    class = "brfssdata_case_match_note"
+  )
+  expect_match(conditionMessage(msg), "GENHLTH", fixed = TRUE)
+  expect_no_message(
+    read_brfss(2023, vars = "genhlth", download = FALSE, quiet = TRUE),
+    class = "brfssdata_case_match_note"
+  )
+  expect_no_message(
+    read_brfss(2023, vars = "GENHLTH", download = FALSE),
+    class = "brfssdata_case_match_note"
+  )
+})
+
+test_that("the case note stays one line for a wide lowercase request", {
+  local_brfss_cache(2023)
+  msgs <- capture_messages(
+    read_brfss(
+      2023,
+      vars = c("genhlth", "physhlth", "_state", "_psu"),
+      download = FALSE
+    )
+  )
+  hits <- grep("matched case-insensitively", msgs, fixed = TRUE)
+  expect_length(hits, 1L)
+  expect_match(msgs[[hits]], "1 more", fixed = TRUE)
+})
