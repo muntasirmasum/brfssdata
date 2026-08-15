@@ -246,9 +246,10 @@ demographic, economic, and housing characteristics, and the
 directly into R once you register for a free Census API key. [County
 Health Rankings and Roadmaps](https://www.countyhealthrankings.org/)
 publishes annual health outcome and health factor measures for states and
-counties. [KFF State Health Facts](https://www.kff.org/statedata/)
-maintains more than 800 state-level indicators on coverage, Medicaid,
-spending, and health status, all downloadable. For policy exposures, the
+counties. [KFF State Health
+Facts](https://www.kff.org/state-health-facts/) maintains more than 800
+state-level indicators on coverage, Medicaid, spending, and health
+status, all downloadable. For policy exposures, the
 [Correlates of State Policy
 Project](https://ippsr.msu.edu/public-policy/correlates-state-policy)
 assembles more than three thousand state-by-year policy variables,

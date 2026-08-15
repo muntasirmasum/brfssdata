@@ -201,6 +201,16 @@ appears in.
 brfss_vars("smok")
 ```
 
+The labels being searched are CDC's SAS variable labels, capped at 40
+characters and worded for the codebook rather than taken off the
+questionnaire. `PERSDOC3` carries `HAVE PERSONAL HEALTH CARE PROVIDER?`,
+so searching `doctor` in 2023 returns four other variables and not that
+one, and 135 of that year's labels sit at the cap with the last word cut
+in half. Search single words instead of phrases, try a synonym or two,
+and try the stem CDC would have used in a name, since names abbreviate
+(`doctor` reaches `PERSDOC3` only as `doc`). A search that finds nothing
+is more often a vocabulary mismatch than an absent variable.
+
 The `years` column collapses runs of consecutive years, so `2005-2024`
 means every year in that span and `2011-2013, 2020` means a variable that
 appeared for three years, disappeared, and came back once. Reading that
@@ -238,6 +248,12 @@ using those maps.
 ```{r labels-true}
 read_brfss(2023, vars = c("GENHLTH", "SEXVAR"), labels = TRUE)
 ```
+
+Two sex variables exist and they are not the same column. `SEXVAR` is
+the questionnaire response; `_SEX` is CDC's calculated version, the one
+the weighting is built on, and the two disagree for 178 of 2023's
+433,323 records. Choose between them deliberately and name the choice in
+the write-up.
 
 Labeling renames codes; deciding which of them mean missing is a
 separate step, and the `GENHLTH` above has seven levels rather than five
@@ -334,9 +350,10 @@ proxy, campus networks with allowlists, and HPC compute nodes with no
 outbound access. A blocked download fails with an error naming the
 likely cause, not a hang, and nothing partial is written to
 the cache. The prefetch recipe above is the way through. Populate the
-cache from an unrestricted machine (a modern survey year is 20 to 35
-MB, all 40 years about 737 MB), copy the directory, and set
-`options(brfssdata.cache_dir = ...)` on the restricted one. A lab or a
+cache from an unrestricted machine (a survey year from 2011 on is 20 to
+45 MB, 2011 itself the largest, and all 40 years about 737 MB), copy the
+directory, and set `options(brfssdata.cache_dir = ...)` on the
+restricted one. A lab or a
 cluster needs only one such copy, since every user can point the same
 option at a shared directory. Variable discovery is never blocked.
 `brfss_vars()`, `brfss_labels()`, `brfss_codebook()`, and

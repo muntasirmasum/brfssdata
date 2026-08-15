@@ -115,8 +115,8 @@ Downloads are verified against published checksums and cached under
 catalogs, after which everything runs offline; `brfss_cache_info()` and
 `brfss_cache_clear()` manage the cache.
 
-The files come from GitHub releases (a modern survey year is 20 to 35
-MB; all 40 years about 737 MB), so a network that blocks `github.com`,
+The files come from GitHub releases (a survey year from 2011 on is 20 to
+45 MB; all 40 years about 737 MB), so a network that blocks `github.com`,
 a TLS-intercepting proxy, or an air-gapped compute node blocks the
 download too. In that case prefetch on an unrestricted machine, copy
 the cache directory across, and point
