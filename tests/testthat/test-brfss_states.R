@@ -157,7 +157,9 @@ test_that("the pooled diagnostic names only states inside the domain", {
     brfss_design(2022:2023, vars = "GENHLTH", quiet = TRUE),
     class = "brfssdata_pooled_states_warning"
   )
-  expect_match(conditionMessage(file_warn), '"3"')
+  # FIPS 3 is unassigned, so it has no postal abbreviation to name and
+  # the warning falls back to the bare code.
+  expect_match(conditionMessage(file_warn), "FIPS 3")
   domain_warn <- expect_warning(
     suppressMessages(
       brfss_design(
@@ -170,8 +172,8 @@ test_that("the pooled diagnostic names only states inside the domain", {
     ),
     class = "brfssdata_pooled_states_warning"
   )
-  expect_match(conditionMessage(domain_warn), '"2"')
-  expect_no_match(conditionMessage(domain_warn), '"3"')
+  expect_match(conditionMessage(domain_warn), "AK \\(FIPS 2\\)")
+  expect_no_match(conditionMessage(domain_warn), "FIPS 3")
   # and the scope is stated, so the two warnings cannot be confused
   expect_match(conditionMessage(domain_warn), "_CLLCPWT")
 })

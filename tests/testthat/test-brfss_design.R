@@ -591,3 +591,254 @@ test_that("an unclustered design skips survey's nested-clusters check", {
   brfss_design(2023, quiet = TRUE)
   expect_true("check_strata" %in% seen)
 })
+
+# A requested year can contribute no rows at all (Kentucky collected no
+# 2023 data, so states = "KY" over 2022:2023 is a 2022-only design).
+# Dividing that design's weights by the two years requested halved every
+# total with no signal, while leaving means and proportions untouched
+# because the constant cancels there.
+test_that("a year that contributes nothing does not dilute pooled totals", {
+  skip_if_not_installed("survey")
+  local_brfss_cache(
+    c(2022, 2023),
+    states = list("2022" = 1, "2023" = 2)
+  )
+  pooled <- suppressWarnings(
+    brfss_design(2022:2023, vars = "GENHLTH", states = 1, quiet = TRUE)
+  )
+  single <- brfss_design(2022, vars = "GENHLTH", states = 1, quiet = TRUE)
+  expect_identical(pooled$variables$brfss_wt, single$variables$brfss_wt)
+
+  got <- srvyr::summarize(
+    pooled,
+    total = srvyr::survey_total(),
+    m = srvyr::survey_mean(GENHLTH, na.rm = TRUE)
+  )
+  ref <- srvyr::summarize(
+    single,
+    total = srvyr::survey_total(),
+    m = srvyr::survey_mean(GENHLTH, na.rm = TRUE)
+  )
+  expect_equal(got$total, ref$total)
+  expect_equal(got$m, ref$m)
+})
+
+test_that("an empty pooled year warns about the divisor it changed", {
+  local_brfss_cache(
+    c(2022, 2023),
+    states = list("2022" = 1, "2023" = 2)
+  )
+  w <- expect_warning(
+    suppressWarnings(
+      brfss_design(2022:2023, vars = "GENHLTH", states = 1, quiet = TRUE),
+      classes = c(
+        "brfssdata_state_coverage_warning",
+        "brfssdata_pooled_states_warning"
+      )
+    ),
+    class = "brfssdata_empty_year_warning"
+  )
+  expect_match(conditionMessage(w), "2023")
+  expect_match(conditionMessage(w), "1 contributing year")
+  # and the years that do contribute still divide by their own count
+  expect_no_warning(
+    suppressWarnings(
+      brfss_design(2022:2023, vars = "GENHLTH", quiet = TRUE),
+      classes = "brfssdata_pooled_states_warning"
+    ),
+    class = "brfssdata_empty_year_warning"
+  )
+})
+
+test_that("the participation diagnostic sees a year with no in-scope rows", {
+  # Before the fix, filtering to the one state left a single year-set,
+  # and the diagnostic returned early on "fewer than two years".
+  local_brfss_cache(
+    c(2022, 2023),
+    states = list("2022" = 1, "2023" = 2)
+  )
+  w <- expect_warning(
+    suppressWarnings(
+      brfss_design(2022:2023, vars = "GENHLTH", states = 1, quiet = TRUE),
+      classes = c(
+        "brfssdata_state_coverage_warning",
+        "brfssdata_empty_year_warning"
+      )
+    ),
+    class = "brfssdata_pooled_states_warning"
+  )
+  # and the jurisdiction is named the way its sibling warning names it
+  expect_match(conditionMessage(w), "AL \\(FIPS 1\\)")
+})
+
+test_that("boolean arguments are validated before anything is read", {
+  # A manifest-only cache with the network guarded: reaching the read
+  # path at all fails loudly, so a classed argument error proves the
+  # check runs at entry.
+  local_brfss_manifest(2023)
+  expect_error(
+    brfss_design(2023, allow_break = "yes"),
+    class = "brfssdata_bad_allow_break_arg"
+  )
+  expect_error(
+    brfss_design(2023, pool_weights = "x"),
+    class = "brfssdata_bad_pool_weights_arg"
+  )
+  err <- expect_error(
+    brfss_design(2023, pool_weights = NA),
+    class = "brfssdata_bad_pool_weights_arg"
+  )
+  # every one of them also carries the shared parent class
+  expect_s3_class(err, "brfssdata_bad_bool_arg")
+  expect_error(
+    brfss_design(2023, download = "yes"),
+    class = "brfssdata_bad_download_arg"
+  )
+  expect_error(
+    brfss_design(2023, quiet = NA),
+    class = "brfssdata_bad_quiet_arg"
+  )
+})
+
+test_that("a design with no single-PSU stratum leaves the option alone", {
+  # survey reads survey.lonely.psu at estimation time, so the write
+  # outlives the call; a later unrelated survey analysis must keep
+  # survey's fail-fast default when this design never needed the
+  # adjustment. The fixture's three strata hold ten respondents each.
+  local_brfss_cache(2023)
+  expect_no_message(
+    brfss_design(2023, vars = "GENHLTH", quiet = TRUE),
+    class = "brfssdata_lonely_psu_note"
+  )
+  expect_null(getOption("survey.lonely.psu"))
+})
+
+test_that("a pinned brfssdata.lonely_psu is copied even without one", {
+  # The package option is the documented way to choose the handling for
+  # the session, so it is honored whatever the design contains.
+  local_brfss_cache(2023)
+  withr::local_options(brfssdata.lonely_psu = "certainty")
+  brfss_design(2023, vars = "GENHLTH", quiet = TRUE)
+  expect_identical(getOption("survey.lonely.psu"), "certainty")
+})
+
+test_that("the build states the svyset-equivalent specification", {
+  local_brfss_cache(2023)
+  msg <- expect_message(
+    brfss_design(2023, vars = "GENHLTH", na = FALSE),
+    class = "brfssdata_design_spec_note"
+  )
+  expect_match(conditionMessage(msg), "_LLCPWT")
+  expect_match(conditionMessage(msg), "_STSTR")
+  expect_match(conditionMessage(msg), "cluster term is omitted")
+  expect_no_message(
+    brfss_design(2023, vars = "GENHLTH", na = FALSE, quiet = TRUE),
+    class = "brfssdata_design_spec_note"
+  )
+})
+
+test_that("the specification note names the PSU when clustering is real", {
+  local_brfss_cache(2023, psu_size = 3)
+  msg <- expect_message(
+    brfss_design(2023, vars = "GENHLTH", na = FALSE),
+    class = "brfssdata_design_spec_note"
+  )
+  expect_match(conditionMessage(msg), "svyset _PSU")
+  expect_no_match(conditionMessage(msg), "cluster term is omitted")
+})
+
+test_that("a mistyped lonely-PSU option fails before the download", {
+  local_brfss_manifest(2023)
+  withr::local_options(brfssdata.lonely_psu = 123)
+  expect_error(
+    brfss_design(2023, vars = "GENHLTH", quiet = TRUE),
+    class = "brfssdata_bad_option"
+  )
+})
+
+test_that("a missing design column is a damaged file, not a bad var", {
+  dir <- local_brfss_cache(integer(0))
+  df <- data.frame(
+    year = 2023L,
+    psu = 1:4,
+    wt = c(100, 200, 250, 300),
+    GENHLTH = c(1, 2, 1, 2),
+    check.names = FALSE
+  )
+  names(df) <- c("year", "_PSU", "_LLCPWT", "GENHLTH")
+  write_fixture_parquet(df, file.path(dir, "brfss_2023.parquet"))
+  writeLines('{"years": [2023]}', file.path(dir, "manifest.json"))
+  err <- expect_error(
+    brfss_design(2023, vars = "GENHLTH", quiet = TRUE),
+    class = "brfssdata_bad_design_var"
+  )
+  expect_match(conditionMessage(err), "_STSTR")
+  expect_match(conditionMessage(err), "brfss_cache_clear")
+})
+
+test_that("a variable the user asked for keeps the variable-search error", {
+  local_brfss_cache(2023)
+  expect_error(
+    brfss_design(2023, vars = "NOPEVAR", quiet = TRUE),
+    class = "brfssdata_bad_var"
+  )
+})
+
+test_that("the subset note claims CDC guidance only for a CDC weight", {
+  local_brfss_cache(
+    2023,
+    alt_weights = 2023,
+    add_cols = list("2023" = list(ODDWT = c(5, NA)))
+  )
+  unsafe <- expect_message(
+    suppressWarnings(
+      brfss_design(
+        2023,
+        vars = "GENHLTH",
+        weight = "ODDWT",
+        unsafe_weight = TRUE,
+        na = FALSE,
+        quiet = TRUE
+      )
+    ),
+    class = "brfssdata_weight_subset_note"
+  )
+  expect_no_match(conditionMessage(unsafe), "CDC")
+  module <- expect_message(
+    brfss_design(
+      2023,
+      vars = "GENHLTH",
+      weight = "_CLLCPWT",
+      na = FALSE,
+      quiet = TRUE
+    ),
+    class = "brfssdata_weight_subset_note"
+  )
+  expect_match(conditionMessage(module), "CDC's module-analysis guidance")
+})
+
+test_that("a non-numeric weight column says so", {
+  # SEQNO is VARCHAR in the hosted files, and the positivity test alone
+  # reported every row as "zero, negative, or not finite", which is the
+  # wrong reason for a correct refusal.
+  local_brfss_cache(
+    2023,
+    add_cols = list("2023" = list(TXTWT = c(1, 2))),
+    chr_cols = list("2023" = "TXTWT")
+  )
+  err <- expect_error(
+    suppressWarnings(
+      brfss_design(
+        2023,
+        vars = "GENHLTH",
+        weight = "TXTWT",
+        unsafe_weight = TRUE,
+        na = FALSE,
+        quiet = TRUE
+      )
+    ),
+    class = "brfssdata_bad_weight"
+  )
+  expect_match(conditionMessage(err), "not a numeric column")
+  expect_no_match(conditionMessage(err), "zero, negative")
+})

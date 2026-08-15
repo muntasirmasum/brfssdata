@@ -71,8 +71,26 @@ test_that("brfss_design returns only the requested vars plus design cols", {
   )
 })
 
+# The option is written only for a design that actually carries a
+# single-PSU stratum, so both contracts below need a year whose strata
+# are not the fixture's evenly filled three.
+write_lonely_year <- function(dir) {
+  df <- data.frame(
+    year = 2023L,
+    psu = 1:5,
+    ststr = c(1L, 1L, 2L, 2L, 3L), # stratum 3 holds one PSU
+    wt = c(120, 250, 310, 150, 200),
+    GENHLTH = c(1L, 2L, 1L, 2L, 1L),
+    check.names = FALSE
+  )
+  names(df) <- c("year", DESIGN_PSU, DESIGN_STRATA, WEIGHT_POST, "GENHLTH")
+  write_fixture_parquet(df, file.path(dir, "brfss_2023.parquet"))
+  writeLines('{"years": [2023]}', file.path(dir, "manifest.json"))
+}
+
 test_that("survey's own \"fail\" default is treated as unset", {
-  local_brfss_cache(2023)
+  dir <- local_brfss_cache(integer(0))
+  write_lonely_year(dir)
   # This is the state of a fresh session with survey loaded, and the
   # case the package exists to smooth over.
   withr::local_options(survey.lonely.psu = "fail")
@@ -81,10 +99,12 @@ test_that("survey's own \"fail\" default is treated as unset", {
 })
 
 test_that("tests do not inherit a lonely-PSU option from each other", {
-  # brfss_design() sets the option for the session by design. The fixture
-  # helper scopes it per test so the suite stays order-independent and
-  # does not leave "adjust" behind in the calling session.
-  local_brfss_cache(2023)
+  # brfss_design() sets the option for the session when the design needs
+  # it. The fixture helper scopes it per test so the suite stays
+  # order-independent and does not leave "adjust" behind in the calling
+  # session.
+  dir <- local_brfss_cache(integer(0))
+  write_lonely_year(dir)
   expect_null(getOption("survey.lonely.psu"))
   brfss_design(2023, quiet = TRUE)
   expect_identical(getOption("survey.lonely.psu"), "adjust")

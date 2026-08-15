@@ -139,3 +139,15 @@ test_that("a degenerate domain covering the whole file stays silent", {
     class = "brfssdata_module_weight_warning"
   )
 })
+
+test_that("a mistyped check option fails before the download", {
+  # The option is session state readable at entry; validating it only
+  # inside the detector cost a full multi-year download and read first.
+  # A manifest-only cache with the network guarded proves the order.
+  local_brfss_manifest(2023)
+  withr::local_options(brfssdata.module_weight_check = "yes")
+  expect_error(
+    brfss_design(2023, vars = "KIDVAR", quiet = TRUE),
+    class = "brfssdata_bad_option"
+  )
+})

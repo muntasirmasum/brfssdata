@@ -61,10 +61,13 @@ divide each weight by the number of years.}
 years raise an error instead of being downloaded.}
 
 \item{quiet}{If \code{TRUE}, suppress progress and housekeeping output:
-download progress, cache notes, the full-load hint, and the
-\code{na = TRUE} recode tally. Notes and warnings about what the data
-mean (renames, missing-code coverage, weight-domain subsetting)
-signal regardless of \code{quiet}; silence a specific one by its class,
+download progress, cache notes, the full-load hint, the
+case-matching note, and the \code{na = TRUE} recode tally. Notes and
+warnings about what the data mean (renames, missing-code coverage,
+weight-domain subsetting) signal regardless of \code{quiet}, as does the
+note that a cached file failed its size or checksum check and was
+re-downloaded, which reports that the input bytes changed rather
+than narrating progress; silence a specific one by its class,
 e.g. \code{suppressMessages(..., classes = "brfssdata_rename_note")}.
 See \link{brfssdata-conditions} for every class.}
 
@@ -187,23 +190,34 @@ When several years are combined, weights are divided by the number of
 years (\code{pool_weights = TRUE}, the default) so that pooled estimates
 represent an average year rather than a sum of populations, and the
 variance strata become the year-by-stratum interaction, treating each
-annual survey as an independent sample. The pooled estimate averages
-over the states participating each year; when participation differs
-across the pooled years, totals mix coverage, and a warning says so.
+annual survey as an independent sample. The divisor counts the years
+that actually contribute rows, not the years requested: a \code{states} or
+\code{weight} filter can empty a year (Kentucky collected no 2023 data, so
+\code{states = "KY"} over \code{2022:2023} is a 2022-only design), and dividing
+that by the requested count would halve every total while leaving
+means and proportions untouched, since the constant cancels there. A
+\code{brfssdata_empty_year_warning} names any year that contributed
+nothing, so an average over fewer years is not read as covering all
+of them. The pooled estimate averages over the states participating
+each year; when participation differs across the pooled years, totals
+mix coverage, and a warning says so.
 
 From 2001 on, \verb{_PSU} is a record sequence number that restarts in
 each state, so it repeats across the file but is unique within a
 stratum: every stratum-by-PSU cell holds exactly one respondent.
 Single-PSU strata are therefore common and would make variance
-estimation fail. If \code{options(survey.lonely.psu)} is unset, this
-function sets it to \code{"adjust"} (standard BRFSS practice) and says so
-once per session. Any value you set other than \code{"fail"} is respected;
-\code{"fail"} is what the survey package itself installs on load, so it
-cannot be told apart from "never set" and is treated as unset. To
-insist on \code{"fail"}, or to pin any handling, set
-\code{options(brfssdata.lonely_psu = ...)}, which is copied into
-\code{survey.lonely.psu} unconditionally. The option stays set for the
-session because survey consults it at estimation time, not design
+estimation fail. When the design just built carries at least one of
+them and \code{options(survey.lonely.psu)} is unset, this function sets it
+to \code{"adjust"} (standard BRFSS practice) and says so once per session.
+A design with no such stratum (1995 and 2003 have none, 2023 has 101)
+leaves the option alone, so an unrelated survey analysis later in the
+session keeps survey's own fail-fast default. Any value you set other
+than \code{"fail"} is respected; \code{"fail"} is what the survey package
+itself installs on load, so it cannot be told apart from "never set"
+and is treated as unset. To insist on \code{"fail"}, or to pin any
+handling, set \code{options(brfssdata.lonely_psu = ...)}, which is copied
+into \code{survey.lonely.psu} unconditionally. The option stays set for
+the session because survey consults it at estimation time, not design
 time.
 
 Because that clustering is nominal, the design for those years is
@@ -213,6 +227,12 @@ factor with one level per respondent. Files through 2000 carry genuine
 multi-respondent PSUs and keep the clustered estimator, nested within
 stratum because the identifiers are reused. The choice is made from
 the data, so it follows the file rather than the year.
+
+The design object itself prints only srvyr's syntactic column names,
+which say nothing about which CDC weight was chosen. The build
+therefore states the specification in \code{svyset} terms, naming the
+weight, the stratum column, and whether a cluster term applies
+(\code{brfssdata_design_spec_note}, suppressed by \code{quiet = TRUE}).
 }
 
 \examples{

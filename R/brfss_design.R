@@ -82,23 +82,34 @@
 #' years (`pool_weights = TRUE`, the default) so that pooled estimates
 #' represent an average year rather than a sum of populations, and the
 #' variance strata become the year-by-stratum interaction, treating each
-#' annual survey as an independent sample. The pooled estimate averages
-#' over the states participating each year; when participation differs
-#' across the pooled years, totals mix coverage, and a warning says so.
+#' annual survey as an independent sample. The divisor counts the years
+#' that actually contribute rows, not the years requested: a `states` or
+#' `weight` filter can empty a year (Kentucky collected no 2023 data, so
+#' `states = "KY"` over `2022:2023` is a 2022-only design), and dividing
+#' that by the requested count would halve every total while leaving
+#' means and proportions untouched, since the constant cancels there. A
+#' `brfssdata_empty_year_warning` names any year that contributed
+#' nothing, so an average over fewer years is not read as covering all
+#' of them. The pooled estimate averages over the states participating
+#' each year; when participation differs across the pooled years, totals
+#' mix coverage, and a warning says so.
 #'
 #' From 2001 on, `_PSU` is a record sequence number that restarts in
 #' each state, so it repeats across the file but is unique within a
 #' stratum: every stratum-by-PSU cell holds exactly one respondent.
 #' Single-PSU strata are therefore common and would make variance
-#' estimation fail. If `options(survey.lonely.psu)` is unset, this
-#' function sets it to `"adjust"` (standard BRFSS practice) and says so
-#' once per session. Any value you set other than `"fail"` is respected;
-#' `"fail"` is what the survey package itself installs on load, so it
-#' cannot be told apart from "never set" and is treated as unset. To
-#' insist on `"fail"`, or to pin any handling, set
-#' `options(brfssdata.lonely_psu = ...)`, which is copied into
-#' `survey.lonely.psu` unconditionally. The option stays set for the
-#' session because survey consults it at estimation time, not design
+#' estimation fail. When the design just built carries at least one of
+#' them and `options(survey.lonely.psu)` is unset, this function sets it
+#' to `"adjust"` (standard BRFSS practice) and says so once per session.
+#' A design with no such stratum (1995 and 2003 have none, 2023 has 101)
+#' leaves the option alone, so an unrelated survey analysis later in the
+#' session keeps survey's own fail-fast default. Any value you set other
+#' than `"fail"` is respected; `"fail"` is what the survey package
+#' itself installs on load, so it cannot be told apart from "never set"
+#' and is treated as unset. To insist on `"fail"`, or to pin any
+#' handling, set `options(brfssdata.lonely_psu = ...)`, which is copied
+#' into `survey.lonely.psu` unconditionally. The option stays set for
+#' the session because survey consults it at estimation time, not design
 #' time.
 #'
 #' Because that clustering is nominal, the design for those years is
@@ -108,6 +119,12 @@
 #' multi-respondent PSUs and keep the clustered estimator, nested within
 #' stratum because the identifiers are reused. The choice is made from
 #' the data, so it follows the file rather than the year.
+#'
+#' The design object itself prints only srvyr's syntactic column names,
+#' which say nothing about which CDC weight was chosen. The build
+#' therefore states the specification in `svyset` terms, naming the
+#' weight, the stratum column, and whether a cluster term applies
+#' (`brfssdata_design_spec_note`, suppressed by `quiet = TRUE`).
 #'
 #' @inheritParams read_brfss
 #' @param vars Optional character vector of analysis variables to carry
@@ -177,6 +194,22 @@ brfss_design <- function(
   labels = FALSE,
   na = TRUE
 ) {
+  # Every TRUE/FALSE formal is checked before anything is downloaded or
+  # read. Left to the branches that consume them, allow_break and
+  # pool_weights die inside base R's `&&` with "invalid argument type"
+  # and no argument name, and a pool_weights of NA is accepted outright.
+  # download is checked first because validate_years() consumes it.
+  check_bool_arg(download, "download")
+  check_bool_arg(quiet, "quiet")
+  check_bool_arg(unsafe_weight, "unsafe_weight")
+  check_bool_arg(allow_break, "allow_break")
+  check_bool_arg(pool_weights, "pool_weights")
+  check_bool_arg(na, "na")
+  # Both session options are readable here too, so a mistyped one in a
+  # .Rprofile fails now rather than after a multi-year download, read,
+  # and missing-code recode.
+  pkg_lonely <- validate_lonely_psu_option()
+  validate_module_weight_check_option()
   years <- validate_years(years, download = download)
   if (
     !is.null(weight) &&
@@ -188,18 +221,6 @@ brfss_design <- function(
     cli::cli_abort(
       "{.arg weight} must be a single column name, e.g. {.val _CLLCPWT}.",
       class = "brfssdata_bad_weight"
-    )
-  }
-  if (!isTRUE(unsafe_weight) && !isFALSE(unsafe_weight)) {
-    cli::cli_abort(
-      "{.arg unsafe_weight} must be TRUE or FALSE.",
-      class = "brfssdata_bad_unsafe_weight_arg"
-    )
-  }
-  if (!isTRUE(na) && !isFALSE(na)) {
-    cli::cli_abort(
-      "{.arg na} must be TRUE or FALSE.",
-      class = "brfssdata_bad_na_arg"
     )
   }
   # Validated eagerly: passed lazily, an invalid labels value would only
@@ -293,16 +314,25 @@ brfss_design <- function(
   # The full-width load note lives in read_brfss(), which vars = NULL is
   # passed straight through to, so both entry points signal it once.
 
-  dat <- read_brfss(
-    years,
-    vars = if (is.null(vars)) {
-      NULL
-    } else {
-      union(vars, c(weight %||% auto_weights, DESIGN_STRATA, DESIGN_PSU))
-    },
-    states = states,
-    download = download,
-    quiet = quiet
+  # The design columns are injected into vars, and the read path reports
+  # any column it cannot find as brfssdata_bad_var, whose remedy is the
+  # variable search. That is the wrong advice for an injected column:
+  # its absence means a damaged or foreign cached file, which is what
+  # brfssdata_bad_design_var is documented for. The condition does not
+  # carry which column was missing, so the handler asks the files.
+  injected <- c(weight %||% auto_weights, DESIGN_STRATA, DESIGN_PSU)
+  design_call <- rlang::current_env()
+  dat <- tryCatch(
+    read_brfss(
+      years,
+      vars = if (is.null(vars)) NULL else union(vars, injected),
+      states = states,
+      download = download,
+      quiet = quiet
+    ),
+    brfssdata_bad_var = function(cnd) {
+      rethrow_missing_design_var(cnd, years, injected, call = design_call)
+    }
   )
 
   requested_weight <- weight
@@ -407,6 +437,32 @@ brfss_design <- function(
         class = "brfssdata_bad_weight"
       )
     }
+    # Several hosted columns are text (SEQNO is VARCHAR), and a text
+    # column reaches the positivity test below as values that are none
+    # of zero, negative, or finite, which reports the wrong reason for a
+    # correct refusal. Name the real one first.
+    if (!is.numeric(dat[[weight]])) {
+      is_final <- toupper(weight) %in% toupper(FINAL_WEIGHTS$weight)
+      cli::cli_abort(
+        c(
+          "Weight {.val {weight}} is {.obj_type_friendly {dat[[weight]]}},
+           not a numeric column.",
+          "i" = if (is_final) {
+            "A final analysis weight is stored as a number; this points
+             at a damaged file. Clear and re-download it with
+             {.fun brfss_cache_clear}."
+          } else {
+            "A survey weight must be a positive, finite number;
+             {.val {weight}} cannot weight a design."
+          }
+        ),
+        class = if (is_final) {
+          "brfssdata_bad_design_var"
+        } else {
+          "brfssdata_bad_weight"
+        }
+      )
+    }
     # A user-supplied DOMAIN weight defines its analytic domain: a
     # module weight such as _CLLCPWT exists only for the records its
     # module applies to (completed child interviews there), so in the
@@ -433,15 +489,25 @@ brfss_design <- function(
         sprintf("%s: %s", names(by_year), unname(by_year)),
         collapse = "; "
       )
+      # CDC's module-analysis guidance is about CDC's own domain
+      # weights, so it is cited only for one of those. An unsafe weight
+      # gets the same subset with no borrowed authority behind it.
+      recognized <- toupper(weight) %in% toupper(FINAL_WEIGHTS$weight)
       cli::cli_inform(
         c(
           "i" = "{.val {weight}} covers {n_total - n_drop} of {n_total}
                  rows; dropping the {n_drop} row{?s} where it is
                  missing ({drop_txt}).",
-          "i" = "A module weight exists only for the records its
-                 module applies to; subsetting to them matches CDC's
-                 module-analysis guidance. Omit {.arg weight} for the
-                 full-sample era weight."
+          "i" = if (recognized) {
+            "A module weight exists only for the records its module
+             applies to; subsetting to them matches CDC's
+             module-analysis guidance. Omit {.arg weight} for the
+             full-sample era weight."
+          } else {
+            "A row with no weight cannot enter a design; the estimate
+             covers the rows {.val {weight}} does cover. Omit
+             {.arg weight} for the full-sample era weight."
+          }
         ),
         class = "brfssdata_weight_subset_note"
       )
@@ -538,8 +604,40 @@ brfss_design <- function(
     )
   }
 
+  pool_divisor <- 1
   if (pool_weights && length(years) > 1) {
-    wt <- wt / length(years)
+    # The divisor counts the years that contribute rows, not the years
+    # requested. A requested year can contribute none (Kentucky
+    # collected no 2023 data, so states = "KY" over 2022:2023 is a
+    # 2022-only design), and dividing that by the requested count halves
+    # every total while leaving means and proportions untouched, because
+    # the constant cancels there: a total that estimates no population
+    # at all. Dividing by the contributing count keeps the documented
+    # meaning, an average contributing year, and the warning says which
+    # years are absent so that average is not read as covering them.
+    # Both halves are needed: the rescaling makes the number honest, the
+    # warning makes the coverage visible.
+    contributing <- sort(unique(dat$year))
+    pool_divisor <- length(contributing)
+    wt <- wt / pool_divisor
+    empty_years <- setdiff(years, contributing)
+    if (length(empty_years) > 0) {
+      cli::cli_warn(
+        c(
+          "Requested year{?s} {.val {as.character(empty_years)}}
+           contributed no rows to this pooled design.",
+          "x" = "Pooled weights were divided by the
+                 {cli::qty(pool_divisor)}{pool_divisor} contributing
+                 year{?s} rather than the {length(years)} requested, so
+                 totals estimate an average contributing year.",
+          "i" = "A {.arg states} request a year has no records for, or a
+                 {.arg weight} whose domain is empty there, is the usual
+                 cause; request only the years that carry data to say so
+                 explicitly."
+        ),
+        class = "brfssdata_empty_year_warning"
+      )
+    }
     warn_unequal_state_participation(
       years,
       states = resolve_states(states),
@@ -621,32 +719,47 @@ brfss_design <- function(
     )
   }
 
+  # Whether _PSU is a real cluster identifier changed with the 2001
+  # files. Through 2000 several respondents share one, and the clustered
+  # estimator is the correct one. From 2001 on it is the record sequence
+  # number, so each stratum-by-PSU cell holds one respondent, the
+  # clustering is nominal, and dropping it gives the same estimate,
+  # standard error, and degrees of freedom while sparing survey a
+  # cluster factor with one level per respondent (a survey_mean() over a
+  # single recent year drops from about 77 to 5 seconds). The test is on
+  # the data actually loaded, not on the year, so a file that stops
+  # behaving this way keeps its clusters.
+  singleton_psus <- anyDuplicated(dat[c("brfss_strata", "brfss_psu")]) == 0
+
   # From 2001 on, BRFSS public-use files make each respondent their own
-  # PSU, so small strata (and most subgroup analyses) contain single-PSU
-  # strata that make variance estimation fail. "adjust" is standard
-  # BRFSS practice. The survey package sets "fail" in .onLoad, so that
-  # value cannot be told apart from "never set" and is treated as unset;
-  # any other user-chosen value is respected, and the package option
-  # brfssdata.lonely_psu wins over everything (it is the only way to
-  # deliberately choose "fail"). identical() rather than %in%: a
-  # malformed option of length != 1 would make `if` error with "the
-  # condition has length > 1".
-  pkg_lonely <- getOption("brfssdata.lonely_psu")
+  # PSU, so small strata contain single-PSU strata that make variance
+  # estimation fail, and "adjust" is standard BRFSS practice. survey
+  # reads survey.lonely.psu at estimation time, not design time, so the
+  # value has to outlive this call: it is global state every later
+  # analysis in the session inherits, and the package's own default is
+  # therefore written only when the design just built actually carries
+  # such a stratum (2023 has 101 of 2146; 1995 and 2003 have none).
+  # Domain estimation cannot add one, because survey estimates a
+  # subpopulation over the design's own PSUs. A pinned
+  # brfssdata.lonely_psu is still copied unconditionally: pinning it is
+  # the documented way to choose the handling for the session, and the
+  # only way to choose "fail" deliberately. The survey package sets
+  # "fail" in .onLoad, so that value cannot be told apart from "never
+  # set" and is treated as unset; any other user-chosen value is
+  # respected. identical() rather than %in%: a malformed option of
+  # length != 1 would make `if` error with "the condition has length
+  # > 1".
+  psu_per_stratum <- if (singleton_psus) {
+    table(dat$brfss_strata)
+  } else {
+    tapply(dat$brfss_psu, dat$brfss_strata, function(p) length(unique(p)))
+  }
   if (!is.null(pkg_lonely)) {
-    if (
-      !is.character(pkg_lonely) ||
-        length(pkg_lonely) != 1L ||
-        is.na(pkg_lonely)
-    ) {
-      cli::cli_abort(
-        "{.code options(brfssdata.lonely_psu)} must be a single string,
-         e.g. \"adjust\", \"fail\", \"certainty\", \"remove\", or
-         \"average\".",
-        class = "brfssdata_bad_option"
-      )
-    }
     options(survey.lonely.psu = pkg_lonely)
-  } else if (identical(getOption("survey.lonely.psu", "fail"), "fail")) {
+  } else if (
+    any(psu_per_stratum == 1) &&
+      identical(getOption("survey.lonely.psu", "fail"), "fail")
+  ) {
     options(survey.lonely.psu = "adjust")
     cli::cli_inform(
       c(
@@ -662,17 +775,43 @@ brfss_design <- function(
     )
   }
 
-  # Whether _PSU is a real cluster identifier changed with the 2001
-  # files. Through 2000 several respondents share one, and the clustered
-  # estimator is the correct one. From 2001 on it is the record sequence
-  # number, so each stratum-by-PSU cell holds one respondent, the
-  # clustering is nominal, and dropping it gives the same estimate,
-  # standard error, and degrees of freedom while sparing survey a
-  # cluster factor with one level per respondent (a survey_mean() over a
-  # single recent year drops from about 77 to 5 seconds). The test is on
-  # the data actually loaded, not on the year, so a file that stops
-  # behaving this way keeps its clusters.
-  singleton_psus <- anyDuplicated(dat[c("brfss_strata", "brfss_psu")]) == 0
+  # A design object prints srvyr's syntactic column names only ("ids: 1,
+  # strata: brfss_strata, weights: brfss_wt"), so nothing in it says
+  # which CDC weight was selected, that brfss_strata is _STSTR, or why
+  # there is no PSU term. State the specification the way a Stata log
+  # states it, so it can be cross-checked against a coauthor's svyset.
+  if (!quiet) {
+    wt_txt <- paste(weight_vars, collapse = " and ")
+    strata_txt <- if (length(years) > 1) {
+      paste0("year by ", DESIGN_STRATA)
+    } else {
+      DESIGN_STRATA
+    }
+    cli::cli_inform(
+      c(
+        "i" = if (singleton_psus) {
+          "Design: {.code svyset [pw={wt_txt}], strata({strata_txt})}."
+        } else {
+          "Design: {.code svyset {DESIGN_PSU} [pw={wt_txt}],
+           strata({strata_txt})}."
+        },
+        if (singleton_psus) {
+          c(
+            "i" = "Each {DESIGN_STRATA}-by-{DESIGN_PSU} cell holds one
+                   respondent, so the cluster term is omitted; standard
+                   errors are identical."
+          )
+        },
+        if (pool_divisor > 1) {
+          c(
+            "i" = "Pooled: each weight divided by {pool_divisor}, the
+                   number of contributing years."
+          )
+        }
+      ),
+      class = "brfssdata_design_spec_note"
+    )
+  }
 
   if (singleton_psus) {
     # check_strata = FALSE skips survey's nested-clusters test, which
@@ -697,11 +836,98 @@ brfss_design <- function(
   }
 }
 
-# Cached parquet paths for the requested years, existing files only.
-# Shared by the two best-effort diagnostics below.
+# Cached parquet paths for the requested years, existing files only,
+# named by year. Shared by the two best-effort diagnostics below; the
+# participation one needs the years its query could have seen, so that a
+# year contributing nothing is an empty set rather than an absent one.
 cached_year_paths <- function(years) {
   paths <- cache_path(year_asset(years))
-  paths[file.exists(paths)]
+  keep <- file.exists(paths)
+  paths <- paths[keep]
+  names(paths) <- years[keep]
+  paths
+}
+
+# The two session options this function honors, validated on demand so
+# the eager block at the top of brfss_design() can fail on a mistyped
+# .Rprofile value before anything is downloaded. Each returns the value
+# so its consumer re-reads nothing.
+validate_lonely_psu_option <- function(call = rlang::caller_env()) {
+  value <- getOption("brfssdata.lonely_psu")
+  if (is.null(value)) {
+    return(NULL)
+  }
+  if (!is.character(value) || length(value) != 1L || is.na(value)) {
+    cli::cli_abort(
+      "{.code options(brfssdata.lonely_psu)} must be a single string,
+       e.g. \"adjust\", \"fail\", \"certainty\", \"remove\", or
+       \"average\".",
+      class = "brfssdata_bad_option",
+      call = call
+    )
+  }
+  value
+}
+
+validate_module_weight_check_option <- function(call = rlang::caller_env()) {
+  value <- getOption("brfssdata.module_weight_check")
+  if (is.null(value)) {
+    return(NULL)
+  }
+  if (!isTRUE(value) && !isFALSE(value)) {
+    cli::cli_abort(
+      "{.code options(brfssdata.module_weight_check)} must be TRUE or
+       FALSE; see {.help brfssdata::brfss_design}.",
+      class = "brfssdata_bad_option",
+      call = call
+    )
+  }
+  value
+}
+
+# Decide, from the cached files' own schema, whether a
+# brfssdata_bad_var raised by the read path was about a design column
+# brfss_design() injected or about a variable the user asked for. The
+# condition carries no column names, so the files answer instead. Only
+# the design-column direction is rewritten: a user-requested variable,
+# and any schema that cannot be read, re-signal unchanged.
+rethrow_missing_design_var <- function(
+  cnd,
+  years,
+  design_cols,
+  call = rlang::caller_env()
+) {
+  paths <- cached_year_paths(years)
+  schema <- if (length(paths) == 0) {
+    NULL
+  } else {
+    try_parquet_aggregate(
+      paths,
+      "DESCRIBE SELECT * FROM read_parquet(%s, union_by_name = true)"
+    )
+  }
+  absent <- if (is.null(schema)) {
+    character(0)
+  } else {
+    design_cols[!toupper(design_cols) %in% toupper(schema$column_name)]
+  }
+  if (length(absent) == 0) {
+    stop(cnd)
+  }
+  cli::cli_abort(
+    c(
+      "Design variable{?s} {.val {absent}} {?is/are} missing from the
+       cached files.",
+      "x" = "Years requested: {summarize_years(years)}.",
+      "x" = "Each year needs its era weight, {.val {DESIGN_STRATA}}, and
+             {.val {DESIGN_PSU}}.",
+      "i" = "A cached file without one was not built by this package, or
+             was damaged after it was. Clear the year with
+             {.fun brfss_cache_clear} and read it again."
+    ),
+    class = "brfssdata_bad_design_var",
+    call = call
+  )
 }
 
 # One aggregate query over cached year files, degrading to NULL on any
@@ -764,13 +990,21 @@ warn_unequal_state_participation <- function(
       " GROUP BY 1, 2"
     )
   )
+  # Split over every year the query could see, not over the years it
+  # returned rows for: a year where no requested state reported
+  # (Kentucky collected no 2023 data) otherwise yields a single year-set
+  # and returns silently below, which is exactly the case that most
+  # needs saying.
   sets <- if (is.null(q) || anyNA(q$state)) {
     NULL
   } else {
     if (!is.null(states)) {
       q <- q[q$state %in% states, , drop = FALSE]
     }
-    lapply(split(q$state, q$year), function(s) sort(unique(s)))
+    lapply(
+      split(q$state, factor(q$year, levels = names(paths))),
+      function(s) sort(unique(s))
+    )
   }
   if (is.null(sets) || length(sets) < 2) {
     return(invisible())
@@ -781,11 +1015,19 @@ warn_unequal_state_participation <- function(
   if (length(uneven) == 0) {
     return(invisible())
   }
+  # Postal abbreviations, like the state-coverage warning read_brfss()
+  # raises, with the code kept for the jurisdictions that have no
+  # abbreviation in brfss_states.
+  abbr <- brfss_states$abbr[match(uneven, brfss_states$fips)]
+  named <- ifelse(
+    is.na(abbr),
+    sprintf("FIPS %s", uneven),
+    sprintf("%s (FIPS %s)", abbr, uneven)
+  )
   cli::cli_warn(
     c(
-      "State participation differs across the pooled years: state
-       FIPS code{?s} {.val {as.character(uneven)}} {?does/do} not appear
-       in every year.",
+      "State participation differs across the pooled years:
+       {.val {named}} {?does/do} not appear in every year.",
       if (!is.null(weight)) {
         c(
           "i" = "Counted over the rows {.val {weight}} covers, the
@@ -819,18 +1061,8 @@ warn_unequal_state_participation <- function(
 # order-independent; degrades silently on any query failure, like the
 # participation diagnostic above.
 warn_module_weight_confinement <- function(years, vars, effective_weights) {
-  check <- getOption("brfssdata.module_weight_check")
-  if (!is.null(check)) {
-    if (!isTRUE(check) && !isFALSE(check)) {
-      cli::cli_abort(
-        "{.code options(brfssdata.module_weight_check)} must be TRUE or
-         FALSE; see {.help brfssdata::brfss_design}.",
-        class = "brfssdata_bad_option"
-      )
-    }
-    if (isFALSE(check)) {
-      return(invisible())
-    }
+  if (isFALSE(validate_module_weight_check_option())) {
+    return(invisible())
   }
   if (length(vars) == 0) {
     return(invisible())
