@@ -109,8 +109,12 @@ CDC columns are kept unchanged.
 }
 \description{
 Returns a \code{\link[srvyr:as_survey_design]{srvyr::as_survey_design()}} \code{tbl_svy} with the complex sampling
-design applied: primary sampling units (\verb{_PSU}), strata (\verb{_STSTR}), and
-the year-appropriate final weight. Weight selection is automatic:
+design applied: the year-appropriate final weight, strata (\verb{_STSTR}),
+and the primary sampling units (\verb{_PSU}) in the years where those
+identify a real cluster. From 2001 on they do not, and the design says
+so when it is built; see \emph{Why some years have no PSU term}, which also
+shows that the standard errors are unchanged either way.
+Weight selection is automatic:
 \verb{_FINALWT} for years before 2011 (post-stratification era) and
 \verb{_LLCPWT} from 2011 on (raking era). Pass \code{weight} to override it
 (see \emph{Choosing a weight}).
@@ -201,6 +205,13 @@ nothing, so an average over fewer years is not read as covering all
 of them. The pooled estimate averages over the states participating
 each year; when participation differs across the pooled years, totals
 mix coverage, and a warning says so.
+}
+
+\section{Why some years have no PSU term}{
+
+A design built for 2001 or later prints \code{ids: 1}, which reads as if
+the primary sampling units had been dropped. They have not been
+ignored; from 2001 on there is nothing for them to say.
 
 From 2001 on, \verb{_PSU} is a record sequence number that restarts in
 each state, so it repeats across the file but is unique within a
@@ -223,10 +234,17 @@ time.
 Because that clustering is nominal, the design for those years is
 built without a cluster term, which gives the same estimates, standard
 errors, and degrees of freedom far faster than carrying a cluster
-factor with one level per respondent. Files through 2000 carry genuine
-multi-respondent PSUs and keep the clustered estimator, nested within
-stratum because the identifiers are reused. The choice is made from
-the data, so it follows the file rather than the year.
+factor with one level per respondent. On the 2023 file, fair-or-poor
+\code{GENHLTH} returns 0.193696115777860 with a standard error of
+0.001389477801364 whether the cluster term is supplied or not, to the
+last bit of a double, and both designs report 431,177 degrees of
+freedom. Files through 2000 carry genuine multi-respondent PSUs and
+keep the clustered estimator, nested within stratum because the
+identifiers are reused, and there the two specifications do differ:
+the same estimate on 1995 has a standard error of 0.001830302439388
+with the cluster term against 0.001826985014850 without it, on 61,230
+degrees of freedom rather than 113,870. The choice is from the data, so it
+follows the file rather than the year.
 
 The design object itself prints only srvyr's syntactic column names,
 which say nothing about which CDC weight was chosen. The build

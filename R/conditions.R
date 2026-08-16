@@ -40,11 +40,15 @@
 #'     and `unsafe_weight = TRUE` was not set. Also carries
 #'     `brfssdata_bad_weight`, so one handler catches every weight
 #'     refusal.}
-#'   \item{`brfssdata_bad_unsafe_weight_arg`}{`unsafe_weight` is not
-#'     `TRUE` or `FALSE`.}
+#'   \item{`brfssdata_bad_bool_arg`}{A `TRUE`/`FALSE` argument received
+#'     something else, `NA` included. Each flag also raises a class of
+#'     its own on one pattern, `brfssdata_bad_<argument>_arg`: `na`
+#'     raises `brfssdata_bad_na_arg`, and likewise for `download`,
+#'     `quiet`, `refresh`, `verify`, `catalogs`, `allow_break`,
+#'     `pool_weights`, and `unsafe_weight`. One handler on the shared
+#'     class catches them all.}
 #'   \item{`brfssdata_bad_labels_arg`}{`labels` is something other than
 #'     `TRUE`, `FALSE`, or `"both"`.}
-#'   \item{`brfssdata_bad_na_arg`}{`na` is not `TRUE` or `FALSE`.}
 #'   \item{`brfssdata_bad_n_arg`}{`n` in `print.brfss_codebook()` is not
 #'     a single positive number.}
 #'   \item{`brfssdata_bad_option`}{`options(brfssdata.lonely_psu)` is

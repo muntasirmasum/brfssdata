@@ -97,6 +97,8 @@ brfss_crosswalk <- function(
   download = TRUE,
   quiet = TRUE
 ) {
+  download <- check_bool_arg(download, "download")
+  quiet <- check_bool_arg(quiet, "quiet")
   if (!is.null(vars) && (!is.character(vars) || anyNA(vars))) {
     cli::cli_abort(
       c(

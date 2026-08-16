@@ -53,6 +53,8 @@ brfss_codebook <- function(
   download = TRUE,
   quiet = TRUE
 ) {
+  download <- check_bool_arg(download, "download")
+  quiet <- check_bool_arg(quiet, "quiet")
   if (missing(vars) || !is.character(vars) || anyNA(vars) || length(vars) == 0) {
     cli::cli_abort(
       c(

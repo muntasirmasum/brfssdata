@@ -23,6 +23,8 @@
 #'   numbers in prose.
 #' @export
 brfss_year_info <- function(years = NULL, download = TRUE, quiet = TRUE) {
+  download <- check_bool_arg(download, "download")
+  quiet <- check_bool_arg(quiet, "quiet")
   if (!is.null(years)) {
     years <- check_years_arg(years)
   }

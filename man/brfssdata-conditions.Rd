@@ -43,11 +43,15 @@ names a column that is not one of CDC's final analysis weights
 and \code{unsafe_weight = TRUE} was not set. Also carries
 \code{brfssdata_bad_weight}, so one handler catches every weight
 refusal.}
-\item{\code{brfssdata_bad_unsafe_weight_arg}}{\code{unsafe_weight} is not
-\code{TRUE} or \code{FALSE}.}
+\item{\code{brfssdata_bad_bool_arg}}{A \code{TRUE}/\code{FALSE} argument received
+something else, \code{NA} included. Each flag also raises a class of
+its own on one pattern, \verb{brfssdata_bad_<argument>_arg}: \code{na}
+raises \code{brfssdata_bad_na_arg}, and likewise for \code{download},
+\code{quiet}, \code{refresh}, \code{verify}, \code{catalogs}, \code{allow_break},
+\code{pool_weights}, and \code{unsafe_weight}. One handler on the shared
+class catches them all.}
 \item{\code{brfssdata_bad_labels_arg}}{\code{labels} is something other than
 \code{TRUE}, \code{FALSE}, or \code{"both"}.}
-\item{\code{brfssdata_bad_na_arg}}{\code{na} is not \code{TRUE} or \code{FALSE}.}
 \item{\code{brfssdata_bad_n_arg}}{\code{n} in \code{print.brfss_codebook()} is not
 a single positive number.}
 \item{\code{brfssdata_bad_option}}{\code{options(brfssdata.lonely_psu)} is

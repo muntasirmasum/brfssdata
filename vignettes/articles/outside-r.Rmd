@@ -45,7 +45,7 @@ against CDC's public-use file applies unchanged. One column is added,
 Almost every survey variable is stored as a physical DOUBLE, mirroring
 the SAS numerics these files come from. The exceptions are stored as
 strings, and which columns those are varies by year: the date parts
-(`IDATE`, `IMONTH`, `IDAY`, `IYEAR`) in every year, `SEQNO` from 2000 on,
+(`IDATE`, `IMONTH`, `IDAY`, `IYEAR`) in every year, `SEQNO` from 1999 on,
 `INTVID` through 2012, and a few text-coded columns in the middle years
 (`MRACE` and `RCSRACE` among them). The added `year` column is an
 integer. Storing the numerics uniformly is deliberate and keeps a code

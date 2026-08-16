@@ -491,3 +491,38 @@ test_that("the recode tally survives the labels pass and an empty recode", {
     c("variable", "year", "code", "n")
   )
 })
+
+test_that("an uncovered variable the caller named is announced, whatever the ratio", {
+  # Half covered is not half a problem: the uncatalogued variable keeps
+  # its 77s either way, and a proportion threshold went quiet at exactly
+  # one of two, which is the commonest targeted read there is. The
+  # fixture catalogs PHYSHLTH for 2023 only, so 2022 is the boundary.
+  local_brfss_cache(2022)
+  msg <- tryCatch(
+    read_brfss(
+      2022,
+      vars = c("GENHLTH", "PHYSHLTH"),
+      na = TRUE,
+      download = FALSE,
+      quiet = TRUE
+    ),
+    brfssdata_na_coverage_note = function(cnd) conditionMessage(cnd)
+  )
+  expect_match(msg, "PHYSHLTH", fixed = TRUE)
+})
+
+test_that("a year that never asked the question is not blamed", {
+  # An all-NA filler column carries no codes to recode, so naming that
+  # year as one where don't-know codes survived is a false alarm. The
+  # year that does carry the column, and has no catalog for it, is
+  # still reported.
+  local_brfss_cache(c(2022, 2023), extra = list("2023" = "NEWVAR23"))
+  w <- tryCatch(
+    suppressMessages(
+      read_brfss(2022:2023, vars = "NEWVAR23", na = TRUE, download = FALSE)
+    ),
+    brfssdata_na_coverage_warning = function(cnd) conditionMessage(cnd)
+  )
+  expect_match(w, "2023", fixed = TRUE)
+  expect_false(grepl("2022", w, fixed = TRUE))
+})

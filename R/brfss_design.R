@@ -2,8 +2,12 @@
 #'
 #' @description
 #' Returns a [srvyr::as_survey_design()] `tbl_svy` with the complex sampling
-#' design applied: primary sampling units (`_PSU`), strata (`_STSTR`), and
-#' the year-appropriate final weight. Weight selection is automatic:
+#' design applied: the year-appropriate final weight, strata (`_STSTR`),
+#' and the primary sampling units (`_PSU`) in the years where those
+#' identify a real cluster. From 2001 on they do not, and the design says
+#' so when it is built; see *Why some years have no PSU term*, which also
+#' shows that the standard errors are unchanged either way.
+#' Weight selection is automatic:
 #' `_FINALWT` for years before 2011 (post-stratification era) and
 #' `_LLCPWT` from 2011 on (raking era). Pass `weight` to override it
 #' (see *Choosing a weight*).
@@ -94,6 +98,11 @@
 #' each year; when participation differs across the pooled years, totals
 #' mix coverage, and a warning says so.
 #'
+#' @section Why some years have no PSU term:
+#' A design built for 2001 or later prints `ids: 1`, which reads as if
+#' the primary sampling units had been dropped. They have not been
+#' ignored; from 2001 on there is nothing for them to say.
+#'
 #' From 2001 on, `_PSU` is a record sequence number that restarts in
 #' each state, so it repeats across the file but is unique within a
 #' stratum: every stratum-by-PSU cell holds exactly one respondent.
@@ -115,10 +124,17 @@
 #' Because that clustering is nominal, the design for those years is
 #' built without a cluster term, which gives the same estimates, standard
 #' errors, and degrees of freedom far faster than carrying a cluster
-#' factor with one level per respondent. Files through 2000 carry genuine
-#' multi-respondent PSUs and keep the clustered estimator, nested within
-#' stratum because the identifiers are reused. The choice is made from
-#' the data, so it follows the file rather than the year.
+#' factor with one level per respondent. On the 2023 file, fair-or-poor
+#' `GENHLTH` returns 0.193696115777860 with a standard error of
+#' 0.001389477801364 whether the cluster term is supplied or not, to the
+#' last bit of a double, and both designs report 431,177 degrees of
+#' freedom. Files through 2000 carry genuine multi-respondent PSUs and
+#' keep the clustered estimator, nested within stratum because the
+#' identifiers are reused, and there the two specifications do differ:
+#' the same estimate on 1995 has a standard error of 0.001830302439388
+#' with the cluster term against 0.001826985014850 without it, on 61,230
+#' degrees of freedom rather than 113,870. The choice is from the data, so it
+#' follows the file rather than the year.
 #'
 #' The design object itself prints only srvyr's syntactic column names,
 #' which say nothing about which CDC weight was chosen. The build
@@ -321,6 +337,16 @@ brfss_design <- function(
   # brfssdata_bad_design_var is documented for. The condition does not
   # carry which column was missing, so the handler asks the files.
   injected <- c(weight %||% auto_weights, DESIGN_STRATA, DESIGN_PSU)
+  # A weight the caller named is not an injected column for this
+  # purpose, whatever it is called. `_LLCPWT2` exists in 2014 and 2016
+  # but not 2015, and calling that year's pristine file damaged sends
+  # the user to delete 33 MB and download an identical copy. Only the
+  # columns brfss_design() adds on its own can indict the file.
+  design_only <- if (is.null(weight)) {
+    injected
+  } else {
+    setdiff(injected, weight)
+  }
   design_call <- rlang::current_env()
   dat <- tryCatch(
     read_brfss(
@@ -331,7 +357,7 @@ brfss_design <- function(
       quiet = quiet
     ),
     brfssdata_bad_var = function(cnd) {
-      rethrow_missing_design_var(cnd, years, injected, call = design_call)
+      rethrow_missing_design_var(cnd, years, design_only, call = design_call)
     }
   )
 
@@ -437,32 +463,7 @@ brfss_design <- function(
         class = "brfssdata_bad_weight"
       )
     }
-    # Several hosted columns are text (SEQNO is VARCHAR), and a text
-    # column reaches the positivity test below as values that are none
-    # of zero, negative, or finite, which reports the wrong reason for a
-    # correct refusal. Name the real one first.
-    if (!is.numeric(dat[[weight]])) {
-      is_final <- toupper(weight) %in% toupper(FINAL_WEIGHTS$weight)
-      cli::cli_abort(
-        c(
-          "Weight {.val {weight}} is {.obj_type_friendly {dat[[weight]]}},
-           not a numeric column.",
-          "i" = if (is_final) {
-            "A final analysis weight is stored as a number; this points
-             at a damaged file. Clear and re-download it with
-             {.fun brfss_cache_clear}."
-          } else {
-            "A survey weight must be a positive, finite number;
-             {.val {weight}} cannot weight a design."
-          }
-        ),
-        class = if (is_final) {
-          "brfssdata_bad_design_var"
-        } else {
-          "brfssdata_bad_weight"
-        }
-      )
-    }
+    check_weight_numeric(dat, weight)
     # A user-supplied DOMAIN weight defines its analytic domain: a
     # module weight such as _CLLCPWT exists only for the records its
     # module applies to (completed child interviews there), so in the
@@ -548,14 +549,20 @@ brfss_design <- function(
         class = "brfssdata_bad_weight"
       )
     }
-  } else if (spans_break) {
-    wt <- ifelse(
-      dat$year >= BREAK_YEAR,
-      dat[[WEIGHT_POST]],
-      dat[[WEIGHT_PRE]]
-    )
   } else {
-    wt <- dat[[weight_vars]]
+    # The automatic path reaches the same trap the explicit one guards
+    # against, and reaches it more often: a damaged file whose era
+    # weight was cast to text is read by the default call, with no
+    # weight argument at all, and used to die inside survey with a bare
+    # "non-numeric argument to binary operator".
+    for (col in weight_vars) {
+      check_weight_numeric(dat, col)
+    }
+    wt <- if (spans_break) {
+      ifelse(dat$year >= BREAK_YEAR, dat[[WEIGHT_POST]], dat[[WEIGHT_PRE]])
+    } else {
+      dat[[weight_vars]]
+    }
   }
 
   # First point where the row count is final: both the states filter
@@ -704,7 +711,12 @@ brfss_design <- function(
       years,
       quiet = quiet,
       download = download,
-      exclude = exclude_cols
+      exclude = exclude_cols,
+      requested = if (is.null(vars)) {
+        NULL
+      } else {
+        names(dat)[toupper(names(dat)) %in% toupper(vars)]
+      }
     )
   }
   if (!is.null(labels_mode)) {
@@ -846,6 +858,34 @@ cached_year_paths <- function(years) {
   paths <- paths[keep]
   names(paths) <- years[keep]
   paths
+}
+
+# Several hosted columns are text (SEQNO is VARCHAR), and a text column
+# reaches the positivity test as values that are none of zero, negative,
+# or finite, which reports the wrong reason for a correct refusal. Named
+# here instead, for the automatic era weight as well as a weight the
+# caller chose: the default call is how a damaged file is usually met.
+check_weight_numeric <- function(dat, weight, call = rlang::caller_env()) {
+  if (is.numeric(dat[[weight]])) {
+    return(invisible())
+  }
+  is_final <- toupper(weight) %in% toupper(FINAL_WEIGHTS$weight)
+  cli::cli_abort(
+    c(
+      "Weight {.val {weight}} is {.obj_type_friendly {dat[[weight]]}},
+       not a numeric column.",
+      "i" = if (is_final) {
+        "A final analysis weight is stored as a number; this points
+         at a damaged file. Clear and re-download it with
+         {.fun brfss_cache_clear}."
+      } else {
+        "A survey weight must be a positive, finite number;
+         {.val {weight}} cannot weight a design."
+      }
+    ),
+    class = if (is_final) "brfssdata_bad_design_var" else "brfssdata_bad_weight",
+    call = call
+  )
 }
 
 # The two session options this function honors, validated on demand so

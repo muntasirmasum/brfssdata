@@ -52,6 +52,8 @@ brfss_vars <- function(
   download = TRUE,
   quiet = TRUE
 ) {
+  download <- check_bool_arg(download, "download")
+  quiet <- check_bool_arg(quiet, "quiet")
   if (!is.null(years)) {
     years <- check_years_arg(years)
   }

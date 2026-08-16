@@ -470,13 +470,22 @@ test_that("stale partial downloads are swept and foreign files are not", {
     c(
       "brfss_2019.parquet-0123abcd.tmp",
       "brfss_labels.parquet-89ab12.tmp.curltmp",
-      "manifest-4f2a99.json"
+      "manifest-4f2a99.json.tmp"
     )
   )
   # Same age, not ours: the only thing keeping these is the name rule.
+  # The dated manifest snapshots are the ones an earlier pattern ate:
+  # every character is hex by accident, so only the missing .tmp tells
+  # a user's file from a staged download.
   theirs <- file.path(
     dir,
-    c("notes.txt", "brfss_2019.parquet.tmp", "my-brfss_2020.parquet-x.tmp")
+    c(
+      "notes.txt",
+      "brfss_2019.parquet.tmp",
+      "my-brfss_2020.parquet-x.tmp",
+      "manifest-2024.json",
+      "manifest-20240115.json"
+    )
   )
   live <- file.path(dir, "brfss_2021.parquet-beef00.tmp")
   for (f in c(ours, theirs, live)) {
@@ -541,4 +550,38 @@ test_that("cache info lists files only, never subdirectories", {
   expect_false("stray-subdir" %in% info$file)
   expect_true("brfss_2023.parquet" %in% info$file)
   expect_false(anyNA(info$size))
+})
+
+test_that("a failed catalog refresh stays due instead of being memoized", {
+  # The year path had this defect and fixed it; the catalog path had
+  # the identical one. A refresh that throws must not mark the asset
+  # checked, or a catalog known not to match the manifest is served
+  # silently for the rest of the session.
+  dir <- local_brfss_cache(2023)
+  asset <- "brfss_labels.parquet"
+  writeLines("corrupt but present", file.path(dir, asset))
+  local_mocked_bindings(
+    manifest_sha256 = function(...) strrep("a", 64),
+    download_to_cache = function(...) {
+      cli::cli_abort("no network", class = "brfssdata_download_error")
+    }
+  )
+  expect_true(asset_check_due(asset))
+  suppressMessages(ensure_catalog_cached(asset, "label catalog"))
+  expect_true(asset_check_due(asset))
+})
+
+test_that("a local-write failure keeps its classed condition", {
+  # download_failure_hint() renders the directory into its bullet. Left
+  # as a glue template, cli evaluated it in the signalling frame, found
+  # no `dir` there, reached base::dir and died with an unclassed
+  # coercion error, taking brfssdata_download_error with it.
+  hint <- download_failure_hint(NULL, dir = file.path(tempdir(), "nope"))
+  expect_false(any(grepl("{dir}", hint, fixed = TRUE)))
+  raise <- function(bullets) {
+    cli::cli_abort(c("Could not download.", bullets),
+      class = "brfssdata_download_error")
+  }
+  err <- expect_error(raise(hint), class = "brfssdata_download_error")
+  expect_match(conditionMessage(err), "local file-system failure")
 })

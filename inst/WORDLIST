@@ -4,7 +4,9 @@ BRFSS's
 CDC's
 CLI
 CMD
+Checksums
 Codebook
+Dont
 DuckDB
 Graubard
 HPC
@@ -16,6 +18,7 @@ LIBNAME
 LLCP
 Lifecycle
 Lumley
+MEDICATI
 MSA
 NCHS
 NCHS's
@@ -25,6 +28,7 @@ PSUs
 Palau
 Prefetch
 README
+README's
 RJ
 Roadmaps
 SAS's
@@ -41,9 +45,12 @@ Viya
 XPORT
 ZSTD
 allowlist
+allowlists
+another's
 auditable
 autocall
 brfss
+caregiving
 cdc
 checkable
 checksummed
@@ -68,7 +75,9 @@ lifecycle
 lossy
 matcher
 microdata
+mistyped
 nonresponse
+olds
 polars
 pre
 prefetch
@@ -80,8 +89,11 @@ sha
 srvyr
 srvyr's
 subpopulation
+syntaxes
 tibble
 tibbles
 tidycensus
+typo'd
 unreviewed
+unsplit
 zstd

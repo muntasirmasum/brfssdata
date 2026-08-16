@@ -62,10 +62,17 @@ brfss_cache_dir <- function() {
   # through, and the whole package then reported an empty cache and
   # wrote downloads to a nonsensical path. Validated here because this
   # is the single place the option is read.
+  # Trimmed before use, not merely before the emptiness test: a padded
+  # path in .Rprofile otherwise passed validation and was then used
+  # verbatim, where the leading space makes it a different (relative)
+  # directory.
+  if (is.character(dir) && length(dir) == 1L && !is.na(dir)) {
+    dir <- trimws(dir)
+  }
   shaped <- is.character(dir) &&
     length(dir) == 1L &&
     !is.na(dir) &&
-    nzchar(trimws(dir))
+    nzchar(dir)
   is_file <- shaped && file.exists(dir) && !dir.exists(dir)
   if (!shaped || is_file) {
     why <- if (is_file) {
@@ -370,9 +377,18 @@ download_failure_hint <- function(cond, dir = NULL) {
            be offline."
   )
   if (!is.null(dir) && !cache_dir_writable(dir)) {
+    # Rendered here, where `dir` exists, rather than handed to the
+    # caller as a glue template: cli evaluates a bullet's braces in the
+    # frame that signals the condition, and that frame has no `dir`, so
+    # the lookup used to reach base::dir and abort the abort with an
+    # unclassed "cannot coerce type 'closure'". Every fallback handler
+    # subscribes to brfssdata_download_error, so losing the class there
+    # turned a graceful degradation into a hard failure.
     return(c(
-      "i" = "Nothing could be written to {.path {dir}}, so this is a
-             local file-system failure, not a network one.",
+      "i" = escape_cli_braces(cli::format_inline(
+        "Nothing could be written to {.path {dir}}, so this is a
+         local file-system failure, not a network one."
+      )),
       "i" = "Point the cache at a writable directory with
              {.code options(brfssdata.cache_dir = ...)}."
     ))
@@ -500,8 +516,11 @@ ensure_cache_dir <- function(quiet = FALSE, call = rlang::caller_env()) {
 # The staging names this package generates inside the cache directory,
 # and nothing else does: download_to_cache()'s per-asset temp file
 # (curl appends its own .curltmp while a transfer is live) and
-# refresh_manifest()'s staged manifest. Anchored and hex-tailed so a
-# user's own file is never matched; every sweep runs through here, so
+# refresh_manifest()'s staged manifest. Every name this matches ends in
+# .tmp, which is the part no file a user keeps has. An earlier version
+# also matched a bare "manifest-<hex>.json", which silently deleted
+# dated snapshots such as manifest-2024.json and manifest-20240115.json,
+# both of which are hex by accident. Every sweep runs through here, so
 # this is the one place that decides what the package may delete.
 package_tmp_file <- function(file) {
   assets <- c(
@@ -513,7 +532,10 @@ package_tmp_file <- function(file) {
     "^(%s)-[0-9a-f]+\\.tmp(\\.curltmp)?$",
     paste(assets, collapse = "|")
   )
-  grepl(staging, file) | grepl("^manifest-[0-9a-f]+\\.json(\\.curltmp)?$", file)
+  # refresh_manifest() stages as manifest-<hex>.json.tmp, so the
+  # extension carries an inner .json the pattern above does not expect.
+  manifest_staging <- "^manifest-[0-9a-f]+\\.json\\.tmp(\\.curltmp)?$"
+  grepl(staging, file) | grepl(manifest_staging, file)
 }
 
 # Partial downloads are unlinked on error and on interrupt, but a
@@ -765,7 +787,10 @@ ensure_catalog_cached <- function(
 
   if (download && asset_check_due(asset)) {
     want <- manifest_sha256(asset, read_manifest())
-    if (!is.null(want) && !identical(cli::hash_file_sha256(path), want)) {
+    if (is.null(want) || identical(cli::hash_file_sha256(path), want)) {
+      # Nothing to heal, so the daily memo is honest.
+      asset_checked(asset)
+    } else {
       if (!quiet) {
         cli::cli_inform(
           "Refreshing the {what}: a newer copy is published.",
@@ -775,14 +800,17 @@ ensure_catalog_cached <- function(
       # A failed refresh keeps the cached copy: it was good enough
       # yesterday, and an offline session must not lose access to it
       # (the same fallback read_manifest() applies to the manifest).
-      tryCatch(
-        download_to_cache(
-          release_url("data-meta", asset),
-          path,
-          quiet = quiet,
-          expected_sha256 = want,
-          call = call
-        ),
+      healed <- tryCatch(
+        {
+          download_to_cache(
+            release_url("data-meta", asset),
+            path,
+            quiet = quiet,
+            expected_sha256 = want,
+            call = call
+          )
+          TRUE
+        },
         brfssdata_download_error = function(e) {
           cli::cli_inform(
             c(
@@ -790,10 +818,17 @@ ensure_catalog_cached <- function(
             ),
             class = "brfssdata_manifest_note"
           )
+          FALSE
         }
       )
+      # Marked only when the refresh actually landed. Marking a failed
+      # heal would serve a catalog known not to match the manifest,
+      # silently, for the rest of the session; that is the defect this
+      # release fixed on the year path, and it lived here too.
+      if (isTRUE(healed)) {
+        asset_checked(asset)
+      }
     }
-    asset_checked(asset)
   }
   path
 }

@@ -182,10 +182,14 @@ refresh_manifest <- function(path, quiet = FALSE) {
   # year download reaches it, so this is where the first-run cache note
   # is really emitted and where quiet has to be honored.
   ensure_cache_dir(quiet = quiet)
+  # Staged as .tmp, like every other file this package writes into the
+  # cache. The name is what sweep_stale_tmp() recognizes as ours, and a
+  # bare "manifest-<hex>.json" is indistinguishable from a dated
+  # snapshot a user keeps beside their cache.
   staged <- tempfile(
     pattern = "manifest-",
     tmpdir = dirname(path),
-    fileext = ".json"
+    fileext = ".json.tmp"
   )
   on.exit(unlink(staged), add = TRUE)
   download_to_cache(manifest_url(), staged, quiet = TRUE)

@@ -163,7 +163,15 @@ read_brfss <- function(
       years,
       quiet = quiet,
       download = download,
-      exclude = LABEL_EXCLUDE
+      exclude = LABEL_EXCLUDE,
+      # Names, not columns: the coverage signal is per-variable only for
+      # variables the caller chose, which is what makes it short enough
+      # to act on. A full-width read passes NULL and keeps the cliff.
+      requested = if (is.null(vars)) {
+        NULL
+      } else {
+        names(dat)[toupper(names(dat)) %in% toupper(vars)]
+      }
     )
   }
   if (!is.null(labels_mode)) {
@@ -187,10 +195,15 @@ read_brfss <- function(
 # plausible, so the analysis is simply of the wrong year. The `year`
 # column is always selected, so the comparison is free.
 #
-# Only years the request did not ask for count as evidence. A year that
-# contributes no rows (a states filter that no respondent of that year
-# satisfies) is legitimate, and so is a request spanning several years,
-# so the test is subset, not equality.
+# Two shapes of evidence, because comparing the pooled rows against the
+# whole request misses the likeliest hand-copy error of all. Copying
+# 1995's file over 1993's name and then reading both years yields only
+# 1995 rows, every one of them inside the request, so a subset test sees
+# nothing while 1995 is silently counted twice. So: any year the request
+# did not ask for is evidence, and so is a requested year whose file is
+# cached yet contributed no rows at all. The second case has an innocent
+# explanation (a states filter no respondent of that year satisfies),
+# which is why it triggers the per-file probe rather than the error.
 check_year_contents <- function(
   dat,
   years,
@@ -200,24 +213,42 @@ check_year_contents <- function(
   if (!"year" %in% names(dat) || nrow(dat) == 0) {
     return(invisible())
   }
-  extra <- setdiff(unique(dat$year), years)
-  if (length(extra) == 0) {
+  present <- unique(dat$year)
+  extra <- setdiff(present, years)
+  cached_years <- cached_file_year(basename(paths))
+  silent <- setdiff(cached_years[!is.na(cached_years)], present)
+  if (length(extra) == 0 && length(silent) == 0) {
     return(invisible())
   }
   # Only reached on a real mismatch, so the per-file probe costs nothing
-  # in the normal case. A file that cannot be read is left to
-  # query_parquet()'s corrupt-cache path, which already names it.
+  # in the normal case. Each file is judged against its OWN name, not
+  # against the request: that is what catches the swap above. A file
+  # that cannot be read is left to query_parquet()'s corrupt-cache path,
+  # which already names it.
   culprits <- vapply(
     paths,
     function(p) {
+      want <- cached_file_year(basename(p))
+      if (is.na(want)) {
+        return(FALSE)
+      }
       found <- tryCatch(
         unique(query_parquet(p, vars = "year")$year),
-        error = function(e) integer(0)
+        error = function(e) NULL
       )
-      any(!found %in% years)
+      if (is.null(found) || length(found) == 0) {
+        return(FALSE)
+      }
+      anyNA(found) || !all(found == want)
     },
     logical(1)
   )
+  if (!any(culprits)) {
+    # A requested year contributing nothing, with every file holding
+    # what its name promises: the states filter explanation, and
+    # warn_state_coverage() is the signal for it.
+    return(invisible())
+  }
   bad <- basename(paths[culprits])
   n_bad <- length(bad)
   bad_years <- cached_file_year(bad)
@@ -231,12 +262,38 @@ check_year_contents <- function(
     "Remove {.file {bad}} from {.path {brfss_cache_dir()}} and fetch
      {cli::qty(n_bad)}{?it/them} again."
   }
+  # Reported per file, from the file's own contents. Rendered here
+  # rather than left as a template because the years come from a
+  # damaged file and can be NA, which summarize_years() cannot format.
+  held <- escape_cli_braces(vapply(
+    paths[culprits],
+    function(p) {
+      found <- tryCatch(
+        sort(unique(query_parquet(p, vars = "year")$year)),
+        error = function(e) NULL
+      )
+      label <- if (is.null(found) || length(found) == 0) {
+        "no readable year"
+      } else if (anyNA(found)) {
+        paste0(
+          "missing years",
+          if (any(!is.na(found))) {
+            paste0(" and ", summarize_years(found[!is.na(found)]))
+          }
+        )
+      } else {
+        summarize_years(found)
+      }
+      cli::format_inline("{.file {basename(p)}} holds {label}")
+    },
+    character(1),
+    USE.NAMES = FALSE
+  ))
   cli::cli_abort(
     c(
-      "Cached file{?s} {.file {bad}} {?holds/hold} data that was not
-       requested.",
-      "x" = "Requested {summarize_years(years)}; the rows also carry
-             {summarize_years(extra)}.",
+      "Cached file{?s} {.file {bad}} {?does/do} not hold the survey
+       year{?s} {?its/their} name promises.",
+      rlang::set_names(held, rep("x", length(held))),
       "i" = "A file whose name and contents disagree is a damaged cache
              copy, not a survey-year quirk.",
       "i" = remedy
@@ -548,7 +605,16 @@ ensure_years_cached <- function(
     } else {
       integer(0)
     }
-    prefetchable <- setdiff(missing, unpublished)
+    # A year absent from this machine's manifest is only proof of
+    # anything when the manifest cannot be the reason. An air-gapped
+    # cache copied before the newest release lists fewer years than
+    # exist, and withholding the prefetch command on that basis sends
+    # the reader away from the one command that would have worked. A
+    # year that has not happened yet is a different matter: no refresh
+    # can produce it, so the prefetch really would only fail.
+    impossible <- unpublished[unpublished > as.integer(format(Sys.Date(), "%Y"))]
+    prefetchable <- setdiff(missing, impossible)
+    stale_risk <- setdiff(unpublished, impossible)
     bullets <- c(
       "Year{?s} {.val {as.character(missing)}} {?is/are} not in the
        local cache and {.code download = FALSE} was set.",
@@ -562,12 +628,23 @@ ensure_years_cached <- function(
                collapse = ', ')}))}."
       )
     }
-    if (length(unpublished) > 0) {
+    if (length(stale_risk) > 0) {
+      # One interpolated vector per bullet: cli refuses to guess which
+      # of two it should count when a plural marker is present.
       bullets <- c(
         bullets,
-        "i" = "Year{?s} {.val {as.character(unpublished)}} {?is/are} not
-               among the published releases, so no prefetch can supply
-               {?it/them}.",
+        "i" = "Year{?s} {.val {as.character(stale_risk)}} {?is/are} not in
+               this machine's copy of the manifest.",
+        "i" = "That copy may simply be older than the release, and the
+               prefetch above refreshes it. It lists
+               {summarize_years(published)}."
+      )
+    }
+    if (length(impossible) > 0) {
+      bullets <- c(
+        bullets,
+        "i" = "Year{?s} {.val {as.character(impossible)}} {?is/are} in
+               the future, so no prefetch can supply {?it/them}.",
         "i" = "Published years: {summarize_years(published)}."
       )
     }

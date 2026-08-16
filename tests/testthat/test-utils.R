@@ -150,3 +150,40 @@ test_that("an older duckdb is refused before a connection is opened", {
 test_that("the installed duckdb satisfies the package's own floor", {
   expect_true(duckdb_version() >= DUCKDB_MIN_VERSION)
 })
+
+test_that("every metadata lookup runs its flags through the shared gate", {
+  # Entry validation fires before any catalog, cache, or network use, so
+  # none of these need fixtures. read_brfss(), brfss_design(), and
+  # brfss_years() are covered in their own files; these are the exports
+  # whose flags used to reach `if (download)` unvalidated.
+  lookups <- list(
+    function(...) brfss_labels("GENHLTH", ...),
+    function(...) brfss_missing_codes("GENHLTH", ...),
+    function(...) brfss_vars("smok", ...),
+    function(...) brfss_codebook("GENHLTH", ...),
+    function(...) brfss_crosswalk("PERSDOC3", ...),
+    function(...) brfss_year_info(...)
+  )
+  for (f in lookups) {
+    expect_error(f(download = "x"), class = "brfssdata_bad_download_arg")
+    expect_error(f(quiet = NA), class = "brfssdata_bad_quiet_arg")
+  }
+  err <- expect_error(
+    brfss_labels("GENHLTH", download = NA),
+    class = "brfssdata_bad_download_arg"
+  )
+  expect_s3_class(err, "brfssdata_bad_bool_arg")
+  # The cache-side flags whose old behavior was silent coercion.
+  expect_error(
+    brfss_cache_info(verify = "yes"),
+    class = "brfssdata_bad_verify_arg"
+  )
+  expect_error(
+    brfss_download(catalogs = "x"),
+    class = "brfssdata_bad_catalogs_arg"
+  )
+  expect_error(
+    brfss_cache_clear(years = integer(0), catalogs = NA),
+    class = "brfssdata_bad_catalogs_arg"
+  )
+})

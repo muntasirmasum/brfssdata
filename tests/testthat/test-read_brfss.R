@@ -429,9 +429,24 @@ test_that("the not-cached error tells unpublished years from prefetchable", {
     read_brfss(2050, download = FALSE, quiet = TRUE),
     class = "brfssdata_not_cached"
   )
-  expect_match(conditionMessage(err), "not among the published releases")
+  expect_match(conditionMessage(err), "in the future")
   # Following the old advice failed with brfssdata_bad_year.
   expect_false(grepl("brfss_download(c(2050))", conditionMessage(err), fixed = TRUE))
+
+  # A year that has happened but is missing from THIS manifest is a
+  # stale-manifest case, not an unpublished one: an air-gapped cache
+  # copied before the newest release is the documented workflow, and
+  # the prefetch that would fix it must not be withheld.
+  err_stale <- expect_error(
+    read_brfss(2024, download = FALSE, quiet = TRUE),
+    class = "brfssdata_not_cached"
+  )
+  expect_match(
+    conditionMessage(err_stale),
+    "brfss_download(c(2024))",
+    fixed = TRUE
+  )
+  expect_match(conditionMessage(err_stale), "may simply be older")
 
   # A published year that is merely not cached keeps the prefetch hint.
   err2 <- expect_error(
@@ -454,7 +469,7 @@ test_that("the not-cached error tells unpublished years from prefetchable", {
     "brfss_download(c(2023))",
     fixed = TRUE
   )
-  expect_match(conditionMessage(err3), "not among the published releases")
+  expect_match(conditionMessage(err3), "in the future")
 })
 
 test_that("a case-insensitive match says which spelling came back", {
@@ -488,4 +503,35 @@ test_that("the case note stays one line for a wide lowercase request", {
   hits <- grep("matched case-insensitively", msgs, fixed = TRUE)
   expect_length(hits, 1L)
   expect_match(msgs[[hits]], "1 more", fixed = TRUE)
+})
+
+test_that("a swapped cache file is caught even when both years are requested", {
+  # The likeliest hand-copy error: one file copied over another's name.
+  # Comparing the pooled result against the whole request cannot see it,
+  # because every row's year is inside the request; the year requested
+  # twice is simply counted twice.
+  dir <- local_brfss_cache(c(1993, 1995))
+  file.copy(
+    file.path(dir, "brfss_1995.parquet"),
+    file.path(dir, "brfss_1993.parquet"),
+    overwrite = TRUE
+  )
+  err <- expect_error(
+    read_brfss(c(1993, 1995), vars = "GENHLTH", download = FALSE, quiet = TRUE),
+    class = "brfssdata_wrong_year_cache"
+  )
+  expect_match(conditionMessage(err), "brfss_1993.parquet", fixed = TRUE)
+  expect_s3_class(err, "brfssdata_corrupt_cache")
+})
+
+test_that("a year contributing no rows is not mistaken for a damaged file", {
+  # A states filter no respondent of that year satisfies is legitimate,
+  # and the files are all correct, so the wrong-year check must stay out
+  # of the way.
+  local_brfss_cache(c(2022, 2023), states = list("2022" = 1, "2023" = 2))
+  expect_no_error(
+    suppressWarnings(suppressMessages(
+      read_brfss(2022:2023, vars = "GENHLTH", states = 1, download = FALSE)
+    ))
+  )
 })

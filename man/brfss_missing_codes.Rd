@@ -56,9 +56,11 @@ on the tibble it returns, as a \code{brfss_na_recode} attribute: one row
 per variable, year, and code, with the number of values set to \code{NA}.
 It is there under \code{quiet = TRUE} too, when nothing is printed, so a
 missingness audit needs no second read of the raw year.
-\code{attr(dat, "brfss_na_recode")} reads it; dplyr verbs drop it, as they
-drop any attribute they do not know, so take it off the tibble
-\code{read_brfss()} handed you.
+\code{attr(dat, "brfss_na_recode")} reads it. Most dplyr verbs carry it
+along (\code{filter()}, \code{mutate()}, \code{select()} and their kin restore
+attributes they do not recognize), but \code{summarise()} drops it, as
+does anything that rebuilds the tibble from scratch, so read it off
+the object \code{read_brfss()} returned rather than out of a pipeline.
 }
 \examples{
 brfss_missing_codes("GENHLTH", years = 2023, download = FALSE)

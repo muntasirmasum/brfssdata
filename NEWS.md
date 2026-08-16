@@ -77,7 +77,7 @@ Initial CRAN release.
   and code matching is proof against R's scientific notation, so a
   future round code at or above 100,000 cannot be skipped.
 * The label-catalog builder reads two SAS syntaxes it used to
-  mis-parse, so the shipped catalog gains rows it had been dropping and
+  misread, so the shipped catalog gains rows it had been dropping and
   loses rows it had invented. A comma-separated code list
   (`77,99 = 'UNK/REF'`, CDC's style through 2001) previously kept only
   the last code, which is why the whole 7, 77, and 777 don't-know
@@ -156,7 +156,52 @@ Initial CRAN release.
 * A design variable missing from a damaged or foreign cached file now
   raises `brfssdata_bad_design_var`, the class the conditions page
   documents for it, and points at the cache remedy instead of at
-  variable search.
+  variable search. A weight the caller named is not treated as such:
+  `_LLCPWT2` exists in 2014 and 2016 but not 2015, and asking for it in
+  2015 reports a missing variable rather than accusing an intact file
+  of corruption and advising its deletion.
+* `_AGEG_` reads as CDC's aggregate age groups in 1999 and 2000.
+  CDC's assignment files for those years point the column at `AGEGFMT`,
+  whose six codes stop at 65+ and read 7 and 9 as unknown, while the
+  column actually holds the twelve codes of `_AGEGFMT`, which both
+  libraries define and which CDC assigns correctly from 2001. Codes 7
+  and 9 are the aggregates 18-34 and 55+, and 0, 8, 10, and 11 had no
+  labels at all. Under the wrong format `na = TRUE` deleted the age
+  group of 2,956 respondents whose age is known, every one of the 1,512
+  at code 7 in 2000 being aged 18 to 34.
+* A cached file holding another year's data is caught even when that
+  other year was also requested. Comparing the combined result against
+  the whole request could not see the likeliest hand-copy error of all,
+  one file copied over another's name, because every row's year was
+  inside the request and the year simply counted twice; each file is
+  now judged against its own name.
+* A failed catalog refresh no longer marks the catalog checked. The
+  daily recheck memo was corrected on the data path in this release,
+  and the value-label and crosswalk catalogs had the identical defect,
+  where one failed refresh served a catalog known not to match the
+  manifest for the rest of the session.
+* A cache directory that cannot be written to keeps its
+  `brfssdata_download_error` class. The message naming the directory
+  was assembled as a template and rendered in a frame that had no such
+  directory to name, so the error died inside its own construction with
+  a bare coercion failure carrying no class, and with it every fallback that
+  subscribes to that class, including the bundled-snapshot degradation.
+* The stale-download sweep no longer matches files a user keeps.
+  A dated snapshot such as `manifest-2024.json` is hex by accident, and
+  the pattern that recognized this package's own staged manifests
+  recognized those too and deleted them silently.
+* `na = TRUE` says which named variables the catalog does not cover,
+  rather than reporting a ratio. A 1999 read of `PHYSHLTH` beside
+  `GENHLTH` sat at exactly one covered variable of two, just inside a
+  threshold that required fewer than half, and said nothing at all
+  while `PHYSHLTH` kept its 77s. A year that never asked a loaded
+  question is no longer named either: an all-NA column carries no codes
+  to leave behind.
+* `download = FALSE` no longer withholds the prefetch command for a
+  year that is merely missing from this machine's manifest. An
+  air-gapped cache copied before the newest release is the documented
+  workflow, and it made the package assert that a published year does
+  not exist. Only a year in the future is refused outright.
 
 ## Discovery and metadata
 
@@ -485,6 +530,17 @@ Initial CRAN release.
   `quiet`. The articles also note how a degenerate subgroup behaves,
   which variables are stored as text, and how to keep don't-know and
   refused apart, the distinction R's single `NA` cannot hold.
+* `?brfss_design` and the vignette no longer say flatly that primary
+  sampling units are applied. From 2001 on they are not, deliberately,
+  and a design built for those years prints `ids: 1`, which reads as a
+  dropped design feature to anyone auditing against a Stata `svyset`
+  line. The era rule was documented only under the *Choosing a weight*
+  heading, where nobody looking for it would find it; it now has its own
+  section, *Why some years have no PSU term*, which states the numbers:
+  on 2023 the estimate, the standard error, and the degrees of freedom
+  are identical to the last bit of a double with and without the cluster
+  term, while on 1995, where PSUs are shared, the two specifications
+  genuinely differ.
 
 ## Known limitations
 

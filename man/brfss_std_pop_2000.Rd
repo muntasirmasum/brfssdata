@@ -51,8 +51,12 @@ has five groups with 45-64 combined (18-24 .128810, 25-34 .182648,
 direct age adjustment of BRFSS data specifies three (18-44 .530535,
 45-64 .299194, 65+ .170271). To reproduce a CDC table adjusted with
 either, sum the corresponding \code{adult6} rows: 45-54 and 55-64 give the
-45-64 weight, and the first three give the 18-44 weight, each to
-within the published tables' rounding. Adjusting with six groups
+45-64 weight, and the first three give the 18-44 weight, each within
+four units of the last digit CDC prints (the sums are 0.5305366 and
+0.2991955 against .530535 and .299194, since these rows are the 2000
+projection re-aggregated rather than CDC's rounded figures copied).
+The difference is far below anything an estimate shows. Adjusting
+with six groups
 instead is a defensible choice, and a different one, so say which you
 used.
 }

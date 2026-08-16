@@ -20,8 +20,8 @@ transient non-200 from orcid.org, not a property of the iD.
 
 ## Test environments
 
-* local macOS (aarch64), R 4.6.1, checked 2026-08-14: 0 errors, 0 warnings,
-  0 notes; test suite 729 passing, 0 failing, 0 skipped
+* local macOS (aarch64), R 4.6.1, checked 2026-08-15: 0 errors, 0 warnings,
+  0 notes; test suite 963 passing, 0 failing, 0 skipped
 * GitHub Actions: ubuntu-latest (R 4.2, release, devel, oldrel-1),
   windows-latest (release), macos-latest (release): all passing
 * win-builder (devel): 1 note (the DESCRIPTION spelling

@@ -381,9 +381,19 @@ brfss_cache_clear(catalogs = TRUE)
 BRFSS uses a complex sampling design, and unweighted estimates from it
 are wrong in both the point estimate and the standard error.
 `brfss_design()` returns a [srvyr](https://cran.r-project.org/package=srvyr)
-design object with the sampling weight, strata (`_STSTR`), and primary
-sampling units (`_PSU`) already applied, so you can move straight to
-analysis.
+design object with the sampling weight and strata (`_STSTR`) already
+applied, and the primary sampling units (`_PSU`) too in the years where
+those identify a real cluster, so you can move straight to analysis. The
+design states the specification it built, in `svyset` terms, as it is
+created.
+
+A design for 2001 or later prints `ids: 1`, and that is correct rather
+than a dropped design feature. CDC's public-use files from 2001 on number
+each respondent as their own PSU, so a cluster term would carry one level
+per row and change nothing: on 2023 the fair-or-poor `GENHLTH` estimate,
+its standard error, and its degrees of freedom are identical to the last
+bit with and without it. Through 2000 several respondents do share a
+`_PSU`, the clustering is real, and the design keeps it.
 
 ```{r design, message = FALSE}
 library(srvyr)

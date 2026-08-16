@@ -32,9 +32,11 @@
 #' per variable, year, and code, with the number of values set to `NA`.
 #' It is there under `quiet = TRUE` too, when nothing is printed, so a
 #' missingness audit needs no second read of the raw year.
-#' `attr(dat, "brfss_na_recode")` reads it; dplyr verbs drop it, as they
-#' drop any attribute they do not know, so take it off the tibble
-#' `read_brfss()` handed you.
+#' `attr(dat, "brfss_na_recode")` reads it. Most dplyr verbs carry it
+#' along (`filter()`, `mutate()`, `select()` and their kin restore
+#' attributes they do not recognize), but `summarise()` drops it, as
+#' does anything that rebuilds the tibble from scratch, so read it off
+#' the object `read_brfss()` returned rather than out of a pipeline.
 #'
 #' @inheritParams brfss_labels
 #'
@@ -52,6 +54,8 @@ brfss_missing_codes <- function(
   download = TRUE,
   quiet = TRUE
 ) {
+  download <- check_bool_arg(download, "download")
+  quiet <- check_bool_arg(quiet, "quiet")
   # Validated here, not just in the delegation, so a malformed vars or
   # years error names this function rather than brfss_labels().
   if (!is.null(vars) && (!is.character(vars) || anyNA(vars))) {
@@ -227,6 +231,7 @@ apply_missing_codes <- function(
   quiet = TRUE,
   download = TRUE,
   exclude = character(0),
+  requested = NULL,
   call = rlang::caller_env()
 ) {
   catalog <- labels_catalog(download = download, quiet = quiet, call = call)
@@ -326,7 +331,14 @@ apply_missing_codes <- function(
   attr(dat, "brfss_na_recode") <- recode_tally
   # The coverage signals are analytical, not progress output, so they
   # are deliberately not gated on quiet; silence them by class.
-  note_na_coverage(dat, years, catalog_years, covered_vars_by_year, exclude)
+  note_na_coverage(
+    dat,
+    years,
+    catalog_years,
+    covered_vars_by_year,
+    exclude,
+    requested = requested
+  )
   dat
 }
 
@@ -376,7 +388,8 @@ note_na_coverage <- function(
   years,
   catalog_years,
   covered_vars_by_year,
-  exclude
+  exclude,
+  requested = NULL
 ) {
   data_cols <- setdiff(names(dat), union(exclude, "year"))
   # With no eligible column loaded (a design-variables-only read), the
@@ -389,7 +402,22 @@ note_na_coverage <- function(
   unrecoded <- integer(0)
   partial <- character(0)
   for (y in intersect(years, catalog_years)) {
-    n_covered <- sum(data_cols %in% covered_vars_by_year[[as.character(y)]])
+    # A column the year did not carry at all arrives as an all-NA filler
+    # from union_by_name. It has no codes to recode, so counting it as
+    # uncovered raised a warning about don't-know codes surviving in a
+    # column that holds nothing. Only columns with data in this year
+    # count either way.
+    in_year <- dat$year == y
+    carried <- data_cols[vapply(
+      data_cols,
+      function(v) any(!is.na(dat[[v]][in_year])),
+      logical(1)
+    )]
+    if (length(carried) == 0) {
+      next
+    }
+    covered <- intersect(carried, covered_vars_by_year[[as.character(y)]])
+    n_covered <- length(covered)
     if (n_covered == 0) {
       # The catalog knows the year but none of the loaded variables, so
       # na = TRUE cleared nothing there. Graded with the no-catalog
@@ -397,13 +425,30 @@ note_na_coverage <- function(
       # estimates is identical, and 1998 reaches it easily (the year's
       # catalog covers under a quarter of the file).
       unrecoded <- c(unrecoded, y)
-    } else if (n_covered / length(data_cols) < 0.5) {
-      # Below half is a coverage cliff worth a note; modern years land
-      # well above 0.8 and stay quiet.
-      partial <- c(
-        partial,
-        sprintf("%d (%d of %d)", y, n_covered, length(data_cols))
-      )
+    } else {
+      # Two ways to be worth saying, because the useful signal depends
+      # on what the caller asked for. A named variable that the catalog
+      # does not cover is actionable and short, so it is named: a 1999
+      # read of PHYSHLTH (uncovered) beside GENHLTH (covered) sat at
+      # exactly one half under the old proportion cliff and said
+      # nothing at all, while PHYSHLTH kept its 77s. A full-width read
+      # cannot be told that usefully, since a modern year has dozens of
+      # uncovered columns nobody asked for, so it keeps the cliff.
+      missed <- setdiff(carried, covered)
+      named <- intersect(missed, requested %||% character(0))
+      if (length(named) > 0) {
+        partial <- c(
+          partial,
+          sprintf("%d (%s)", y, paste(utils::head(named, 5L), collapse = ", "))
+        )
+      } else if (
+        is.null(requested) && n_covered / length(carried) < 0.5
+      ) {
+        partial <- c(
+          partial,
+          sprintf("%d (%d of %d)", y, n_covered, length(carried))
+        )
+      }
     }
   }
   if (length(uncovered) == 0 && length(unrecoded) == 0 &&
@@ -456,9 +501,9 @@ note_na_coverage <- function(
   if (n_partial > 0) {
     cli::cli_inform(
       c(
-        "!" = "The catalog only partially covers the loaded variables
-               in {cli::qty(n_partial)}year{?s} {partial_txt}; codes in
-               the uncatalogued variables pass through unchanged.",
+        "!" = "The catalog covers only some of the loaded variables in
+               {cli::qty(n_partial)}year{?s} {partial_txt}; codes in the
+               variables named there pass through unchanged.",
         "i" = "See {.fun brfss_labels} for coverage and
                {.fun brfss_missing_codes} for what was cleared."
       ),
