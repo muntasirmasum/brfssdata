@@ -21,7 +21,13 @@ read_sas_text <- function(path) {
   text <- readLines(path, warn = FALSE)
   text <- iconv(text, "CP1252", "UTF-8", sub = "byte")
   text <- paste(text, collapse = "\n")
-  gsub("/\\*.*?\\*/", " ", text, perl = TRUE) # strip block comments
+  # (?s) so "." spans newlines: without it a multi-line /* */ comment
+  # survived whole, and CDC's commented-out VALUE blocks (1998 EDUCA,
+  # EMPLOY, INCOME, MARITAL among them) parsed as live definitions.
+  # Today the last-definition-wins rule happens to hide that, but a
+  # commented block holding a code the live one lacks would ship a
+  # phantom label.
+  gsub("(?s)/\\*.*?\\*/", " ", text, perl = TRUE) # strip block comments
 }
 
 # Split a VALUE block body into its `codes = "label"` entries. The
@@ -198,6 +204,7 @@ labels_year <- function(year) {
   if (file.exists(assign_path)) {
     map <- parse_format_assignments(assign_path)
     map <- map[map$variable %in% toupper(vars), , drop = FALSE]
+    map <- apply_assignment_corrections(map, year)
     source <- "assignments"
   } else {
     # Fallback: modern VALUE blocks are named after their variables.
@@ -235,6 +242,55 @@ labels_year <- function(year) {
     complete = joined$complete,
     stringsAsFactors = FALSE
   )
+}
+
+# Corrections to CDC's assignment files, applied before the join, for
+# the case where CDC pointed a variable at a format that describes a
+# different column. Correcting the assignment rather than the labels
+# brings the whole format across, which relabelling row by row cannot:
+# the wrong format is usually the shorter one, so the codes it never
+# mentions would otherwise stay uncatalogued.
+#
+# `_AGEG_` 1999 and 2000: assign_1999.sas:123 and assign_2000.sas:100
+# write `AGEGFMT.`, whose six codes stop at 65+ and read 7 and 9 as
+# UNK/REF. The column holds 1 through 11, which is `_AGEGFMT.`, defined
+# in both libraries (labels_1999.sas:1409, labels_2000.sas:1742) and
+# assigned correctly from 2001 (assign_2001.sas:98). The data settles
+# it: every one of the 1,512 respondents at code 7 in 2000 is aged 18
+# to 34, which is what `_AGEGFMT` calls that code, and none carries a
+# don't-know age. Under the wrong format `na = TRUE` deleted the age
+# group of 2,956 respondents across the two years whose age is known.
+assignment_corrections <- data.frame(
+  year = c(1999L, 2000L),
+  variable = c("_AGEG_", "_AGEG_"),
+  format = c("_AGEGFMT", "_AGEGFMT"),
+  stringsAsFactors = FALSE
+)
+
+apply_assignment_corrections <- function(map, year) {
+  want <- assignment_corrections[
+    assignment_corrections$year == year, ,
+    drop = FALSE
+  ]
+  if (nrow(want) == 0) {
+    return(map)
+  }
+  hit <- match(toupper(want$variable), toupper(map$variable))
+  if (anyNA(hit)) {
+    stop(
+      "assignment corrections matched no assignment row: ",
+      paste(want$variable[is.na(hit)], collapse = "; "),
+      " (", year, ")"
+    )
+  }
+  map$format[hit] <- want$format
+  message(sprintf(
+    "%d: %d format assignment%s corrected",
+    year,
+    nrow(want),
+    if (nrow(want) == 1) "" else "s"
+  ))
+  map
 }
 
 # Corrections to CDC's own format libraries, applied after the join.
