@@ -842,3 +842,73 @@ test_that("a non-numeric weight column says so", {
   expect_match(conditionMessage(err), "not a numeric column")
   expect_no_match(conditionMessage(err), "zero, negative")
 })
+
+test_that("a typo stays a bad var even when a design column is also absent", {
+  dir <- local_brfss_cache(integer(0))
+  df <- data.frame(
+    year = 2023L,
+    psu = 1:4,
+    ststr = c(1, 1, 2, 2),
+    GENHLTH = c(1, 2, 1, 2),
+    check.names = FALSE
+  )
+  names(df) <- c("year", "_PSU", "_STSTR", "GENHLTH")
+  write_fixture_parquet(df, file.path(dir, "brfss_2023.parquet"))
+  writeLines('{"years": [2023]}', file.path(dir, "manifest.json"))
+  # The file really is missing its era weight, but the request also
+  # misspells a variable. The typo error, hints intact, must win: the
+  # old handler probed the files, found _LLCPWT absent, and rewrote
+  # the typo into "clear your cache" advice.
+  expect_error(
+    brfss_design(2023, vars = "GENHLT", na = FALSE, quiet = TRUE),
+    class = "brfssdata_bad_var"
+  )
+})
+
+test_that("a weight the year carries but the filter empties drops the year", {
+  local_brfss_cache(
+    2022:2023,
+    alt_weights = 2022:2023,
+    states = list("2022" = 1:2, "2023" = 1:2),
+    child_states = list("2022" = 2, "2023" = 1)
+  )
+  # _CLLCPWT exists in both files, but state 1 fielded the module only
+  # in 2023, so filtering to state 1 leaves the 2022 domain empty. That
+  # used to abort as the weight being "not present in every requested
+  # year", which brfss_vars() disproves; the documented route is an
+  # empty-year design over the contributing years.
+  design <- NULL
+  # The participation warning fires too, and should: over the rows the
+  # weight covers, the 2022 side holds nothing.
+  expect_warning(
+    expect_warning(
+      design <- suppressMessages(brfss_design(
+        2022:2023,
+        vars = "GENHLTH",
+        states = 1,
+        weight = "_CLLCPWT",
+        na = FALSE,
+        quiet = TRUE
+      )),
+      class = "brfssdata_empty_year_warning"
+    ),
+    class = "brfssdata_pooled_states_warning"
+  )
+  expect_identical(unique(design$variables$year), 2023L)
+})
+
+test_that("a weight absent from a year's file still aborts", {
+  local_brfss_cache(2022:2023, alt_weights = 2023)
+  # The 2022 fixture has no _CLLCPWT column at all, the _LLCPWT2-in-2015
+  # shape; the schema check keeps this an error, not an empty year.
+  expect_error(
+    brfss_design(
+      2022:2023,
+      vars = "GENHLTH",
+      weight = "_CLLCPWT",
+      na = FALSE,
+      quiet = TRUE
+    ),
+    class = "brfssdata_bad_weight"
+  )
+})

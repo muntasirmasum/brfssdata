@@ -535,3 +535,20 @@ test_that("a year contributing no rows is not mistaken for a damaged file", {
     ))
   )
 })
+
+test_that("a cached file with no year column is indicted, not exonerated", {
+  dir <- local_brfss_cache(2022)
+  # A readable parquet with no year column under a year's name, the
+  # air-gapped hand-copy shape: union_by_name turns its rows into
+  # year = NA, and the file's own probe cannot select a year at all.
+  # Exonerating it used to serve the NA-year rows onward to an
+  # unclassed crash in the missing-code recode.
+  write_fixture_parquet(
+    data.frame(x = as.numeric(1:5)),
+    file.path(dir, "brfss_2023.parquet")
+  )
+  expect_error(
+    read_brfss(2022:2023, download = FALSE, quiet = TRUE),
+    class = "brfssdata_wrong_year_cache"
+  )
+})

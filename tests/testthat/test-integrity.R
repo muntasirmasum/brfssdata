@@ -193,8 +193,16 @@ test_that("a failed catalog refresh keeps the cached copy", {
       cli::cli_abort("offline", class = "brfssdata_download_error")
     }
   )
-  expect_message(
+  # Metadata lookups default to quiet = TRUE, which gates this
+  # housekeeping note; the cached copy serves either way, and a loud
+  # call still reports the degradation.
+  expect_no_message(
     out <- brfss_vars("stale"),
+    class = "brfssdata_manifest_note"
+  )
+  expect_identical(out$variable, "STALE")
+  expect_message(
+    out <- brfss_vars("stale", quiet = FALSE),
     class = "brfssdata_manifest_note"
   )
   expect_identical(out$variable, "STALE")
@@ -417,9 +425,43 @@ test_that("an offline manifest refresh on the read path degrades", {
       cli::cli_abort("offline", class = "brfssdata_download_error")
     }
   )
-  expect_message(
+  # quiet = TRUE gates the housekeeping fallback note on the read path
+  # exactly as it does from brfss_years(): one flag, one behavior. The
+  # data still serve, and a loud call still reports the degradation.
+  expect_no_message(
     dat <- read_brfss(2023, vars = "GENHLTH", quiet = TRUE),
     class = "brfssdata_manifest_note"
+  )
+  expect_gt(nrow(dat), 0)
+  manifest_state$last_failure <- NULL
+  expect_message(
+    dat <- read_brfss(2023, vars = "GENHLTH"),
+    class = "brfssdata_manifest_note"
+  )
+  expect_gt(nrow(dat), 0)
+})
+
+test_that("the first-run cache note honors quiet on the read path", {
+  parent <- withr::local_tempdir()
+  dir <- file.path(parent, "fresh-cache")
+  withr::local_options(brfssdata.cache_dir = dir)
+  local_manifest_state()
+  local_mocked_bindings(
+    download_to_cache = function(url, dest, ...) {
+      if (grepl("^manifest-", basename(dest))) {
+        writeLines('{"years": [2023]}', dest)
+      } else {
+        write_fixture_year(2023L, dirname(dest))
+      }
+      dest
+    }
+  )
+  # The note used to leak through validate_years() calling
+  # brfss_years() bare, so the very call quiet = TRUE was documented to
+  # silence announced the cache directory anyway.
+  expect_no_message(
+    dat <- read_brfss(2023, vars = "GENHLTH", quiet = TRUE),
+    class = "brfssdata_cache_note"
   )
   expect_gt(nrow(dat), 0)
 })

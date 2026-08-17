@@ -401,16 +401,27 @@ note_na_coverage <- function(
   uncovered <- setdiff(years, catalog_years)
   unrecoded <- integer(0)
   partial <- character(0)
-  for (y in intersect(years, catalog_years)) {
-    # A column the year did not carry at all arrives as an all-NA filler
-    # from union_by_name. It has no codes to recode, so counting it as
-    # uncovered raised a warning about don't-know codes surviving in a
-    # column that holds nothing. Only columns with data in this year
-    # count either way.
-    in_year <- dat$year == y
+  covered_years <- intersect(years, catalog_years)
+  # A column the year did not carry at all arrives as an all-NA filler
+  # from union_by_name. It has no codes to recode, so counting it as
+  # uncovered raised a warning about don't-know codes surviving in a
+  # column that holds nothing. Only columns with data in a year count
+  # either way, established in one pass per column up front:
+  # re-subsetting every column with a full-length year mask inside the
+  # loop is O(years x columns x rows) and reached whole seconds on
+  # pooled-design widths, in a diagnostics helper.
+  years_with_data <- if (length(covered_years) == 0) {
+    list()
+  } else {
+    lapply(
+      rlang::set_names(data_cols),
+      function(v) unique(dat$year[!is.na(dat[[v]])])
+    )
+  }
+  for (y in covered_years) {
     carried <- data_cols[vapply(
-      data_cols,
-      function(v) any(!is.na(dat[[v]][in_year])),
+      years_with_data,
+      function(ys) y %in% ys,
       logical(1)
     )]
     if (length(carried) == 0) {

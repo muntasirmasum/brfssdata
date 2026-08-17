@@ -54,6 +54,23 @@ value_entries <- function(body) {
     # is skipped rather than guessed at: CDC's older libraries carry
     # stray apostrophes that split one label into two literals.
     if (!endsWith(lhs, "=")) {
+      # A skipped literal that itself contains "=" is the dangerous
+      # variant of that split: the stray apostrophe paired the label's
+      # closing quote with the NEXT entry's opening quote, consuming
+      # that entry's assignment as label text, so the entry after the
+      # typo vanishes from the catalog. Zero live occurrences in the
+      # 1998-2024 corpus; this refuses to let the next one pass
+      # silently.
+      skipped <- substr(body, starts[[i]] + 1L, ends[[i]] - 1L)
+      if (grepl("=", skipped, fixed = TRUE)) {
+        warning(
+          "value_entries(): skipped a quoted segment containing '=' (",
+          substr(skipped, 1L, 60L),
+          "); a stray un-doubled apostrophe upstream may have swallowed ",
+          "the entry after it.",
+          call. = FALSE
+        )
+      }
       next
     }
     quote <- substr(body, starts[[i]], starts[[i]])

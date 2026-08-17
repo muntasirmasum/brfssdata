@@ -207,7 +207,12 @@ vars_arg_year_hint <- function(vars, fn) {
   )
 }
 
-validate_years <- function(years, download = TRUE, call = rlang::caller_env()) {
+validate_years <- function(
+  years,
+  download = TRUE,
+  quiet = FALSE,
+  call = rlang::caller_env()
+) {
   years <- check_years_arg(years, call = call)
 
   # Fully cached requests are honored as-is: no manifest lookup, no
@@ -221,7 +226,7 @@ validate_years <- function(years, download = TRUE, call = rlang::caller_env()) {
     return(years)
   }
 
-  available <- brfss_years()
+  available <- brfss_years(quiet = quiet)
   if (length(available) == 0) {
     cli::cli_abort(
       c(
@@ -552,6 +557,7 @@ query_parquet <- function(
           "i" = "Use {.fun brfss_vars} to search available variables
                  and the years they appear in."
         ),
+        missing_vars = unknown,
         class = "brfssdata_bad_var",
         call = call
       )

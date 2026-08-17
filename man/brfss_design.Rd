@@ -55,7 +55,9 @@ no effect when \code{weight} names a final weight.}
 2011 methodology change. A warning is still issued.}
 
 \item{pool_weights}{If \code{TRUE} and more than one year is requested,
-divide each weight by the number of years.}
+divide each weight by the number of years that contributed rows,
+which a \code{states} filter or the domain of a user-supplied \code{weight}
+can make smaller than the number requested (see Details).}
 
 \item{download}{If \code{FALSE}, only cached years are used and missing
 years raise an error instead of being downloaded.}
@@ -163,8 +165,8 @@ message, which matches CDC's module-analysis guidance. An explicitly
 named full-sample weight (\verb{_FINALWT}, \verb{_LLCPWT}) gets the same
 treatment as the automatic era weight instead: it must cover every
 respondent, and a missing value there means a damaged file and stops
-the build. A user-supplied weight is used for every requested year
-and still divides by the year count under \code{pool_weights}.
+the build. A user-supplied weight is used for every requested year,
+and pooling divides by the contributing-year count described below.
 
 The reverse mistake, a module variable analyzed under a full-sample
 weight, is caught by a confinement check: when a requested variable

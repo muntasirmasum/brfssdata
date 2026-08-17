@@ -55,8 +55,8 @@
 #' named full-sample weight (`_FINALWT`, `_LLCPWT`) gets the same
 #' treatment as the automatic era weight instead: it must cover every
 #' respondent, and a missing value there means a damaged file and stops
-#' the build. A user-supplied weight is used for every requested year
-#' and still divides by the year count under `pool_weights`.
+#' the build. A user-supplied weight is used for every requested year,
+#' and pooling divides by the contributing-year count described below.
 #'
 #' The reverse mistake, a module variable analyzed under a full-sample
 #' weight, is caught by a confinement check: when a requested variable
@@ -171,7 +171,9 @@
 #' @param allow_break Set to `TRUE` to permit pooling years across the
 #'   2011 methodology change. A warning is still issued.
 #' @param pool_weights If `TRUE` and more than one year is requested,
-#'   divide each weight by the number of years.
+#'   divide each weight by the number of years that contributed rows,
+#'   which a `states` filter or the domain of a user-supplied `weight`
+#'   can make smaller than the number requested (see Details).
 #' @param na If `TRUE` (the default here), set the codes CDC uses for
 #'   missing-type answers (don't know / not sure, refused, not asked) to
 #'   `NA` before the design is built, so estimates cover substantive
@@ -226,7 +228,7 @@ brfss_design <- function(
   # and missing-code recode.
   pkg_lonely <- validate_lonely_psu_option()
   validate_module_weight_check_option()
-  years <- validate_years(years, download = download)
+  years <- validate_years(years, download = download, quiet = quiet)
   if (
     !is.null(weight) &&
       (!is.character(weight) ||
@@ -441,9 +443,16 @@ brfss_design <- function(
   }
 
   if (!is.null(weight)) {
-    # A year that lacks the column entirely comes back all-NA under
-    # union_by_name; that means the weight does not exist in that year
-    # (e.g. _LLCPWT2 is absent from 2015).
+    # A year that comes back all-NA under union_by_name has two
+    # explanations with opposite remedies: the year's file lacks the
+    # column entirely (the weight does not exist in that year, e.g.
+    # _LLCPWT2 is absent from 2015), or the file carries it and the
+    # request's filters emptied its domain (states opt in and out of
+    # modules by year, so a states filter can leave a module weight
+    # with nothing). The frame cannot tell the two apart; the year's
+    # own file schema can. Only the first is an error. The second is
+    # the documented empty-domain route: the subset below drops the
+    # rows, and the contributing-years machinery names the year.
     na_by_year <- vapply(
       split(is.na(dat[[weight]]), dat$year),
       all,
@@ -451,17 +460,35 @@ brfss_design <- function(
     )
     absent_years <- as.integer(names(na_by_year))[na_by_year]
     if (length(absent_years) > 0) {
-      cli::cli_abort(
-        c(
-          "Weight {.val {requested_weight}} is not present in every
-           requested year.",
-          "x" = "Missing from year{?s}:
-                 {.val {as.character(absent_years)}}.",
-          "i" = "Use {.fun brfss_vars} to check availability, or request
-                 only the years that carry it."
-        ),
-        class = "brfssdata_bad_weight"
+      in_file <- vapply(
+        absent_years,
+        function(y) {
+          schema <- try_parquet_aggregate(
+            cache_path(year_asset(y)),
+            "DESCRIBE SELECT * FROM read_parquet(%s)"
+          )
+          # A failed probe keeps the abort: refusing a request is
+          # recoverable, silently serving a design the caller was told
+          # is impossible is not.
+          !is.null(schema) &&
+            toupper(weight) %in% toupper(schema$column_name)
+        },
+        logical(1)
       )
+      file_absent <- absent_years[!in_file]
+      if (length(file_absent) > 0) {
+        cli::cli_abort(
+          c(
+            "Weight {.val {requested_weight}} is not present in every
+             requested year.",
+            "x" = "Missing from year{?s}:
+                   {.val {as.character(file_absent)}}.",
+            "i" = "Use {.fun brfss_vars} to check availability, or
+                   request only the years that carry it."
+          ),
+          class = "brfssdata_bad_weight"
+        )
+      }
     }
     check_weight_numeric(dat, weight)
     # A user-supplied DOMAIN weight defines its analytic domain: a
@@ -761,30 +788,33 @@ brfss_design <- function(
   # respected. identical() rather than %in%: a malformed option of
   # length != 1 would make `if` error with "the condition has length
   # > 1".
-  psu_per_stratum <- if (singleton_psus) {
-    table(dat$brfss_strata)
-  } else {
-    tapply(dat$brfss_psu, dat$brfss_strata, function(p) length(unique(p)))
-  }
   if (!is.null(pkg_lonely)) {
     options(survey.lonely.psu = pkg_lonely)
-  } else if (
-    any(psu_per_stratum == 1) &&
-      identical(getOption("survey.lonely.psu", "fail"), "fail")
-  ) {
-    options(survey.lonely.psu = "adjust")
-    cli::cli_inform(
-      c(
-        "i" = "Set {.code options(survey.lonely.psu = \"adjust\")} for
-               single-PSU strata (standard BRFSS practice).",
-        "i" = "Set that option yourself, or set
-               {.code options(brfssdata.lonely_psu = ...)}, before
-               calling {.fun brfss_design} to choose different handling."
-      ),
-      .frequency = "once",
-      .frequency_id = "brfssdata_lonely_psu",
-      class = "brfssdata_lonely_psu_note"
-    )
+  } else if (identical(getOption("survey.lonely.psu", "fail"), "fail")) {
+    # The per-stratum tabulation walks every row and costs most of a
+    # second on a pooled design, so it runs only while the option is
+    # still unset and its answer can matter: a pinned option, or an
+    # earlier call in the session having set "adjust", skips it.
+    psu_per_stratum <- if (singleton_psus) {
+      table(dat$brfss_strata)
+    } else {
+      tapply(dat$brfss_psu, dat$brfss_strata, function(p) length(unique(p)))
+    }
+    if (any(psu_per_stratum == 1)) {
+      options(survey.lonely.psu = "adjust")
+      cli::cli_inform(
+        c(
+          "i" = "Set {.code options(survey.lonely.psu = \"adjust\")} for
+                 single-PSU strata (standard BRFSS practice).",
+          "i" = "Set that option yourself, or set
+                 {.code options(brfssdata.lonely_psu = ...)}, before
+                 calling {.fun brfss_design} to choose different handling."
+        ),
+        .frequency = "once",
+        .frequency_id = "brfssdata_lonely_psu",
+        class = "brfssdata_lonely_psu_note"
+      )
+    }
   }
 
   # A design object prints srvyr's syntactic column names only ("ids: 1,
@@ -793,20 +823,40 @@ brfss_design <- function(
   # there is no PSU term. State the specification the way a Stata log
   # states it, so it can be cross-checked against a coauthor's svyset.
   if (!quiet) {
-    wt_txt <- paste(weight_vars, collapse = " and ")
     strata_txt <- if (length(years) > 1) {
       paste0("year by ", DESIGN_STRATA)
     } else {
       DESIGN_STRATA
     }
+    # One svyset line per weight: a single line naming two pweight
+    # columns is not a specification Stata can state, and a cross-era
+    # design weights each row by its own era's column.
+    svyset_txt <- function(wt) {
+      if (singleton_psus) {
+        paste0("svyset [pw=", wt, "], strata(", strata_txt, ")")
+      } else {
+        paste0(
+          "svyset ", DESIGN_PSU, " [pw=", wt, "], strata(", strata_txt, ")"
+        )
+      }
+    }
+    spec_lines <- if (length(weight_vars) > 1L) {
+      c(
+        "i" = paste0(
+          "Design: {.code ", svyset_txt(weight_vars[[1L]]),
+          "} for years before ", BREAK_YEAR, "."
+        ),
+        "i" = paste0(
+          "Design: {.code ", svyset_txt(weight_vars[[2L]]),
+          "} for ", BREAK_YEAR, " on."
+        )
+      )
+    } else {
+      c("i" = paste0("Design: {.code ", svyset_txt(weight_vars), "}."))
+    }
     cli::cli_inform(
       c(
-        "i" = if (singleton_psus) {
-          "Design: {.code svyset [pw={wt_txt}], strata({strata_txt})}."
-        } else {
-          "Design: {.code svyset {DESIGN_PSU} [pw={wt_txt}],
-           strata({strata_txt})}."
-        },
+        spec_lines,
         if (singleton_psus) {
           c(
             "i" = "Each {DESIGN_STRATA}-by-{DESIGN_PSU} cell holds one
@@ -925,34 +975,47 @@ validate_module_weight_check_option <- function(call = rlang::caller_env()) {
   value
 }
 
-# Decide, from the cached files' own schema, whether a
-# brfssdata_bad_var raised by the read path was about a design column
-# brfss_design() injected or about a variable the user asked for. The
-# condition carries no column names, so the files answer instead. Only
-# the design-column direction is rewritten: a user-requested variable,
-# and any schema that cannot be read, re-signal unchanged.
+# Decide whether a brfssdata_bad_var raised by the read path was about
+# a design column brfss_design() injected or about a variable the user
+# asked for. The read path names its missing variables on the
+# condition, and that answer is authoritative: a set containing any
+# user-requested variable re-signals unchanged, typo hints intact,
+# because fixing the request comes before any verdict on the files.
+# The old probe of whatever files happened to be cached stays only as
+# the fallback for a nameless condition (not signaled by this
+# package's read path), and rewrites only when the schema confirms a
+# design column is really gone; it cannot tell a pristine
+# one-era-cached file from a damaged one, which is why the names win.
 rethrow_missing_design_var <- function(
   cnd,
   years,
   design_cols,
   call = rlang::caller_env()
 ) {
-  paths <- cached_year_paths(years)
-  schema <- if (length(paths) == 0) {
-    NULL
+  named <- cnd$missing_vars
+  if (!is.null(named)) {
+    if (any(!toupper(named) %in% toupper(design_cols))) {
+      stop(cnd)
+    }
+    absent <- named
   } else {
-    try_parquet_aggregate(
-      paths,
-      "DESCRIBE SELECT * FROM read_parquet(%s, union_by_name = true)"
-    )
-  }
-  absent <- if (is.null(schema)) {
-    character(0)
-  } else {
-    design_cols[!toupper(design_cols) %in% toupper(schema$column_name)]
-  }
-  if (length(absent) == 0) {
-    stop(cnd)
+    paths <- cached_year_paths(years)
+    schema <- if (length(paths) == 0) {
+      NULL
+    } else {
+      try_parquet_aggregate(
+        paths,
+        "DESCRIBE SELECT * FROM read_parquet(%s, union_by_name = true)"
+      )
+    }
+    absent <- if (is.null(schema)) {
+      character(0)
+    } else {
+      design_cols[!toupper(design_cols) %in% toupper(schema$column_name)]
+    }
+    if (length(absent) == 0) {
+      stop(cnd)
+    }
   }
   cli::cli_abort(
     c(

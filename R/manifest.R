@@ -43,25 +43,11 @@ brfss_years <- function(refresh = FALSE, download = TRUE, quiet = FALSE) {
         class = "brfssdata_manifest_note"
       )
     }
-    manifest <- quiet_manifest_notes(read_manifest_cached(), quiet)
+    manifest <- read_manifest_cached(quiet = quiet)
   } else {
-    manifest <- quiet_manifest_notes(
-      read_manifest(refresh = refresh, quiet = quiet),
-      quiet
-    )
+    manifest <- read_manifest(refresh = refresh, quiet = quiet)
   }
   sort(as.integer(manifest$years))
-}
-
-# quiet = TRUE silences the manifest's housekeeping notes the same way
-# it does on the read path, by class rather than by flag, so the notes
-# stay one implementation for every caller. `expr` is a promise, forced
-# inside the handler.
-quiet_manifest_notes <- function(expr, quiet) {
-  if (!quiet) {
-    return(expr)
-  }
-  suppressMessages(expr, classes = "brfssdata_manifest_note")
 }
 
 MANIFEST_MAX_AGE <- 60 * 60 * 24 # one day, in seconds
@@ -155,7 +141,11 @@ read_manifest <- function(refresh = FALSE, quiet = FALSE) {
     }
   }
 
-  if (download_failed) {
+  # Gated on the flag, not muffled by class: every entry point that
+  # accepts quiet threads it here, so one flag behaves the same from
+  # brfss_years() and from the read path. The note stays silenceable
+  # by class for callers that want exactly it gone.
+  if (download_failed && !quiet) {
     fallback <- if (manifest_usable(path)) {
       "a previously cached"
     } else {
@@ -170,7 +160,7 @@ read_manifest <- function(refresh = FALSE, quiet = FALSE) {
     )
   }
 
-  read_manifest_cached()
+  read_manifest_cached(quiet = quiet)
 }
 
 # Download into a staging file inside the cache directory and promote it
@@ -196,18 +186,22 @@ refresh_manifest <- function(path, quiet = FALSE) {
   if (!manifest_usable(staged)) {
     return(FALSE)
   }
-  isTRUE(file.rename(staged, path)) ||
-    isTRUE(file.copy(staged, path, overwrite = TRUE))
+  # Promoted through the same rename-retry ladder as every other cached
+  # file: the manifest is the one file every downloading session
+  # rewrites daily, so it meets the held-open rename failure most
+  # often, and the bare copy fallback can be observed half-written by
+  # a concurrent reader.
+  replace_cached_file(staged, path)
 }
 
 # Parse the manifest without ever touching the network: the cached copy
 # if present, the bundled fallback otherwise. The verification lookups on
 # the read path use this so a fully cached request stays offline.
-read_manifest_cached <- function() {
+read_manifest_cached <- function(quiet = FALSE) {
   path <- cache_path("manifest.json")
   if (!manifest_usable(path)) {
     if (file.exists(path)) {
-      note_unusable_manifest()
+      note_unusable_manifest(quiet)
     }
     path <- bundled_manifest_path()
   }
@@ -222,8 +216,12 @@ read_manifest_cached <- function() {
 # this several times per call. The memo lives in manifest_state, which
 # the test fixtures already save and restore, and a successful refresh
 # clears it.
-note_unusable_manifest <- function() {
-  if (isTRUE(manifest_state$unusable_noted)) {
+note_unusable_manifest <- function(quiet = FALSE) {
+  # A quiet caller neither shows the note nor consumes the memo: the
+  # repair hint stays available for the first loud call that can
+  # actually deliver it, instead of being latched away silently for
+  # the rest of the session.
+  if (isTRUE(quiet) || isTRUE(manifest_state$unusable_noted)) {
     return(invisible())
   }
   manifest_state$unusable_noted <- TRUE

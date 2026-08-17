@@ -323,3 +323,18 @@ test_that("a test can drive the manifest failure memo", {
 test_that("the manifest failure memo was restored by the fixture scope", {
   expect_null(manifest_state$last_failure)
 })
+
+test_that("a quiet call does not consume the unusable-manifest note", {
+  dir <- local_brfss_manifest(2023)
+  writeLines("not json", file.path(dir, "manifest.json"))
+  expect_no_message(
+    brfss_years(download = FALSE, quiet = TRUE),
+    class = "brfssdata_manifest_note"
+  )
+  # The silent call did not latch the once-per-session memo: the first
+  # loud call still delivers the repair hint.
+  expect_message(
+    brfss_years(download = FALSE),
+    class = "brfssdata_manifest_note"
+  )
+})

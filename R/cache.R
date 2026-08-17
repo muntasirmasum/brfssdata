@@ -194,7 +194,7 @@ brfss_download <- function(years = NULL, catalogs = TRUE, quiet = FALSE) {
   catalogs <- check_bool_arg(catalogs, "catalogs")
   quiet <- check_bool_arg(quiet, "quiet")
   if (!is.null(years)) {
-    years <- validate_years(years)
+    years <- validate_years(years, quiet = quiet)
     ensure_years_cached(years, download = TRUE, quiet = quiet)
   }
   if (catalogs) {
@@ -455,11 +455,24 @@ cache_path <- function(asset) {
 }
 
 # file.access() reports the real uid's permissions and is advisory on
-# Windows ACLs, so it is used to refuse before a 30 MB transfer and to
-# explain a failure afterwards, never as a promise that a write will
-# succeed.
+# Windows ACLs, in both directions: it can bless a directory a write
+# will fail in, and on network shares and redirected profiles it can
+# refuse one that writes fine. So a pass is still no promise that a
+# write will succeed, and a refusal is confirmed with a real write
+# probe before it may block every download.
 cache_dir_writable <- function(dir) {
-  dir.exists(dir) && file.access(dir, mode = 2L)[[1L]] == 0L
+  if (!dir.exists(dir)) {
+    return(FALSE)
+  }
+  if (file.access(dir, mode = 2L)[[1L]] == 0L) {
+    return(TRUE)
+  }
+  probe <- tempfile(pattern = "brfssdata-write-probe-", tmpdir = dir)
+  on.exit(unlink(probe), add = TRUE)
+  isTRUE(tryCatch(
+    suppressWarnings(file.create(probe)),
+    error = function(e) FALSE
+  ))
 }
 
 ensure_cache_dir <- function(quiet = FALSE, call = rlang::caller_env()) {
@@ -526,14 +539,17 @@ package_tmp_file <- function(file) {
   assets <- c(
     "brfss_[0-9]{4}\\.parquet",
     gsub(".", "\\.", CACHE_META_FILES, fixed = TRUE),
-    "manifest-[0-9a-f]+\\.json"
+    "manifest-[0-9a-f]+\\.json(\\.tmp)?"
   )
   staging <- sprintf(
     "^(%s)-[0-9a-f]+\\.tmp(\\.curltmp)?$",
     paste(assets, collapse = "|")
   )
   # refresh_manifest() stages as manifest-<hex>.json.tmp, so the
-  # extension carries an inner .json the pattern above does not expect.
+  # extension carries an inner .json the assets pattern would not
+  # otherwise expect; and download_to_cache() stages ONTO that name,
+  # composing manifest-<hex>.json.tmp-<hex>.tmp, which is why the
+  # manifest asset above accepts the optional inner .tmp.
   manifest_staging <- "^manifest-[0-9a-f]+\\.json\\.tmp(\\.curltmp)?$"
   grepl(staging, file) | grepl(manifest_staging, file)
 }
@@ -750,7 +766,7 @@ ensure_catalog_cached <- function(
         call = call
       )
     }
-    sha <- manifest_sha256(asset, read_manifest())
+    sha <- manifest_sha256(asset, read_manifest(quiet = quiet))
     if (is.null(sha)) {
       note_unverified(asset, quiet)
     }
@@ -786,17 +802,19 @@ ensure_catalog_cached <- function(
   }
 
   if (download && asset_check_due(asset)) {
-    want <- manifest_sha256(asset, read_manifest())
+    want <- manifest_sha256(asset, read_manifest(quiet = quiet))
     if (is.null(want) || identical(cli::hash_file_sha256(path), want)) {
       # Nothing to heal, so the daily memo is honest.
       asset_checked(asset)
     } else {
-      if (!quiet) {
-        cli::cli_inform(
-          "Refreshing the {what}: a newer copy is published.",
-          class = "brfssdata_cache_note"
-        )
-      }
+      # Not gated on quiet: the input bytes are changing mid-session,
+      # an integrity event this release promises to report even under
+      # quiet = TRUE, exactly as the year path announces its
+      # re-downloads. Silence it by class.
+      cli::cli_inform(
+        "Refreshing the {what}: a newer copy is published.",
+        class = "brfssdata_cache_note"
+      )
       # A failed refresh keeps the cached copy: it was good enough
       # yesterday, and an offline session must not lose access to it
       # (the same fallback read_manifest() applies to the manifest).
@@ -812,12 +830,17 @@ ensure_catalog_cached <- function(
           TRUE
         },
         brfssdata_download_error = function(e) {
-          cli::cli_inform(
-            c(
-              "!" = "Could not refresh the {what}; using the cached copy."
-            ),
-            class = "brfssdata_manifest_note"
-          )
+          # Quiet-gated, unlike the refresh note above: nothing about
+          # the data changed, the cached copy simply stays in service,
+          # which is housekeeping.
+          if (!quiet) {
+            cli::cli_inform(
+              c(
+                "!" = "Could not refresh the {what}; using the cached copy."
+              ),
+              class = "brfssdata_manifest_note"
+            )
+          }
           FALSE
         }
       )

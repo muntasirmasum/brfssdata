@@ -470,7 +470,11 @@ test_that("stale partial downloads are swept and foreign files are not", {
     c(
       "brfss_2019.parquet-0123abcd.tmp",
       "brfss_labels.parquet-89ab12.tmp.curltmp",
-      "manifest-4f2a99.json.tmp"
+      "manifest-4f2a99.json.tmp",
+      # download_to_cache() staging ONTO the staged manifest name, the
+      # composed residue a killed daily refresh really leaves.
+      "manifest-77aa00.json.tmp-0badbeef.tmp",
+      "manifest-77aa00.json.tmp-0badbeef.tmp.curltmp"
     )
   )
   # Same age, not ours: the only thing keeping these is the name rule.

@@ -99,7 +99,7 @@ read_brfss <- function(
   download <- check_bool_arg(download, "download")
   quiet <- check_bool_arg(quiet, "quiet")
   na <- check_bool_arg(na, "na")
-  years <- validate_years(years, download = download)
+  years <- validate_years(years, download = download, quiet = quiet)
   if (
     !is.null(vars) &&
       (!is.character(vars) || anyNA(vars) || length(vars) == 0)
@@ -222,9 +222,13 @@ check_year_contents <- function(
   }
   # Only reached on a real mismatch, so the per-file probe costs nothing
   # in the normal case. Each file is judged against its OWN name, not
-  # against the request: that is what catches the swap above. A file
-  # that cannot be read is left to query_parquet()'s corrupt-cache path,
-  # which already names it.
+  # against the request: that is what catches the swap above. The pooled
+  # read already succeeded, so a file whose solo probe errors is not
+  # unreadable; it is a file with no year column to select (the shape
+  # union_by_name turns into NA-year rows), and a file that probes empty
+  # holds no rows at all. A real hosted year always has a year column
+  # with rows in it, so both shapes indict the file; exonerating them
+  # here served the NA-year rows onward to an unclassed crash.
   culprits <- vapply(
     paths,
     function(p) {
@@ -237,7 +241,7 @@ check_year_contents <- function(
         error = function(e) NULL
       )
       if (is.null(found) || length(found) == 0) {
-        return(FALSE)
+        return(TRUE)
       }
       anyNA(found) || !all(found == want)
     },
@@ -488,6 +492,7 @@ check_vars_before_download <- function(
       "i" = "Use {.fun brfss_vars} to search available variables
              and the years they appear in."
     ),
+    missing_vars = unknown,
     class = "brfssdata_bad_var",
     call = call
   )

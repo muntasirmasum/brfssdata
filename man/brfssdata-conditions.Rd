@@ -85,6 +85,10 @@ fallback still applies.}
 \item{\code{brfssdata_corrupt_cache}}{A cached file is unreadable
 (typically a corrupted download from before verification); the
 message names the file and the \code{\link[=brfss_cache_clear]{brfss_cache_clear()}} remedy.}
+\item{\code{brfssdata_wrong_year_cache}}{A cached file does not hold
+the survey year its name promises (a hand-copied or damaged
+cache); the message says what each such file really holds. Also
+carries \code{brfssdata_corrupt_cache}, so one handler covers both.}
 \item{\code{brfssdata_duckdb_version}}{The installed duckdb is older
 than the version this package requires, so the argument that
 keeps DuckDB from writing to the home directory is unavailable;
@@ -122,15 +126,21 @@ state participation, so totals mix coverage. Participation is
 counted over the rows a user-supplied \code{weight} covers, the
 population the design actually estimates, not over the whole
 file.}
+\item{\code{brfssdata_empty_year_warning}}{A requested year contributed
+no rows to a pooled design (a \code{states} filter, or the domain of
+a user-supplied \code{weight}, emptied it), so pooled weights divide
+by the contributing years only and totals estimate an average
+contributing year.}
 \item{\code{brfssdata_label_drift_warning}}{Label wording for a
 variable changed meaning (not just formatting) across the
 requested years, so it kept CDC's numeric codes instead of
 converting to a factor; read the years separately if each
 year's own wording is wanted.}
-\item{\code{brfssdata_na_coverage_warning}}{\code{na = TRUE} was requested
-for years before 1998, where no value-label catalog exists at
-all, so no missing-type code was cleared there: estimates over
-those years still contain CDC's don't-know and refused codes.}
+\item{\code{brfssdata_na_coverage_warning}}{\code{na = TRUE} recoded nothing
+in a requested year, either because no value-label catalog
+exists for it (years before 1998) or because the catalog covers
+none of the loaded variables there: estimates over that year
+still contain CDC's don't-know and refused codes.}
 \item{\code{brfssdata_state_coverage_warning}}{A jurisdiction requested
 via \code{states} is absent from a requested year's file, so
 estimates for that year cover the remaining states only.}
@@ -150,6 +160,11 @@ a stale catalog refreshed, or the \code{\link[=brfss_download]{brfss_download()}
 not be refreshed; a cached or bundled copy was used.}
 \item{\code{brfssdata_lonely_psu_note}}{The once-per-session note that
 \code{survey.lonely.psu} was set to \code{"adjust"}.}
+\item{\code{brfssdata_design_spec_note}}{The specification of the
+design just built, stated the way a Stata log would (weight,
+strata, PSU term, pooling divisor; one \code{svyset} line per era
+weight when pooling crosses 2011), for cross-checking against a
+coauthor's \code{svyset}. Suppressed by \code{quiet = TRUE}.}
 \item{\code{brfssdata_unverified_note}}{An asset was downloaded without
 checksum verification (the available manifest carries no hash
 for it).}
@@ -182,6 +197,13 @@ column because \code{vars} was not given; \code{\link[=brfss_design]{brfss_desig
 \item{\code{brfssdata_rename_note}}{A requested variable is empty in
 years a sibling generation from the rename crosswalk covers;
 see \code{\link[=brfss_crosswalk]{brfss_crosswalk()}}.}
+\item{\code{brfssdata_case_match_note}}{\code{vars} matched columns
+case-insensitively; the note pairs each requested spelling with
+the CDC-canonical column name the returned data actually use.
+Suppressed by \code{quiet = TRUE}.}
+\item{\code{brfssdata_duplicate_label_note}}{\code{labels = TRUE} kept CDC's
+numeric codes for variables whose format gives several codes
+the same label, which a factor would merge into one level.}
 \item{\code{brfssdata_bundled_fallback_note}}{A metadata lookup was
 served from the snapshot bundled with the package (frozen at
 release) because nothing newer was cached and no download was
