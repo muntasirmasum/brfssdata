@@ -216,6 +216,10 @@ case-insensitively. The lowercase request below finds
 name.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="../reference/read_brfss.html">read_brfss</a></span><span class="op">(</span><span class="fl">2023</span>, vars <span class="op">=</span> <span class="st">"genhlth"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> 1 requested name matched case-insensitively; the column returned carries</span></span>
+<span><span class="co">#&gt;   CDC's spelling (genhlth as GENHLTH).</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Use the returned spelling in later steps; a `group_by()` on the name you</span></span>
+<span><span class="co">#&gt;   typed will not find it.</span></span>
 <span><span class="co">#&gt; [1] "GENHLTH" "year"</span></span></code></pre></div>
 <p>Notice the <code>year</code> column. It is added to every result,
 whether or not you ask for it, so a tibble always knows which survey
@@ -317,6 +321,17 @@ reports the years each match appears in.</p>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span> CIGAR2   EVER SMOKED CIGAR                        2001-2003</span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">10</span> CIGARNOW CURRENTLY SMOKE CIGARS                   2001-2003</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># ℹ 86 more rows</span></span></span></code></pre></div>
+<p>The labels being searched are CDC’s SAS variable labels, capped at 40
+characters and worded for the codebook rather than taken off the
+questionnaire. <code>PERSDOC3</code> carries
+<code>HAVE PERSONAL HEALTH CARE PROVIDER?</code>, so searching
+<code>doctor</code> in 2023 returns four other variables and not that
+one, and 135 of that year’s labels sit at the cap with the last word cut
+in half. Search single words instead of phrases, try a synonym or two,
+and try the stem CDC would have used in a name, since names abbreviate
+(<code>doctor</code> reaches <code>PERSDOC3</code> only as
+<code>doc</code>). A search that finds nothing is more often a
+vocabulary mismatch than an absent variable.</p>
 <p>The <code>years</code> column collapses runs of consecutive years, so
 <code>2005-2024</code> means every year in that span and
 <code>2011-2013, 2020</code> means a variable that appeared for three
@@ -352,13 +367,13 @@ as a plain table with one row per year, variable, and code.</p>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 7 × 5</span></span></span>
 <span><span class="co">#&gt;    year variable  code label              complete</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>   </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      4 Fair               TRUE    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      3 Good               TRUE    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      9 Refused            TRUE    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      7 Dont know/Not Sure TRUE    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      1 Excellent          TRUE    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      2 Very good          TRUE    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">7</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      5 Poor               TRUE</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      1 Excellent          TRUE    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      2 Very good          TRUE    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      3 Good               TRUE    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      4 Fair               TRUE    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      5 Poor               TRUE    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      7 Dont know/Not Sure TRUE    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">7</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      9 Refused            TRUE</span></span></code></pre></div>
 <p>Setting <code>labels = TRUE</code> on a read converts eligible
 variables to factors using those maps.</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
@@ -377,6 +392,11 @@ variables to factors using those maps.</p>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span> Good      Female  <span style="text-decoration: underline;">2</span>023</span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">10</span> Good      Male    <span style="text-decoration: underline;">2</span>023</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># ℹ 433,313 more rows</span></span></span></code></pre></div>
+<p>Two sex variables exist and they are not the same column.
+<code>SEXVAR</code> is the questionnaire response; <code>_SEX</code> is
+CDC’s calculated version, the one the weighting is built on, and the two
+disagree for 178 of 2023’s 433,323 records. Choose between them
+deliberately and name the choice in the write-up.</p>
 <p>Labeling renames codes; deciding which of them mean missing is a
 separate step, and the <code>GENHLTH</code> above has seven levels
 rather than five because CDC’s don’t-know and refused codes became
@@ -389,6 +409,7 @@ factor arrives with its five substantive levels.</p>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">GENHLTH</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Set 1258 responses across 1 variable to NA (don't know / refused / missing</span></span>
 <span><span class="co">#&gt;   codes).</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> By variable: GENHLTH 1258.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> See `brfss_missing_codes()` for the affected codes; disable with `na =</span></span>
 <span><span class="co">#&gt;   FALSE`.</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 6 × 2</span></span></span>
@@ -412,8 +433,8 @@ behavior is auditable rather than magic.</p>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 2 × 4</span></span></span>
 <span><span class="co">#&gt;    year variable  code label             </span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>             </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      9 Refused           </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      7 Dont know/Not Sure</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      7 Dont know/Not Sure</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      9 Refused</span></span></code></pre></div>
 <p>Conversion is deliberately conservative. A variable becomes a factor
 only when its CDC format is a pure code-to-label map, carrying no
 numeric ranges such as <code>1-30</code> days, when the map is an
@@ -430,8 +451,8 @@ days.</p>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 3 × 5</span></span></span>
 <span><span class="co">#&gt;    year variable  code label              complete</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>   </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>023 PHYSHLTH    88 None               FALSE   </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>023 PHYSHLTH    77 Dont know/Not sure FALSE   </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>023 PHYSHLTH    77 Dont know/Not sure FALSE   </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>023 PHYSHLTH    88 None               FALSE   </span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>  <span style="text-decoration: underline;">2</span>023 PHYSHLTH    99 Refused            FALSE</span></span></code></pre></div>
 <p>Turning that into a factor would silently destroy the day counts, so
 <code>labels = TRUE</code> leaves it numeric, and the catalog tells you
@@ -467,7 +488,7 @@ it.</p>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> brfss_2021.parquet       <span style="text-decoration: underline;">2</span>021 26<span style="text-decoration: underline;">033</span>879</span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> brfss_2022.parquet       <span style="text-decoration: underline;">2</span>022 26<span style="text-decoration: underline;">280</span>485</span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> brfss_2023.parquet       <span style="text-decoration: underline;">2</span>023 29<span style="text-decoration: underline;">077</span>288</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> brfss_labels.parquet       <span style="color: #BB0000;">NA</span>   <span style="text-decoration: underline;">119</span>739</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> brfss_labels.parquet       <span style="color: #BB0000;">NA</span>   <span style="text-decoration: underline;">120</span>958</span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> brfss_variables.parquet    <span style="color: #BB0000;">NA</span>    <span style="text-decoration: underline;">63</span>889</span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> manifest.json              <span style="color: #BB0000;">NA</span>     <span style="text-decoration: underline;">6</span>562</span></span></code></pre></div>
 <p>Because reads come from the cache, a year you have already downloaded
@@ -497,15 +518,16 @@ at a proxy, campus networks with allowlists, and HPC compute nodes with
 no outbound access. A blocked download fails with an error naming the
 likely cause, not a hang, and nothing partial is written to the cache.
 The prefetch recipe above is the way through. Populate the cache from an
-unrestricted machine (a modern survey year is 20 to 35 MB, all 40 years
-about 737 MB), copy the directory, and set
-<code>options(brfssdata.cache_dir = ...)</code> on the restricted one. A
-lab or a cluster needs only one such copy, since every user can point
-the same option at a shared directory. Variable discovery is never
-blocked. <code><a href="../reference/brfss_vars.html">brfss_vars()</a></code>, <code><a href="../reference/brfss_labels.html">brfss_labels()</a></code>,
-<code><a href="../reference/brfss_codebook.html">brfss_codebook()</a></code>, and <code><a href="../reference/brfss_crosswalk.html">brfss_crosswalk()</a></code> fall
-back to catalog snapshots bundled with the package, so codebook work
-runs before anything is downloaded.</p>
+unrestricted machine (a survey year from 2011 on is 20 to 45 MB, 2011
+itself the largest, and all 40 years about 737 MB), copy the directory,
+and set <code>options(brfssdata.cache_dir = ...)</code> on the
+restricted one. A lab or a cluster needs only one such copy, since every
+user can point the same option at a shared directory. Variable discovery
+is never blocked. <code><a href="../reference/brfss_vars.html">brfss_vars()</a></code>,
+<code><a href="../reference/brfss_labels.html">brfss_labels()</a></code>, <code><a href="../reference/brfss_codebook.html">brfss_codebook()</a></code>, and
+<code><a href="../reference/brfss_crosswalk.html">brfss_crosswalk()</a></code> fall back to catalog snapshots bundled
+with the package, so codebook work runs before anything is
+downloaded.</p>
 <p>Downloads are verified against the sha256 checksums published with
 each release, and a cached file that later turns out damaged is either
 re-downloaded automatically or named in an error along with the exact
@@ -527,9 +549,19 @@ variable searches.</p>
 <p>BRFSS uses a complex sampling design, and unweighted estimates from
 it are wrong in both the point estimate and the standard error.
 <code><a href="../reference/brfss_design.html">brfss_design()</a></code> returns a <a href="https://cran.r-project.org/package=srvyr" class="external-link">srvyr</a> design object
-with the sampling weight, strata (<code>_STSTR</code>), and primary
-sampling units (<code>_PSU</code>) already applied, so you can move
-straight to analysis.</p>
+with the sampling weight and strata (<code>_STSTR</code>) already
+applied, and the primary sampling units (<code>_PSU</code>) too in the
+years where those identify a real cluster, so you can move straight to
+analysis. The design states the specification it built, in
+<code>svyset</code> terms, as it is created.</p>
+<p>A design for 2001 or later prints <code>ids: 1</code>, and that is
+correct rather than a dropped design feature. CDC’s public-use files
+from 2001 on number each respondent as their own PSU, so a cluster term
+would carry one level per row and change nothing: on 2023 the
+fair-or-poor <code>GENHLTH</code> estimate, its standard error, and its
+degrees of freedom are identical to the last bit with and without it.
+Through 2000 several respondents do share a <code>_PSU</code>, the
+clustering is real, and the design keeps it.</p>
 <div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://gdfe.co/srvyr/" class="external-link">srvyr</a></span><span class="op">)</span></span>
 <span></span>

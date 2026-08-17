@@ -30,18 +30,41 @@ library(brfssdata)
 
 std <- subset(brfss_std_pop_2000, set == "adult6")
 std
-#>       set age_group age_min age_max  std_pop std_weight
-#> 20 adult6     18-24      18      24 26258428  0.1288111
-#> 21 adult6     25-34      25      34 37233437  0.1826492
-#> 22 adult6     35-44      35      44 44659185  0.2190763
-#> 23 adult6     45-54      45      54 37030152  0.1816520
-#> 24 adult6     55-64      55      64 23961506  0.1175435
-#> 25 adult6       65+      65      NA 34709480  0.1702679
+#> # A tibble: 6 × 6
+#>   set    age_group age_min age_max  std_pop std_weight
+#>   <chr>  <chr>       <int>   <int>    <dbl>      <dbl>
+#> 1 adult6 18-24          18      24 26258428      0.129
+#> 2 adult6 25-34          25      34 37233437      0.183
+#> 3 adult6 35-44          35      44 44659185      0.219
+#> 4 adult6 45-54          45      54 37030152      0.182
+#> 5 adult6 55-64          55      64 23961506      0.118
+#> 6 adult6 65+            65      NA 34709480      0.170
 ```
 
 The weights reproduce the age-18-and-over distribution in Klein and
-Schoenborn’s Statistical Note 20, the same distribution CDC uses to
-age-adjust adult BRFSS estimates.
+Schoenborn’s Statistical Note 20.
+
+CDC’s own BRFSS adjustment is coarser than six groups. The *BRFSS Direct
+Age Adjustment* users guide standardizes most BRFSS questions to three
+categories, 18-44, 45-64, and 65 and over, weighted 0.530534557,
+0.299194019, and 0.170271424. Those are the same projected population
+collapsed further, so the `adult6` rows give them by addition: rows 1
+through 3 for the first, rows 4 and 5 for the second, row 6 for the
+third.
+
+``` r
+
+p3 <- c(sum(std$std_pop[1:3]), sum(std$std_pop[4:5]), std$std_pop[6])
+
+p3 / sum(p3)
+#> [1] 0.5305366 0.2991955 0.1702679
+```
+
+The two groupings serve different purposes. Three categories is what
+reproduces CDC’s published age-adjusted tables. Six controls the age
+variation inside 18-44 and 45-64 that three leaves alone, and returns a
+slightly different number for it. Both are defensible; the write-up has
+to say which one produced the figure.
 
 ## Crude and adjusted, one year
 
@@ -121,6 +144,10 @@ Over the whole 2023 file the two differ modestly, because the sample’s
 weighted age distribution sits near the 2000 standard. The adjustment
 earns its keep in comparisons.
 
+That call standardizes on the six groups. Passing `p3` instead, with a
+matching three-level `by` variable, is the version that lines up with
+CDC’s published tables; the next section runs both.
+
 ## Comparing states with different age structures
 
 Florida’s adult population is much older than Utah’s, and fair-or-poor
@@ -139,7 +166,8 @@ two <- brfss_design(
 ) |>
   mutate(
     age_group = factor(`_AGE_G`, levels = 1:6, labels = std$age_group),
-    fair_poor = GENHLTH >= 4,
+    age3 = cut(`_AGE_G`, c(0, 3, 5, 6), labels = c("18-44", "45-64", "65+")),
+    fair_poor = as.numeric(GENHLTH >= 4),
     state = factor(`_STATE`)
   )
 
@@ -155,13 +183,37 @@ two |>
 #> 2 49        0.143      0.00451
 ```
 
-Crudely, Florida (FIPS 12) sits near 19 percent and Utah (FIPS 49) near
-14. Standardizing within each state (`over = ~state`) puts both on the
-2000 age distribution:
+Crudely, Florida (FIPS 12) sits at 19.1 percent and Utah (FIPS 49) at
+14.3. Standardizing within each state (`over = ~state`) puts both on the
+2000 age distribution. CDC’s three categories first:
 
 ``` r
 
-two_std <- svystandardize(
+two_std3 <- svystandardize(
+  two,
+  by = ~age3,
+  over = ~state,
+  population = p3,
+  excluding.missing = ~ fair_poor + age3
+)
+
+svyby(~fair_poor, ~state, two_std3, svymean, na.rm = TRUE, vartype = "ci")
+#>    state fair_poor      ci_l      ci_u
+#> 12    12 0.1796502 0.1643326 0.1949677
+#> 49    49 0.1436004 0.1348084 0.1523924
+```
+
+CDC’s Prevalence & Trends tool publishes 18.0 percent (16.4 to 19.5) for
+Florida and 14.4 (13.5 to 15.2) for Utah on this measure in 2023. Both
+estimates and both intervals agree to rounding, which is the check to
+run before a published figure and your own are set side by side.
+
+The six-group standard is the same call with `age_group` and
+`std$std_pop` in place of `age3` and `p3`:
+
+``` r
+
+two_std6 <- svystandardize(
   two,
   by = ~age_group,
   over = ~state,
@@ -169,17 +221,25 @@ two_std <- svystandardize(
   excluding.missing = ~ fair_poor + age_group
 )
 
-svyby(~fair_poor, ~state, two_std, svymean, na.rm = TRUE)
-#>    state fair_poorFALSE fair_poorTRUE se.fair_poorFALSE se.fair_poorTRUE
-#> 12    12      0.8226126     0.1773874       0.007687164      0.007687164
-#> 49    49      0.8569790     0.1430210       0.004392674      0.004392674
+svyby(~fair_poor, ~state, two_std6, svymean, na.rm = TRUE, vartype = "ci")
+#>    state fair_poor      ci_l      ci_u
+#> 12    12 0.1773874 0.1623208 0.1924540
+#> 49    49 0.1430210 0.1344115 0.1516305
 ```
 
-Florida’s estimate drops by more than a point once its older age
-structure no longer counts against it, while Utah’s barely moves; about
-a third of the crude gap between the two states was age, not health.
-What survives adjustment is the number to compare across states, and the
-number CDC’s own age-adjusted tables report.
+Florida comes back at 17.7 against 18.0, a quarter of a point below the
+three-category figure and outside publication rounding; Utah stays at
+14.3. The finer grouping is not wrong; it answers a slightly different
+question. What it will not do is reproduce CDC’s table, and it should
+not be offered as if it had. Choose by what the number is for: three
+categories to reproduce or sit beside a CDC estimate, six when the
+comparison is internal and the extra control is worth departing from the
+published series.
+
+Under either grouping Florida drops by more than a point once its older
+age structure no longer counts against it, while Utah barely moves;
+about a quarter of the crude gap between the two states was age, not
+health.
 
 ## Cautions
 
@@ -210,10 +270,10 @@ standard age distribution, which is the comparison that was wanted.
 
 Standardize before estimating subgroups, and note that a subgroup’s
 standardized estimate uses the standard’s age distribution, not the
-subgroup’s own. CDC’s published age-adjusted figures occasionally use a
-measure-specific age grouping rather than the six-group standard, so
-when matching a published table exactly, check the measure’s
-documentation first; the `age19` set covers the finer groupings.
+subgroup’s own. CDC applies the three categories above to most BRFSS
+questions, and a few measures carry a grouping of their own, so check
+the measure’s documentation before claiming an exact match; the `age19`
+set covers the finer groupings.
 
 The whole-file estimates above are not fifty-state figures. The 2023
 public-use file covers 52 reporting areas, 48 states plus the District
@@ -233,6 +293,11 @@ both.
 Klein RJ, Schoenborn CA. *Age adjustment using the 2000 projected U.S.
 population.* Healthy People 2010 Statistical Notes, No. 20. Hyattsville,
 Maryland: National Center for Health Statistics, 2001.
+
+Centers for Disease Control and Prevention. *BRFSS Direct Age
+Adjustment*, published with the annual BRFSS documentation
+(<https://www.cdc.gov/brfss/annual_data/annual_data.htm>), which gives
+the three age categories and their weights.
 
 The table itself is aggregated from SEER’s single-age rendering of the
 Census P25-1130 projection (<https://seer.cancer.gov/stdpopulations/>),

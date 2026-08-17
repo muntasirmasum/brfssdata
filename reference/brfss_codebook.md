@@ -60,6 +60,11 @@ without the ordinary values around them. Read magnitudes against CDC's
 codebook for the year, whose address is
 `brfss_year_info()$codebook_url`.
 
+It documents codes that exist, too. A column also carries blanks, from
+skip patterns and partial interviews, which reach R as `NA` with no code
+of their own; the card says so but cannot count them, since that is a
+property of the year's file rather than of the catalogs.
+
 ## See also
 
 [`brfss_vars()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_vars.md),
@@ -84,5 +89,9 @@ brfss_codebook("GENHLTH", years = 2023, download = FALSE)
 #>   5: Poor
 #>   7: Dont know/Not Sure [missing-type]
 #>   9: Refused [missing-type]
+#> Blank: not every respondent is asked every question (skip patterns, partial
+#> interviews), and those answers carry no code. They arrive as `NA`, this card
+#> cannot count them, and they are why `mean()` returns `NA` without `na.rm =
+#> TRUE`.
 #> 
 ```

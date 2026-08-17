@@ -130,6 +130,10 @@ looks no different here from an unscaled one, and a range format
 lists its special codes without the ordinary values around them.
 Read magnitudes against CDC's codebook for the year, whose address
 is <code>brfss_year_info()$codebook_url</code>.</p>
+<p>It documents codes that exist, too. A column also carries blanks,
+from skip patterns and partial interviews, which reach R as <code>NA</code> with
+no code of their own; the card says so but cannot count them, since
+that is a property of the year's file rather than of the catalogs.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -153,6 +157,10 @@ is <code>brfss_year_info()$codebook_url</code>.</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   5: Poor</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   7: Dont know/Not Sure [missing-type]</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   9: Refused [missing-type]</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Blank: not every respondent is asked every question (skip patterns, partial</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> interviews), and those answers carry no code. They arrive as `NA`, this card</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> cannot count them, and they are why `mean()` returns `NA` without `na.rm =</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> TRUE`.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 </code></pre></div>
     </div>

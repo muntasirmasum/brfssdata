@@ -61,6 +61,25 @@ A tibble with columns `year`, `variable`, `code`, and `label`, one row
 per code the missing-value rules match. Labels cover 1998 on, so earlier
 years never appear.
 
+## Details
+
+This function says what `na = TRUE` *would* clear. For what a particular
+read did clear, `read_brfss(na = TRUE)` leaves the count on the tibble
+it returns, as a `brfss_na_recode` attribute: one row per variable,
+year, and code, with the number of values set to `NA`. It is there under
+`quiet = TRUE` too, when nothing is printed, so a missingness audit
+needs no second read of the raw year. `attr(dat, "brfss_na_recode")`
+reads it. Most dplyr verbs carry it along
+([`filter()`](https://dplyr.tidyverse.org/reference/filter.html),
+[`mutate()`](https://dplyr.tidyverse.org/reference/mutate.html),
+[`select()`](https://dplyr.tidyverse.org/reference/select.html) and
+their kin restore attributes they do not recognize), but
+[`summarise()`](https://dplyr.tidyverse.org/reference/summarise.html)
+drops it, as does anything that rebuilds the tibble from scratch, so
+read it off the object
+[`read_brfss()`](https://muntasirmasum.github.io/brfssdata/reference/read_brfss.md)
+returned rather than out of a pipeline.
+
 ## See also
 
 [`brfss_labels()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_labels.md)
@@ -73,6 +92,6 @@ brfss_missing_codes("GENHLTH", years = 2023, download = FALSE)
 #> # A tibble: 2 × 4
 #>    year variable  code label             
 #>   <int> <chr>    <int> <chr>             
-#> 1  2023 GENHLTH      9 Refused           
-#> 2  2023 GENHLTH      7 Dont know/Not Sure
+#> 1  2023 GENHLTH      7 Dont know/Not Sure
+#> 2  2023 GENHLTH      9 Refused           
 ```

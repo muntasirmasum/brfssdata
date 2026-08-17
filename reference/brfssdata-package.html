@@ -58,6 +58,28 @@ Download, cache, and analyze annual microdata from the United States Centers for
 
 
     <div class="section level2">
+    <h2 id="getting-started">Getting started<a class="anchor" aria-label="anchor" href="#getting-started"></a></h2>
+
+
+<p><code><a href="read_brfss.html">read_brfss()</a></code> downloads a survey year once, caches it, and reads the
+columns you name into a tibble. <code><a href="brfss_design.html">brfss_design()</a></code> returns the same
+extract as an srvyr survey design with the year's own weight,
+strata, and PSU already set, which is what prevalence estimates and
+their intervals need.</p>
+<p>To find out what to ask for, <code><a href="brfss_vars.html">brfss_vars()</a></code> searches variable names
+and labels across years, <code><a href="brfss_codebook.html">brfss_codebook()</a></code> prints what the catalogs
+know about a variable, and <code><a href="brfss_crosswalk.html">brfss_crosswalk()</a></code> follows CDC's renames
+across generations. <code><a href="brfss_labels.html">brfss_labels()</a></code> and <code><a href="brfss_missing_codes.html">brfss_missing_codes()</a></code> are
+the value-label and missing-code tables behind the <code>labels</code> and <code>na</code>
+arguments of the two read paths.</p>
+<p><code><a href="brfss_years.html">brfss_years()</a></code>, <code><a href="brfss_year_info.html">brfss_year_info()</a></code>, and <code><a href="brfss_download.html">brfss_download()</a></code> cover
+what is published and what is cached; <code><a href="brfss_cache_dir.html">brfss_cache_dir()</a></code>,
+<code><a href="brfss_cache_dir.html">brfss_cache_info()</a></code>, and <code><a href="brfss_cache_dir.html">brfss_cache_clear()</a></code> manage the cache
+itself, and <code><a href="brfss_citation.html">brfss_citation()</a></code> cites the years you used.
+<a href="brfssdata-conditions.html">brfssdata-conditions</a> lists the class of every error, warning, and
+message the package signals.</p>
+    </div>
+    <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p>Useful links:</p><ul><li><p><a href="https://muntasirmasum.github.io/brfssdata/">https://muntasirmasum.github.io/brfssdata/</a></p></li>
 <li><p><a href="https://github.com/muntasirmasum/brfssdata" class="external-link">https://github.com/muntasirmasum/brfssdata</a></p></li>

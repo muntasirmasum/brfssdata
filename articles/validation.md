@@ -109,12 +109,20 @@ interval, which is what NCHS presentation standards call for:
 
 library(survey)
 
-svyciprop(~I(GENHLTH == 5), des, method = "beta")
-#>                    2.5% 97.5%
-#> I(GENHLTH == 5) NA   NA    NA
+svyciprop(~I(GENHLTH == 5), des, method = "beta", na.rm = TRUE)
+#>                          2.5%  97.5%
+#> I(GENHLTH == 5) 0.0446 0.0432 0.0459
 ```
 
-Compare that with the symmetric interval from
+The `na.rm = TRUE` is not optional on a design built with `na = TRUE`.
+[`svyciprop()`](https://rdrr.io/pkg/survey/man/svyciprop.html) defaults
+to `na.rm = FALSE`, and one `NA` anywhere in the column carries through
+the whole calculation, so the estimate and both limits come back `NA`
+with no warning to say why.
+[`survey_mean()`](http://gdfe.co/srvyr/reference/survey_mean.md) takes
+the same argument for the same reason.
+
+Compare the result with the symmetric interval from
 [`survey_mean()`](http://gdfe.co/srvyr/reference/survey_mean.md) for the
 same quantity; for prevalences under about five percent, or any estimate
 whose Wald interval crosses zero, report the Korn-Graubard one.
@@ -125,7 +133,8 @@ A reproducible BRFSS result states the weighted estimate with its
 confidence interval and method, the unweighted number of respondents
 behind it, the suppression rule applied, a one-sentence design statement
 (final weight, strata, PSU, and the lonely-PSU handling, which this
-package sets to `"adjust"`), and the per-year data citation, which
+package sets to `"adjust"` when the design contains a single-PSU
+stratum), and the per-year data citation, which
 [`brfss_citation()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_citation.md)
 writes:
 

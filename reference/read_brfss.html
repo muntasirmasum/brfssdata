@@ -109,8 +109,11 @@ column always identifies the survey year of each row.</p>
 <dd><p>Optional character vector of variable names to return.
 The default returns every variable. Names are matched
 case-insensitively (<code>"genhlth"</code> finds <code>GENHLTH</code>), and returned
-columns always carry CDC's canonical spelling. Use <code><a href="brfss_vars.html">brfss_vars()</a></code>
-to search names across years.</p></dd>
+columns always carry CDC's canonical spelling; a name that matched
+only case-insensitively is reported in a
+<code>brfssdata_case_match_note</code> message, because the spelling that
+worked here will not work in the next <code>dplyr</code> verb. Use
+<code><a href="brfss_vars.html">brfss_vars()</a></code> to search names across years.</p></dd>
 
 
 <dt id="arg-states">states<a class="anchor" aria-label="anchor" href="#arg-states"></a></dt>
@@ -131,10 +134,13 @@ years raise an error instead of being downloaded.</p></dd>
 
 <dt id="arg-quiet">quiet<a class="anchor" aria-label="anchor" href="#arg-quiet"></a></dt>
 <dd><p>If <code>TRUE</code>, suppress progress and housekeeping output:
-download progress, cache notes, the full-load hint, and the
-<code>na = TRUE</code> recode tally. Notes and warnings about what the data
-mean (renames, missing-code coverage, weight-domain subsetting)
-signal regardless of <code>quiet</code>; silence a specific one by its class,
+download progress, cache notes, the full-load hint, the
+case-matching note, and the <code>na = TRUE</code> recode tally. Notes and
+warnings about what the data mean (renames, missing-code coverage,
+weight-domain subsetting) signal regardless of <code>quiet</code>, as does the
+note that a cached file failed its size or checksum check and was
+re-downloaded, which reports that the input bytes changed rather
+than narrating progress; silence a specific one by its class,
 e.g. <code>suppressMessages(..., classes = "brfssdata_rename_note")</code>.
 See <a href="brfssdata-conditions.html">brfssdata-conditions</a> for every class.</p></dd>
 

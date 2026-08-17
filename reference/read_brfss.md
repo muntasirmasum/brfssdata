@@ -41,7 +41,9 @@ read_brfss(
   Optional character vector of variable names to return. The default
   returns every variable. Names are matched case-insensitively
   (`"genhlth"` finds `GENHLTH`), and returned columns always carry CDC's
-  canonical spelling. Use
+  canonical spelling; a name that matched only case-insensitively is
+  reported in a `brfssdata_case_match_note` message, because the
+  spelling that worked here will not work in the next `dplyr` verb. Use
   [`brfss_vars()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_vars.md)
   to search names across years.
 
@@ -65,10 +67,13 @@ read_brfss(
 - quiet:
 
   If `TRUE`, suppress progress and housekeeping output: download
-  progress, cache notes, the full-load hint, and the `na = TRUE` recode
-  tally. Notes and warnings about what the data mean (renames,
-  missing-code coverage, weight-domain subsetting) signal regardless of
-  `quiet`; silence a specific one by its class, e.g.
+  progress, cache notes, the full-load hint, the case-matching note, and
+  the `na = TRUE` recode tally. Notes and warnings about what the data
+  mean (renames, missing-code coverage, weight-domain subsetting) signal
+  regardless of `quiet`, as does the note that a cached file failed its
+  size or checksum check and was re-downloaded, which reports that the
+  input bytes changed rather than narrating progress; silence a specific
+  one by its class, e.g.
   `suppressMessages(..., classes = "brfssdata_rename_note")`. See
   [brfssdata-conditions](https://muntasirmasum.github.io/brfssdata/reference/brfssdata-conditions.md)
   for every class.

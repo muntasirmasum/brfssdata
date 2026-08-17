@@ -149,6 +149,10 @@ carries the canonical name.
 ``` r
 
 names(read_brfss(2023, vars = "genhlth"))
+#> ℹ 1 requested name matched case-insensitively; the column returned carries
+#>   CDC's spelling (genhlth as GENHLTH).
+#> ℹ Use the returned spelling in later steps; a `group_by()` on the name you
+#>   typed will not find it.
 #> [1] "GENHLTH" "year"
 ```
 
@@ -263,6 +267,16 @@ brfss_vars("smok")
 #> # ℹ 86 more rows
 ```
 
+The labels being searched are CDC’s SAS variable labels, capped at 40
+characters and worded for the codebook rather than taken off the
+questionnaire. `PERSDOC3` carries `HAVE PERSONAL HEALTH CARE PROVIDER?`,
+so searching `doctor` in 2023 returns four other variables and not that
+one, and 135 of that year’s labels sit at the cap with the last word cut
+in half. Search single words instead of phrases, try a synonym or two,
+and try the stem CDC would have used in a name, since names abbreviate
+(`doctor` reaches `PERSDOC3` only as `doc`). A search that finds nothing
+is more often a vocabulary mismatch than an absent variable.
+
 The `years` column collapses runs of consecutive years, so `2005-2024`
 means every year in that span and `2011-2013, 2020` means a variable
 that appeared for three years, disappeared, and came back once. Reading
@@ -307,13 +321,13 @@ brfss_labels("GENHLTH", years = 2023)
 #> # A tibble: 7 × 5
 #>    year variable  code label              complete
 #>   <int> <chr>    <int> <chr>              <lgl>   
-#> 1  2023 GENHLTH      4 Fair               TRUE    
-#> 2  2023 GENHLTH      3 Good               TRUE    
-#> 3  2023 GENHLTH      9 Refused            TRUE    
-#> 4  2023 GENHLTH      7 Dont know/Not Sure TRUE    
-#> 5  2023 GENHLTH      1 Excellent          TRUE    
-#> 6  2023 GENHLTH      2 Very good          TRUE    
-#> 7  2023 GENHLTH      5 Poor               TRUE
+#> 1  2023 GENHLTH      1 Excellent          TRUE    
+#> 2  2023 GENHLTH      2 Very good          TRUE    
+#> 3  2023 GENHLTH      3 Good               TRUE    
+#> 4  2023 GENHLTH      4 Fair               TRUE    
+#> 5  2023 GENHLTH      5 Poor               TRUE    
+#> 6  2023 GENHLTH      7 Dont know/Not Sure TRUE    
+#> 7  2023 GENHLTH      9 Refused            TRUE
 ```
 
 Setting `labels = TRUE` on a read converts eligible variables to factors
@@ -338,6 +352,12 @@ read_brfss(2023, vars = c("GENHLTH", "SEXVAR"), labels = TRUE)
 #> # ℹ 433,313 more rows
 ```
 
+Two sex variables exist and they are not the same column. `SEXVAR` is
+the questionnaire response; `_SEX` is CDC’s calculated version, the one
+the weighting is built on, and the two disagree for 178 of 2023’s
+433,323 records. Choose between them deliberately and name the choice in
+the write-up.
+
 Labeling renames codes; deciding which of them mean missing is a
 separate step, and the `GENHLTH` above has seven levels rather than five
 because CDC’s don’t-know and refused codes became factor levels like any
@@ -351,6 +371,7 @@ read_brfss(2023, vars = "GENHLTH", labels = TRUE, na = TRUE) |>
   count(GENHLTH)
 #> ℹ Set 1258 responses across 1 variable to NA (don't know / refused / missing
 #>   codes).
+#> ℹ By variable: GENHLTH 1258.
 #> ℹ See `brfss_missing_codes()` for the affected codes; disable with `na =
 #>   FALSE`.
 #> # A tibble: 6 × 2
@@ -380,8 +401,8 @@ brfss_missing_codes("GENHLTH", years = 2023)
 #> # A tibble: 2 × 4
 #>    year variable  code label             
 #>   <int> <chr>    <int> <chr>             
-#> 1  2023 GENHLTH      9 Refused           
-#> 2  2023 GENHLTH      7 Dont know/Not Sure
+#> 1  2023 GENHLTH      7 Dont know/Not Sure
+#> 2  2023 GENHLTH      9 Refused
 ```
 
 Conversion is deliberately conservative. A variable becomes a factor
@@ -401,8 +422,8 @@ brfss_labels("PHYSHLTH", years = 2023)
 #> # A tibble: 3 × 5
 #>    year variable  code label              complete
 #>   <int> <chr>    <int> <chr>              <lgl>   
-#> 1  2023 PHYSHLTH    88 None               FALSE   
-#> 2  2023 PHYSHLTH    77 Dont know/Not sure FALSE   
+#> 1  2023 PHYSHLTH    77 Dont know/Not sure FALSE   
+#> 2  2023 PHYSHLTH    88 None               FALSE   
 #> 3  2023 PHYSHLTH    99 Refused            FALSE
 ```
 
@@ -443,7 +464,7 @@ brfss_cache_info()
 #> 1 brfss_2021.parquet       2021 26033879
 #> 2 brfss_2022.parquet       2022 26280485
 #> 3 brfss_2023.parquet       2023 29077288
-#> 4 brfss_labels.parquet       NA   119739
+#> 4 brfss_labels.parquet       NA   120958
 #> 5 brfss_variables.parquet    NA    63889
 #> 6 manifest.json              NA     6562
 ```
@@ -483,11 +504,11 @@ campus networks with allowlists, and HPC compute nodes with no outbound
 access. A blocked download fails with an error naming the likely cause,
 not a hang, and nothing partial is written to the cache. The prefetch
 recipe above is the way through. Populate the cache from an unrestricted
-machine (a modern survey year is 20 to 35 MB, all 40 years about 737
-MB), copy the directory, and set `options(brfssdata.cache_dir = ...)` on
-the restricted one. A lab or a cluster needs only one such copy, since
-every user can point the same option at a shared directory. Variable
-discovery is never blocked.
+machine (a survey year from 2011 on is 20 to 45 MB, 2011 itself the
+largest, and all 40 years about 737 MB), copy the directory, and set
+`options(brfssdata.cache_dir = ...)` on the restricted one. A lab or a
+cluster needs only one such copy, since every user can point the same
+option at a shared directory. Variable discovery is never blocked.
 [`brfss_vars()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_vars.md),
 [`brfss_labels()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_labels.md),
 [`brfss_codebook()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_codebook.md),
@@ -520,8 +541,19 @@ BRFSS uses a complex sampling design, and unweighted estimates from it
 are wrong in both the point estimate and the standard error.
 [`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
 returns a [srvyr](https://cran.r-project.org/package=srvyr) design
-object with the sampling weight, strata (`_STSTR`), and primary sampling
-units (`_PSU`) already applied, so you can move straight to analysis.
+object with the sampling weight and strata (`_STSTR`) already applied,
+and the primary sampling units (`_PSU`) too in the years where those
+identify a real cluster, so you can move straight to analysis. The
+design states the specification it built, in `svyset` terms, as it is
+created.
+
+A design for 2001 or later prints `ids: 1`, and that is correct rather
+than a dropped design feature. CDC’s public-use files from 2001 on
+number each respondent as their own PSU, so a cluster term would carry
+one level per row and change nothing: on 2023 the fair-or-poor `GENHLTH`
+estimate, its standard error, and its degrees of freedom are identical
+to the last bit with and without it. Through 2000 several respondents do
+share a `_PSU`, the clustering is real, and the design keeps it.
 
 ``` r
 

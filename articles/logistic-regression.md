@@ -34,12 +34,12 @@ brfss_labels("EDUCA", years = 2023)
 #> # A tibble: 7 × 5
 #>    year variable  code label                                            complete
 #>   <int> <chr>    <int> <chr>                                            <lgl>   
-#> 1  2023 EDUCA        2 Grades 1 through 8 (Elementary)                  TRUE    
-#> 2  2023 EDUCA        4 Grade 12 or GED (High school graduate)           TRUE    
-#> 3  2023 EDUCA        1 Never attended school or only kindergarten       TRUE    
-#> 4  2023 EDUCA        3 Grades 9 through 11 (Some high school)           TRUE    
-#> 5  2023 EDUCA        6 College 4 years or more (College graduate)       TRUE    
-#> 6  2023 EDUCA        5 College 1 year to 3 years (Some college or tech… TRUE    
+#> 1  2023 EDUCA        1 Never attended school or only kindergarten       TRUE    
+#> 2  2023 EDUCA        2 Grades 1 through 8 (Elementary)                  TRUE    
+#> 3  2023 EDUCA        3 Grades 9 through 11 (Some high school)           TRUE    
+#> 4  2023 EDUCA        4 Grade 12 or GED (High school graduate)           TRUE    
+#> 5  2023 EDUCA        5 College 1 year to 3 years (Some college or tech… TRUE    
+#> 6  2023 EDUCA        6 College 4 years or more (College graduate)       TRUE    
 #> 7  2023 EDUCA        9 Refused                                          TRUE
 ```
 

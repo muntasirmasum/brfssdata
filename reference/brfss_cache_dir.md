@@ -5,7 +5,9 @@ directory so repeat use, and offline work, never re-download. The cache
 location follows
 [`tools::R_user_dir()`](https://rdrr.io/r/tools/userdir.html) and can be
 redirected with `options(brfssdata.cache_dir = ...)` or the
-`R_USER_CACHE_DIR` environment variable.
+`R_USER_CACHE_DIR` environment variable. The option must be a single
+non-empty path that is not an existing regular file; anything else is
+rejected (`brfssdata_bad_option`) rather than read as an empty cache.
 
 - `brfss_cache_dir()` returns the cache directory path.
 

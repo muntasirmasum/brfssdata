@@ -28,13 +28,13 @@ brfss_labels("GENHLTH", years = 2023)
 #> # A tibble: 7 × 5
 #>    year variable  code label              complete
 #>   <int> <chr>    <int> <chr>              <lgl>   
-#> 1  2023 GENHLTH      4 Fair               TRUE    
-#> 2  2023 GENHLTH      3 Good               TRUE    
-#> 3  2023 GENHLTH      9 Refused            TRUE    
-#> 4  2023 GENHLTH      7 Dont know/Not Sure TRUE    
-#> 5  2023 GENHLTH      1 Excellent          TRUE    
-#> 6  2023 GENHLTH      2 Very good          TRUE    
-#> 7  2023 GENHLTH      5 Poor               TRUE
+#> 1  2023 GENHLTH      1 Excellent          TRUE    
+#> 2  2023 GENHLTH      2 Very good          TRUE    
+#> 3  2023 GENHLTH      3 Good               TRUE    
+#> 4  2023 GENHLTH      4 Fair               TRUE    
+#> 5  2023 GENHLTH      5 Poor               TRUE    
+#> 6  2023 GENHLTH      7 Dont know/Not Sure TRUE    
+#> 7  2023 GENHLTH      9 Refused            TRUE
 ```
 
 The `complete` column marks formats that are pure code-to-label maps.
@@ -48,15 +48,19 @@ brfss_labels("PHYSHLTH", years = 2023)
 #> # A tibble: 3 × 5
 #>    year variable  code label              complete
 #>   <int> <chr>    <int> <chr>              <lgl>   
-#> 1  2023 PHYSHLTH    88 None               FALSE   
-#> 2  2023 PHYSHLTH    77 Dont know/Not sure FALSE   
+#> 1  2023 PHYSHLTH    77 Dont know/Not sure FALSE   
+#> 2  2023 PHYSHLTH    88 None               FALSE   
 #> 3  2023 PHYSHLTH    99 Refused            FALSE
 ```
 
 Labels cover 1998 onward. CDC does not distribute usable format
-libraries for earlier years, so both switches quietly have nothing to
-work with there (a coverage note tells you when a request touches those
-years).
+libraries for earlier years, so neither switch has anything to work with
+there. `labels = TRUE` leaves the variables numeric and says nothing
+about it. `na = TRUE` does say something, because a silent no-op leaves
+CDC’s don’t-know and refused codes sitting in the data as if they were
+answers: a request touching a year with no catalog at all raises a
+`brfssdata_na_coverage_warning`, and a year the catalog covers only
+thinly, 1998 itself among them, raises a `brfssdata_na_coverage_note`.
 
 ## labels = TRUE: conversion, conservatively
 
@@ -164,9 +168,60 @@ brfss_missing_codes("GENHLTH", years = 2023)
 #> # A tibble: 2 × 4
 #>    year variable  code label             
 #>   <int> <chr>    <int> <chr>             
-#> 1  2023 GENHLTH      9 Refused           
-#> 2  2023 GENHLTH      7 Dont know/Not Sure
+#> 1  2023 GENHLTH      7 Dont know/Not Sure
+#> 2  2023 GENHLTH      9 Refused
 ```
+
+## Keeping don’t know apart from refused
+
+Stata has extended missing values, `.a` through `.z`, and analysts
+arriving from it expect don’t know and refused to survive as distinct
+kinds of missing. R has one `NA`, so `na = TRUE` folds them together.
+For 2023 `PHYSHLTH` that is 9,072 don’t-know answers and 1,710 refusals
+arriving as the same thing, and a question about who declines to answer
+can no longer be asked of the result.
+
+The middle path is to read with `na = FALSE` and derive the distinction
+from the catalog, which already carries the reason in its `label`
+column. Join it on year and code, keep the reason in a column of its
+own, and clear the value afterwards:
+
+``` r
+
+reasons <- brfss_missing_codes("PHYSHLTH", years = 2023) |>
+  mutate(
+    reason = case_when(
+      startsWith(label, "Don") ~ "dont know",
+      startsWith(label, "Refus") ~ "refused",
+      .default = "other missing"
+    )
+  ) |>
+  select(year, code, reason)
+
+phys <- read_brfss(2023, vars = "PHYSHLTH", na = FALSE, quiet = TRUE) |>
+  left_join(reasons, by = join_by(year, PHYSHLTH == code)) |>
+  mutate(
+    reason = factor(
+      coalesce(reason, "answered"),
+      levels = c("answered", "dont know", "refused", "other missing")
+    ),
+    PHYSHLTH = if_else(reason == "answered", PHYSHLTH, NA)
+  )
+
+count(phys, reason)
+#> # A tibble: 3 × 2
+#>   reason         n
+#>   <fct>      <int>
+#> 1 answered  422541
+#> 2 dont know   9072
+#> 3 refused     1710
+```
+
+`PHYSHLTH` is now what `na = TRUE` would have given, and `reason`
+carries what was lost, so a nonresponse model or a sensitivity analysis
+that treats refusal differently from don’t know still has its inputs.
+Joining on `year` as well as code is what makes this safe across years,
+since CDC’s codes for a variable are not guaranteed to hold still.
 
 ## The 88 trap: “None” is an answer, not a missing code
 
@@ -228,6 +283,37 @@ withCallingHandlers(
 )
 ```
 
-The `quiet` argument, by contrast, governs progress narration only.
-Analytical signals, including everything above, fire regardless, and are
-silenced by class, never by `quiet = TRUE`.
+The `quiet` argument is a narrower control, and it does reach one of
+these. It silences progress narration and the recode tally with it,
+since the tally reports what a read did rather than cautioning about it.
+The tally itself survives: `na = TRUE` attaches it to the result as the
+`brfss_na_recode` attribute, one row per variable, year, and code, so a
+quiet read is still auditable. Most dplyr verbs carry it along, but
+[`summarise()`](https://dplyr.tidyverse.org/reference/summarise.html)
+drops it, so read it off the object
+[`read_brfss()`](https://muntasirmasum.github.io/brfssdata/reference/read_brfss.md)
+returned rather than out of the middle of a pipeline.
+
+``` r
+
+recoded <- read_brfss(
+  2023,
+  vars = c("GENHLTH", "PHYSHLTH"),
+  na = TRUE,
+  quiet = TRUE
+)
+
+attr(recoded, "brfss_na_recode")
+#> # A tibble: 4 × 4
+#>   variable  year  code     n
+#>   <chr>    <int> <dbl> <int>
+#> 1 GENHLTH   2023     7   897
+#> 2 GENHLTH   2023     9   361
+#> 3 PHYSHLTH  2023    77  9072
+#> 4 PHYSHLTH  2023    99  1710
+```
+
+The coverage and drift signals are not gated on `quiet` at all.
+`brfssdata_na_coverage_warning`, `brfssdata_na_coverage_note`, and
+`brfssdata_label_drift_warning` fire whatever it is set to, and are
+silenced by class.

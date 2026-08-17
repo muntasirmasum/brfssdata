@@ -3,6 +3,14 @@
 searches the variable catalog that accompanies the data releases and
 reports, for each match, which years carry the variable. The catalog is
 downloaded once and cached like the data itself.
+The label text searched here is CDC's SAS variable label, capped at
+40 characters: its wording is not the questionnaire's, and long ones
+are cut off, sometimes mid-word (PERSDOC3 reads &quot;HAVE PERSONAL
+HEALTH CARE PROVIDER?&quot;, BPMEDS reads &quot;CURRENTLY TAKING BLOOD
+PRESSURE MEDICATI&quot;). So a search that finds nothing is as often the
+vocabulary as the survey. Search single words and synonyms rather
+than a phrase, and try the name stem too: BRFSS abbreviates in names,
+so &quot;doctor&quot; lives in PERSDOC3 as &quot;doc&quot;.
 A search that matches nothing says so and suggests near misses:
 variables whose name or label is a small edit away (a typo'd
 pattern), variables matching every word of a multi-word pattern in
@@ -11,6 +19,14 @@ other years."><meta property="og:description" content="BRFSS variable names and 
 searches the variable catalog that accompanies the data releases and
 reports, for each match, which years carry the variable. The catalog is
 downloaded once and cached like the data itself.
+The label text searched here is CDC's SAS variable label, capped at
+40 characters: its wording is not the questionnaire's, and long ones
+are cut off, sometimes mid-word (PERSDOC3 reads &quot;HAVE PERSONAL
+HEALTH CARE PROVIDER?&quot;, BPMEDS reads &quot;CURRENTLY TAKING BLOOD
+PRESSURE MEDICATI&quot;). So a search that finds nothing is as often the
+vocabulary as the survey. Search single words and synonyms rather
+than a phrase, and try the name stem too: BRFSS abbreviates in names,
+so &quot;doctor&quot; lives in PERSDOC3 as &quot;doc&quot;.
 A search that matches nothing says so and suggests near misses:
 variables whose name or label is a small edit away (a typo'd
 pattern), variables matching every word of a multi-word pattern in
@@ -70,6 +86,14 @@ other years."><meta property="og:image" content="https://muntasirmasum.github.io
 searches the variable catalog that accompanies the data releases and
 reports, for each match, which years carry the variable. The catalog is
 downloaded once and cached like the data itself.</p>
+<p>The label text searched here is CDC's SAS variable label, capped at
+40 characters: its wording is not the questionnaire's, and long ones
+are cut off, sometimes mid-word (<code>PERSDOC3</code> reads "HAVE PERSONAL
+HEALTH CARE PROVIDER?", <code>BPMEDS</code> reads "CURRENTLY TAKING BLOOD
+PRESSURE MEDICATI"). So a search that finds nothing is as often the
+vocabulary as the survey. Search single words and synonyms rather
+than a phrase, and try the name stem too: BRFSS abbreviates in names,
+so "doctor" lives in <code>PERSDOC3</code> as "doc".</p>
 <p>A search that matches nothing says so and suggests near misses:
 variables whose name or label is a small edit away (a typo'd
 pattern), variables matching every word of a multi-word pattern in
@@ -88,8 +112,11 @@ other years.</p>
 
 <dl><dt id="arg-pattern">pattern<a class="anchor" aria-label="anchor" href="#arg-pattern"></a></dt>
 <dd><p>Optional single regular expression matched
-(case-insensitively) against variable names and labels. The default
-lists every variable.</p></dd>
+(case-insensitively) against variable names and labels. Labels are
+CDC's 40-character SAS labels, so match on single words rather than
+questionnaire phrasing, and use alternation
+(<code>"smoke|cigarette"</code>) for synonyms. The default lists every
+variable.</p></dd>
 
 
 <dt id="arg-years">years<a class="anchor" aria-label="anchor" href="#arg-years"></a></dt>

@@ -6,10 +6,16 @@ SAS format libraries. Labels cover 1998 onward; CDC does not distribute
 usable format libraries for earlier years.
 
 The `complete` column marks variables whose format for that year is a
-pure code-to-label map (no numeric ranges such as `1-30` days). Only
-those variables are eligible for automatic factor conversion via
-`read_brfss(labels = TRUE)`; for the rest, the catalog still documents
-the special codes (typically 77/88/99) so you can recode by hand.
+pure code-to-label map (no numeric ranges such as `1-30` days). It is a
+necessary condition for automatic factor conversion via
+`read_brfss(labels = TRUE)`, not a sufficient one: conversion also needs
+the map to be one-to-one, and CDC ships complete formats that give
+several codes the same label (`NUMPHON2` in 2003 labels codes 2 through
+6 "Residential telephone numbers"). Those keep their numeric codes,
+because a factor would merge the codes into one level, and the read
+paths say so with a `brfssdata_duplicate_label_note` message. For
+variables that are not `complete`, the catalog still documents the
+special codes (typically 77/88/99) so you can recode by hand.
 
 ## Usage
 
@@ -43,11 +49,13 @@ brfss_labels(vars = NULL, years = NULL, download = TRUE, quiet = TRUE)
 ## Value
 
 A tibble with columns `year`, `variable`, `code`, `label`, and
-`complete`. A lookup that matches nothing returns zero rows and says so
-with a `brfssdata_empty_result` message (regardless of `quiet`, which
-governs download output only). When only some requested variables match,
-the matching rows are returned and a `brfssdata_partial_match_note`
-message names the ones with no entries, also regardless of `quiet`.
+`complete`, ordered by year, variable, and code, so a lookup reads like
+a codebook page without a further `arrange()`. A lookup that matches
+nothing returns zero rows and says so with a `brfssdata_empty_result`
+message (regardless of `quiet`, which governs download output only).
+When only some requested variables match, the matching rows are returned
+and a `brfssdata_partial_match_note` message names the ones with no
+entries, also regardless of `quiet`.
 
 ## Examples
 
@@ -58,11 +66,11 @@ brfss_labels("GENHLTH", years = 2023, download = FALSE)
 #> # A tibble: 7 × 5
 #>    year variable  code label              complete
 #>   <int> <chr>    <int> <chr>              <lgl>   
-#> 1  2023 GENHLTH      4 Fair               TRUE    
-#> 2  2023 GENHLTH      3 Good               TRUE    
-#> 3  2023 GENHLTH      9 Refused            TRUE    
-#> 4  2023 GENHLTH      7 Dont know/Not Sure TRUE    
-#> 5  2023 GENHLTH      1 Excellent          TRUE    
-#> 6  2023 GENHLTH      2 Very good          TRUE    
-#> 7  2023 GENHLTH      5 Poor               TRUE    
+#> 1  2023 GENHLTH      1 Excellent          TRUE    
+#> 2  2023 GENHLTH      2 Very good          TRUE    
+#> 3  2023 GENHLTH      3 Good               TRUE    
+#> 4  2023 GENHLTH      4 Fair               TRUE    
+#> 5  2023 GENHLTH      5 Poor               TRUE    
+#> 6  2023 GENHLTH      7 Dont know/Not Sure TRUE    
+#> 7  2023 GENHLTH      9 Refused            TRUE    
 ```

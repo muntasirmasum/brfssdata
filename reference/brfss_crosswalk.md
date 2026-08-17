@@ -9,13 +9,13 @@ concept families, one row per variable and year, so the whole family is
 visible at once.
 
 Families are proposed mechanically (same stem, non-overlapping year
-ranges, similar label wording) and reviewed by hand against CDC's
-codebooks over time. `status` records how far that review has gone for
-each family: `"verified"` means a person checked it, `"candidate"` means
-the rules proposed it and review is pending, so treat a candidate family
-as a strong hint, not a fact. A rename is *never* a promise of
-comparability (CDC renamed the variable for a reason), so combining
-generations is always your decision;
+ranges) and reviewed by hand against CDC's codebooks over time. `status`
+records how far that review has gone for each family: `"verified"` means
+a person checked it, `"candidate"` means the rules proposed it and
+review is pending, so treat a candidate family as a strong hint, not a
+fact. A rename is *never* a promise of comparability (CDC renamed the
+variable for a reason), so combining generations is always your
+decision;
 [`read_brfss()`](https://muntasirmasum.github.io/brfssdata/reference/read_brfss.md)
 points here (a `brfssdata_rename_note` message) when a requested
 variable is empty in years a sibling generation covers.

@@ -4,18 +4,30 @@ one row per year, variable, and numeric code, with the label text from
 CDC's SAS format libraries. Labels cover 1998 onward; CDC does not
 distribute usable format libraries for earlier years.
 The complete column marks variables whose format for that year is a
-pure code-to-label map (no numeric ranges such as 1-30 days). Only
-those variables are eligible for automatic factor conversion via
-read_brfss(labels = TRUE); for the rest, the catalog still documents
-the special codes (typically 77/88/99) so you can recode by hand."><meta property="og:description" content="Returns the value-label catalog that accompanies the data releases:
+pure code-to-label map (no numeric ranges such as 1-30 days). It is
+a necessary condition for automatic factor conversion via
+read_brfss(labels = TRUE), not a sufficient one: conversion also
+needs the map to be one-to-one, and CDC ships complete formats that
+give several codes the same label (NUMPHON2 in 2003 labels codes 2
+through 6 &quot;Residential telephone numbers&quot;). Those keep their numeric
+codes, because a factor would merge the codes into one level, and the
+read paths say so with a brfssdata_duplicate_label_note message. For
+variables that are not complete, the catalog still documents the
+special codes (typically 77/88/99) so you can recode by hand."><meta property="og:description" content="Returns the value-label catalog that accompanies the data releases:
 one row per year, variable, and numeric code, with the label text from
 CDC's SAS format libraries. Labels cover 1998 onward; CDC does not
 distribute usable format libraries for earlier years.
 The complete column marks variables whose format for that year is a
-pure code-to-label map (no numeric ranges such as 1-30 days). Only
-those variables are eligible for automatic factor conversion via
-read_brfss(labels = TRUE); for the rest, the catalog still documents
-the special codes (typically 77/88/99) so you can recode by hand."><meta property="og:image" content="https://muntasirmasum.github.io/brfssdata/logo.svg"></head><body>
+pure code-to-label map (no numeric ranges such as 1-30 days). It is
+a necessary condition for automatic factor conversion via
+read_brfss(labels = TRUE), not a sufficient one: conversion also
+needs the map to be one-to-one, and CDC ships complete formats that
+give several codes the same label (NUMPHON2 in 2003 labels codes 2
+through 6 &quot;Residential telephone numbers&quot;). Those keep their numeric
+codes, because a factor would merge the codes into one level, and the
+read paths say so with a brfssdata_duplicate_label_note message. For
+variables that are not complete, the catalog still documents the
+special codes (typically 77/88/99) so you can recode by hand."><meta property="og:image" content="https://muntasirmasum.github.io/brfssdata/logo.svg"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -71,10 +83,16 @@ one row per year, variable, and numeric code, with the label text from
 CDC's SAS format libraries. Labels cover 1998 onward; CDC does not
 distribute usable format libraries for earlier years.</p>
 <p>The <code>complete</code> column marks variables whose format for that year is a
-pure code-to-label map (no numeric ranges such as <code>1-30</code> days). Only
-those variables are eligible for automatic factor conversion via
-<code>read_brfss(labels = TRUE)</code>; for the rest, the catalog still documents
-the special codes (typically 77/88/99) so you can recode by hand.</p>
+pure code-to-label map (no numeric ranges such as <code>1-30</code> days). It is
+a necessary condition for automatic factor conversion via
+<code>read_brfss(labels = TRUE)</code>, not a sufficient one: conversion also
+needs the map to be one-to-one, and CDC ships complete formats that
+give several codes the same label (<code>NUMPHON2</code> in 2003 labels codes 2
+through 6 "Residential telephone numbers"). Those keep their numeric
+codes, because a factor would merge the codes into one level, and the
+read paths say so with a <code>brfssdata_duplicate_label_note</code> message. For
+variables that are not <code>complete</code>, the catalog still documents the
+special codes (typically 77/88/99) so you can recode by hand.</p>
     </div>
 
     <div class="section level2">
@@ -109,7 +127,9 @@ missing catalog raises an error instead of being downloaded.</p></dd>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A tibble with columns <code>year</code>, <code>variable</code>, <code>code</code>, <code>label</code>,
-and <code>complete</code>. A lookup that matches nothing returns zero rows and
+and <code>complete</code>, ordered by year, variable, and code, so a lookup
+reads like a codebook page without a further <code>arrange()</code>. A lookup
+that matches nothing returns zero rows and
 says so with a <code>brfssdata_empty_result</code> message (regardless of
 <code>quiet</code>, which governs download output only). When only some
 requested variables match, the matching rows are returned and a
@@ -125,13 +145,13 @@ entries, also regardless of <code>quiet</code>.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 7 × 5</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    year variable  code label              complete</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>   </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      4 Fair               TRUE    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      3 Good               TRUE    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      9 Refused            TRUE    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      7 Dont know/Not Sure TRUE    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      1 Excellent          TRUE    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      2 Very good          TRUE    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">7</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      5 Poor               TRUE    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      1 Excellent          TRUE    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      2 Very good          TRUE    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      3 Good               TRUE    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      4 Fair               TRUE    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      5 Poor               TRUE    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      7 Dont know/Not Sure TRUE    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">7</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      9 Refused            TRUE    </span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

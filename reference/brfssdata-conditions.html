@@ -127,16 +127,18 @@ and <code>unsafe_weight = TRUE</code> was not set. Also carries
 <code>brfssdata_bad_weight</code>, so one handler catches every weight
 refusal.</p></dd>
 
-<dt><code>brfssdata_bad_unsafe_weight_arg</code></dt>
-<dd><p><code>unsafe_weight</code> is not
-<code>TRUE</code> or <code>FALSE</code>.</p></dd>
+<dt><code>brfssdata_bad_bool_arg</code></dt>
+<dd><p>A <code>TRUE</code>/<code>FALSE</code> argument received
+something else, <code>NA</code> included. Each flag also raises a class of
+its own on one pattern, <code>brfssdata_bad_&lt;argument&gt;_arg</code>: <code>na</code>
+raises <code>brfssdata_bad_na_arg</code>, and likewise for <code>download</code>,
+<code>quiet</code>, <code>refresh</code>, <code>verify</code>, <code>catalogs</code>, <code>allow_break</code>,
+<code>pool_weights</code>, and <code>unsafe_weight</code>. One handler on the shared
+class catches them all.</p></dd>
 
 <dt><code>brfssdata_bad_labels_arg</code></dt>
 <dd><p><code>labels</code> is something other than
 <code>TRUE</code>, <code>FALSE</code>, or <code>"both"</code>.</p></dd>
-
-<dt><code>brfssdata_bad_na_arg</code></dt>
-<dd><p><code>na</code> is not <code>TRUE</code> or <code>FALSE</code>.</p></dd>
 
 <dt><code>brfssdata_bad_n_arg</code></dt>
 <dd><p><code>n</code> in <code>print.brfss_codebook()</code> is not
@@ -144,8 +146,9 @@ a single positive number.</p></dd>
 
 <dt><code>brfssdata_bad_option</code></dt>
 <dd><p><code>options(brfssdata.lonely_psu)</code> is
-not a single string, or <code>options(brfssdata.module_weight_check)</code>
-is not <code>TRUE</code> or <code>FALSE</code>.</p></dd>
+not a single string, <code>options(brfssdata.module_weight_check)</code>
+is not <code>TRUE</code> or <code>FALSE</code>, or <code>options(brfssdata.cache_dir)</code> is
+not a single non-empty path to a directory.</p></dd>
 
 <dt><code>brfssdata_bad_design_var</code></dt>
 <dd><p>A design variable (era weight,
@@ -177,10 +180,30 @@ catches both.</p></dd>
 <dd><p>A downloaded file did not match
 the manifest's sha256 after a retry; nothing was cached.</p></dd>
 
+<dt><code>brfssdata_cache_unwritable</code></dt>
+<dd><p>The cache directory could not
+be created, or exists but cannot be written to, so no download
+can land: a local permission problem, named as one instead of
+being reported as a network failure. Also carries
+<code>brfssdata_download_error</code>, so the metadata lookups' bundled
+fallback still applies.</p></dd>
+
 <dt><code>brfssdata_corrupt_cache</code></dt>
 <dd><p>A cached file is unreadable
 (typically a corrupted download from before verification); the
 message names the file and the <code><a href="brfss_cache_dir.html">brfss_cache_clear()</a></code> remedy.</p></dd>
+
+<dt><code>brfssdata_wrong_year_cache</code></dt>
+<dd><p>A cached file does not hold
+the survey year its name promises (a hand-copied or damaged
+cache); the message says what each such file really holds. Also
+carries <code>brfssdata_corrupt_cache</code>, so one handler covers both.</p></dd>
+
+<dt><code>brfssdata_duckdb_version</code></dt>
+<dd><p>The installed duckdb is older
+than the version this package requires, so the argument that
+keeps DuckDB from writing to the home directory is unavailable;
+the message names the required and the found version.</p></dd>
 
 <dt><code>brfssdata_type_conflict</code></dt>
 <dd><p>A requested column is stored as
@@ -227,6 +250,13 @@ counted over the rows a user-supplied <code>weight</code> covers, the
 population the design actually estimates, not over the whole
 file.</p></dd>
 
+<dt><code>brfssdata_empty_year_warning</code></dt>
+<dd><p>A requested year contributed
+no rows to a pooled design (a <code>states</code> filter, or the domain of
+a user-supplied <code>weight</code>, emptied it), so pooled weights divide
+by the contributing years only and totals estimate an average
+contributing year.</p></dd>
+
 <dt><code>brfssdata_label_drift_warning</code></dt>
 <dd><p>Label wording for a
 variable changed meaning (not just formatting) across the
@@ -235,10 +265,11 @@ converting to a factor; read the years separately if each
 year's own wording is wanted.</p></dd>
 
 <dt><code>brfssdata_na_coverage_warning</code></dt>
-<dd><p><code>na = TRUE</code> was requested
-for years before 1998, where no value-label catalog exists at
-all, so no missing-type code was cleared there: estimates over
-those years still contain CDC's don't-know and refused codes.</p></dd>
+<dd><p><code>na = TRUE</code> recoded nothing
+in a requested year, either because no value-label catalog
+exists for it (years before 1998) or because the catalog covers
+none of the loaded variables there: estimates over that year
+still contain CDC's don't-know and refused codes.</p></dd>
 
 <dt><code>brfssdata_state_coverage_warning</code></dt>
 <dd><p>A jurisdiction requested
@@ -268,6 +299,13 @@ not be refreshed; a cached or bundled copy was used.</p></dd>
 <dt><code>brfssdata_lonely_psu_note</code></dt>
 <dd><p>The once-per-session note that
 <code>survey.lonely.psu</code> was set to <code>"adjust"</code>.</p></dd>
+
+<dt><code>brfssdata_design_spec_note</code></dt>
+<dd><p>The specification of the
+design just built, stated the way a Stata log would (weight,
+strata, PSU term, pooling divisor; one <code>svyset</code> line per era
+weight when pooling crosses 2011), for cross-checking against a
+coauthor's <code>svyset</code>. Suppressed by <code>quiet = TRUE</code>.</p></dd>
 
 <dt><code>brfssdata_unverified_note</code></dt>
 <dd><p>An asset was downloaded without
@@ -316,6 +354,17 @@ column because <code>vars</code> was not given; <code><a href="brfss_design.html
 <dd><p>A requested variable is empty in
 years a sibling generation from the rename crosswalk covers;
 see <code><a href="brfss_crosswalk.html">brfss_crosswalk()</a></code>.</p></dd>
+
+<dt><code>brfssdata_case_match_note</code></dt>
+<dd><p><code>vars</code> matched columns
+case-insensitively; the note pairs each requested spelling with
+the CDC-canonical column name the returned data actually use.
+Suppressed by <code>quiet = TRUE</code>.</p></dd>
+
+<dt><code>brfssdata_duplicate_label_note</code></dt>
+<dd><p><code>labels = TRUE</code> kept CDC's
+numeric codes for variables whose format gives several codes
+the same label, which a factor would merge into one level.</p></dd>
 
 <dt><code>brfssdata_bundled_fallback_note</code></dt>
 <dd><p>A metadata lookup was

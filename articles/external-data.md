@@ -38,18 +38,18 @@ type out a crosswalk or download one.
 
 brfss_labels("_STATE", years = 2023)
 #> # A tibble: 54 × 5
-#>     year variable  code label    complete
-#>    <int> <chr>    <int> <chr>    <lgl>   
-#>  1  2023 _STATE       4 Arizona  TRUE    
-#>  2  2023 _STATE       5 Arkansas TRUE    
-#>  3  2023 _STATE       1 Alabama  TRUE    
-#>  4  2023 _STATE       2 Alaska   TRUE    
-#>  5  2023 _STATE      13 Georgia  TRUE    
-#>  6  2023 _STATE      15 Hawaii   TRUE    
-#>  7  2023 _STATE      16 Idaho    TRUE    
-#>  8  2023 _STATE      17 Illinois TRUE    
-#>  9  2023 _STATE      18 Indiana  TRUE    
-#> 10  2023 _STATE      19 Iowa     TRUE    
+#>     year variable  code label                complete
+#>    <int> <chr>    <int> <chr>                <lgl>   
+#>  1  2023 _STATE       1 Alabama              TRUE    
+#>  2  2023 _STATE       2 Alaska               TRUE    
+#>  3  2023 _STATE       4 Arizona              TRUE    
+#>  4  2023 _STATE       5 Arkansas             TRUE    
+#>  5  2023 _STATE       6 California           TRUE    
+#>  6  2023 _STATE       8 Colorado             TRUE    
+#>  7  2023 _STATE       9 Connecticut          TRUE    
+#>  8  2023 _STATE      10 Delaware             TRUE    
+#>  9  2023 _STATE      11 District of Columbia TRUE    
+#> 10  2023 _STATE      12 Florida              TRUE    
 #> # ℹ 44 more rows
 ```
 
@@ -343,10 +343,11 @@ demographic, economic, and housing characteristics, and the
 directly into R once you register for a free Census API key. [County
 Health Rankings and Roadmaps](https://www.countyhealthrankings.org/)
 publishes annual health outcome and health factor measures for states
-and counties. [KFF State Health Facts](https://www.kff.org/statedata/)
-maintains more than 800 state-level indicators on coverage, Medicaid,
-spending, and health status, all downloadable. For policy exposures, the
-[Correlates of State Policy
+and counties. [KFF State Health
+Facts](https://www.kff.org/state-health-facts/) maintains more than 800
+state-level indicators on coverage, Medicaid, spending, and health
+status, all downloadable. For policy exposures, the [Correlates of State
+Policy
 Project](https://ippsr.msu.edu/public-policy/correlates-state-policy)
 assembles more than three thousand state-by-year policy variables,
 reaching back to the early twentieth century, in a single file with

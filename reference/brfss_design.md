@@ -2,11 +2,14 @@
 
 Returns a
 [`srvyr::as_survey_design()`](http://gdfe.co/srvyr/reference/as_survey_design.md)
-`tbl_svy` with the complex sampling design applied: primary sampling
-units (`_PSU`), strata (`_STSTR`), and the year-appropriate final
-weight. Weight selection is automatic: `_FINALWT` for years before 2011
-(post-stratification era) and `_LLCPWT` from 2011 on (raking era). Pass
-`weight` to override it (see *Choosing a weight*).
+`tbl_svy` with the complex sampling design applied: the year-appropriate
+final weight, strata (`_STSTR`), and the primary sampling units (`_PSU`)
+in the years where those identify a real cluster. From 2001 on they do
+not, and the design says so when it is built; see *Why some years have
+no PSU term*, which also shows that the standard errors are unchanged
+either way. Weight selection is automatic: `_FINALWT` for years before
+2011 (post-stratification era) and `_LLCPWT` from 2011 on (raking era).
+Pass `weight` to override it (see *Choosing a weight*).
 
 By default the codes CDC uses for don't know / refused / missing answers
 are set to `NA` (`na = TRUE`), so means and proportions are computed
@@ -87,7 +90,9 @@ brfss_design(
 - pool_weights:
 
   If `TRUE` and more than one year is requested, divide each weight by
-  the number of years.
+  the number of years that contributed rows, which a `states` filter or
+  the domain of a user-supplied `weight` can make smaller than the
+  number requested (see Details).
 
 - download:
 
@@ -97,10 +102,13 @@ brfss_design(
 - quiet:
 
   If `TRUE`, suppress progress and housekeeping output: download
-  progress, cache notes, the full-load hint, and the `na = TRUE` recode
-  tally. Notes and warnings about what the data mean (renames,
-  missing-code coverage, weight-domain subsetting) signal regardless of
-  `quiet`; silence a specific one by its class, e.g.
+  progress, cache notes, the full-load hint, the case-matching note, and
+  the `na = TRUE` recode tally. Notes and warnings about what the data
+  mean (renames, missing-code coverage, weight-domain subsetting) signal
+  regardless of `quiet`, as does the note that a cached file failed its
+  size or checksum check and was re-downloaded, which reports that the
+  input bytes changed rather than narrating progress; silence a specific
+  one by its class, e.g.
   `suppressMessages(..., classes = "brfssdata_rename_note")`. See
   [brfssdata-conditions](https://muntasirmasum.github.io/brfssdata/reference/brfssdata-conditions.md)
   for every class.
@@ -186,8 +194,8 @@ module-analysis guidance. An explicitly named full-sample weight
 (`_FINALWT`, `_LLCPWT`) gets the same treatment as the automatic era
 weight instead: it must cover every respondent, and a missing value
 there means a damaged file and stops the build. A user-supplied weight
-is used for every requested year and still divides by the year count
-under `pool_weights`.
+is used for every requested year, and pooling divides by the
+contributing-year count described below.
 
 The reverse mistake, a module variable analyzed under a full-sample
 weight, is caught by a confinement check: when a requested variable has
@@ -217,30 +225,61 @@ When several years are combined, weights are divided by the number of
 years (`pool_weights = TRUE`, the default) so that pooled estimates
 represent an average year rather than a sum of populations, and the
 variance strata become the year-by-stratum interaction, treating each
-annual survey as an independent sample. The pooled estimate averages
-over the states participating each year; when participation differs
-across the pooled years, totals mix coverage, and a warning says so.
+annual survey as an independent sample. The divisor counts the years
+that actually contribute rows, not the years requested: a `states` or
+`weight` filter can empty a year (Kentucky collected no 2023 data, so
+`states = "KY"` over `2022:2023` is a 2022-only design), and dividing
+that by the requested count would halve every total while leaving means
+and proportions untouched, since the constant cancels there. A
+`brfssdata_empty_year_warning` names any year that contributed nothing,
+so an average over fewer years is not read as covering all of them. The
+pooled estimate averages over the states participating each year; when
+participation differs across the pooled years, totals mix coverage, and
+a warning says so.
+
+## Why some years have no PSU term
+
+A design built for 2001 or later prints `ids: 1`, which reads as if the
+primary sampling units had been dropped. They have not been ignored;
+from 2001 on there is nothing for them to say.
 
 From 2001 on, `_PSU` is a record sequence number that restarts in each
 state, so it repeats across the file but is unique within a stratum:
 every stratum-by-PSU cell holds exactly one respondent. Single-PSU
-strata are therefore common and would make variance estimation fail. If
+strata are therefore common and would make variance estimation fail.
+When the design just built carries at least one of them and
 `options(survey.lonely.psu)` is unset, this function sets it to
-`"adjust"` (standard BRFSS practice) and says so once per session. Any
-value you set other than `"fail"` is respected; `"fail"` is what the
-survey package itself installs on load, so it cannot be told apart from
-"never set" and is treated as unset. To insist on `"fail"`, or to pin
-any handling, set `options(brfssdata.lonely_psu = ...)`, which is copied
-into `survey.lonely.psu` unconditionally. The option stays set for the
+`"adjust"` (standard BRFSS practice) and says so once per session. A
+design with no such stratum (1995 and 2003 have none, 2023 has 101)
+leaves the option alone, so an unrelated survey analysis later in the
+session keeps survey's own fail-fast default. Any value you set other
+than `"fail"` is respected; `"fail"` is what the survey package itself
+installs on load, so it cannot be told apart from "never set" and is
+treated as unset. To insist on `"fail"`, or to pin any handling, set
+`options(brfssdata.lonely_psu = ...)`, which is copied into
+`survey.lonely.psu` unconditionally. The option stays set for the
 session because survey consults it at estimation time, not design time.
 
 Because that clustering is nominal, the design for those years is built
 without a cluster term, which gives the same estimates, standard errors,
 and degrees of freedom far faster than carrying a cluster factor with
-one level per respondent. Files through 2000 carry genuine
-multi-respondent PSUs and keep the clustered estimator, nested within
-stratum because the identifiers are reused. The choice is made from the
-data, so it follows the file rather than the year.
+one level per respondent. On the 2023 file, fair-or-poor `GENHLTH`
+returns 0.193696115777860 with a standard error of 0.001389477801364
+whether the cluster term is supplied or not, to the last bit of a
+double, and both designs report 431,177 degrees of freedom. Files
+through 2000 carry genuine multi-respondent PSUs and keep the clustered
+estimator, nested within stratum because the identifiers are reused, and
+there the two specifications do differ: the same estimate on 1995 has a
+standard error of 0.001830302439388 with the cluster term against
+0.001826985014850 without it, on 61,230 degrees of freedom rather than
+113,870. The choice is from the data, so it follows the file rather than
+the year.
+
+The design object itself prints only srvyr's syntactic column names,
+which say nothing about which CDC weight was chosen. The build therefore
+states the specification in `svyset` terms, naming the weight, the
+stratum column, and whether a cluster term applies
+(`brfssdata_design_spec_note`, suppressed by `quiet = TRUE`).
 
 ## See also
 

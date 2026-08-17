@@ -108,15 +108,45 @@ uppercase names, leading underscores on calculated variables included
 <code>_IMPRACE</code>), so a codebook written against CDC’s public-use
 file applies unchanged. One column is added, <code>year</code>, which
 matters once you read several files at once.</p>
-<p>Three companion assets sit under a single <code>data-meta</code> tag.
-<code>manifest.json</code> lists the published years,
-<code>brfss_variables.parquet</code> is the variable catalog (2,128
+<p>Almost every survey variable is stored as a physical DOUBLE,
+mirroring the SAS numerics these files come from. The exceptions are
+stored as strings, and which columns those are varies by year: the date
+parts (<code>IDATE</code>, <code>IMONTH</code>, <code>IDAY</code>,
+<code>IYEAR</code>) in every year, <code>SEQNO</code> from 1999 on,
+<code>INTVID</code> through 2012, and a few text-coded columns in the
+middle years (<code>MRACE</code> and <code>RCSRACE</code> among them).
+The added <code>year</code> column is an integer. Storing the numerics
+uniformly is deliberate and keeps a code comparable across files, but it
+is not a guarantee about CDC’s own choices: a column published as text
+in one year and as a number in another still differs between files,
+which is what the <code>brfssdata_type_conflict</code> error reports
+when such a pair is read together. The cost of DOUBLE storage is
+cosmetic, since an integral code renders as <code>2.0</code> in a CSV
+extract, so cast in SQL (<code>GENHLTH::INTEGER</code>) when integers
+are wanted.</p>
+<p>The metadata lives under a single <code>data-meta</code> tag, nine
+assets in all. <code>manifest.json</code> lists the published years and
+carries a per-asset sha256 and size. Four parquet catalogs sit beside
+it: <code>brfss_variables.parquet</code> is the variable catalog (2,128
 distinct variables with their labels and the years each one appears in),
-and <code>brfss_labels.parquet</code> is the value-label catalog
-covering 1998 onward.</p>
+<code>brfss_labels.parquet</code> is the value-label catalog covering
+1998 onward, <code>brfss_crosswalk.parquet</code> holds CDC’s rename
+families, so <code>_DRNKWK1</code> through <code>_DRNKWK3</code> read as
+one concept with a review status and a comparability note, and
+<code>brfss_year_info.parquet</code> is the per-year inventory of
+respondents, variables, jurisdictions, file size, and codebook URL. Each
+of the four catalogs has a <code>.sha256</code> companion at the same
+URL with <code>.sha256</code> appended; <code>manifest.json</code> does
+not, since it is the record the hashes live in. An air-gapped mirror
+wants all nine. A mirror missing the crosswalk falls back to the
+snapshot bundled with the installed package, which is only as current as
+that package version, and a mirror missing the year inventory has no
+bundled fallback to reach for at all.</p>
 <pre><code>https://github.com/muntasirmasum/brfssdata/releases/download/data-meta/manifest.json
 https://github.com/muntasirmasum/brfssdata/releases/download/data-meta/brfss_variables.parquet
-https://github.com/muntasirmasum/brfssdata/releases/download/data-meta/brfss_labels.parquet</code></pre>
+https://github.com/muntasirmasum/brfssdata/releases/download/data-meta/brfss_labels.parquet
+https://github.com/muntasirmasum/brfssdata/releases/download/data-meta/brfss_crosswalk.parquet
+https://github.com/muntasirmasum/brfssdata/releases/download/data-meta/brfss_year_info.parquet</code></pre>
 </div>
 <div class="section level2">
 <h2 id="python">Python<a class="anchor" aria-label="anchor" href="#python"></a>
@@ -136,8 +166,10 @@ before anything is decoded.</p>
 <p>DuckDB is the better tool when you want a slice of a year rather than
 the year. It reads the file over HTTP range requests, so a query
 touching three columns transfers roughly those three columns instead of
-all 351. Quote the underscore-prefixed names in SQL; unquoted,
-<code>_LLCPWT</code> is not a valid identifier.</p>
+all 351. Quote the underscore-prefixed names in SQL. DuckDB itself
+accepts them bare, since its lexer follows PostgreSQL in allowing a
+leading underscore, so <code>sum(_LLCPWT)</code> runs; other engines do
+not, and quoting is what makes the query portable.</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="im">import</span> duckdb</span>
 <span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a></span>
 <span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>duckdb.sql(<span class="ss">f"""</span></span>
@@ -351,22 +383,101 @@ comes near.</p>
 give each respondent their own primary sampling unit within a stratum,
 so any stratum holding one respondent holds one PSU. Software differs in
 what it does with them. In R, <code><a href="../reference/brfss_design.html">brfss_design()</a></code> sets
-<code>options(survey.lonely.psu = "adjust")</code> when the option is
-unset (any value other than survey’s own load-time <code>"fail"</code>
-counts as set by you), which centers those strata at the grand mean;
+<code>options(survey.lonely.psu = "adjust")</code> when the design it
+just built actually contains such a stratum and the option is unset (any
+value other than survey’s own load-time <code>"fail"</code> counts as
+set by you), which centers those strata at the grand mean;
 <code>singleunit(centered)</code> is the Stata option with the same
-behavior.</p>
-<p>Reading with <code>read_brfss(labels = TRUE)</code> returns factors
-for variables whose CDC format is a complete code-to-label map covering
-every observed value, and <code><a href="https://haven.tidyverse.org/reference/read_dta.html" class="external-link">write_dta()</a></code> turns those factors
-into Stata value labels, so the codes arrive already documented.</p>
+behavior. A year with no single-PSU stratum leaves the option alone, so
+an unrelated survey analysis later in the session keeps survey’s own
+default.</p>
+<div class="section level3">
+<h3 id="value-labels-without-losing-cdcs-codes">Value labels without losing CDC’s codes<a class="anchor" aria-label="anchor" href="#value-labels-without-losing-cdcs-codes"></a>
+</h3>
+<p><code>read_brfss(labels = TRUE)</code> returns factors for variables
+whose CDC format is a complete code-to-label map, and
+<code><a href="https://haven.tidyverse.org/reference/read_dta.html" class="external-link">write_dta()</a></code> does turn those factors into Stata value
+labels. What it cannot turn them into is CDC’s codes. A factor carries
+its levels and their positions, nothing else, so the export numbers the
+levels 1, 2, 3 in order and the original codes are gone:</p>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">labeled</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_brfss.html">read_brfss</a></span><span class="op">(</span><span class="fl">2023</span>, vars <span class="op">=</span> <span class="st">"GENHLTH"</span>, labels <span class="op">=</span> <span class="cn">TRUE</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">factor_dta</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".dta"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://haven.tidyverse.org/reference/read_dta.html" class="external-link">write_dta</a></span><span class="op">(</span><span class="va">labeled</span>, <span class="va">factor_dta</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://haven.tidyverse.org/reference/read_dta.html" class="external-link">read_dta</a></span><span class="op">(</span><span class="va">factor_dta</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span>value <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">GENHLTH</span><span class="op">)</span>, label <span class="op">=</span> <span class="fu"><a href="https://forcats.tidyverse.org/reference/as_factor.html" class="external-link">as_factor</a></span><span class="op">(</span><span class="va">GENHLTH</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 8 × 3</span></span></span>
+<span><span class="co">#&gt;   value label                   n</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>               <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>     1 Excellent           <span style="text-decoration: underline;">63</span>410</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>     2 Very good          <span style="text-decoration: underline;">142</span>115</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>     3 Good               <span style="text-decoration: underline;">144</span>209</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span>     4 Fair                <span style="text-decoration: underline;">61</span>955</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span>     5 Poor                <span style="text-decoration: underline;">20</span>372</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span>     6 Dont know/Not Sure    897</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">7</span>     7 Refused               361</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">8</span>    <span style="color: #BB0000;">NA</span> <span style="color: #BB0000;">NA</span>                      4</span></span></code></pre></div>
+<p>“Dont know/Not Sure” arrives on value 6 and “Refused” on 7, where CDC
+wrote 7 and 9. Reading with <code>na = TRUE</code> does not rescue this;
+it drops the missing-type levels and renumbers whatever is left, which
+moves substantive codes too. <code>CHECKUP1</code>’s code 8 is “Never”,
+a real answer from 2,747 respondents in 2023, and under
+<code>na = TRUE</code> it arrives on value 5.</p>
+<p>The renumbering is silent, and Stata is where it does its damage,
+because the reflex there is a line like
+<code>replace GENHLTH = . if inlist(GENHLTH, 7, 9)</code>. Against a
+renumbered file that line matches nothing, and every don’t-know answer
+stays in the estimation sample.</p>
+<p>Two routes keep the codes. The plain one is to export the raw codes,
+as <code>for_stata</code> does above, and ship the relevant slice of
+<code><a href="../reference/brfss_labels.html">brfss_labels()</a></code> alongside as a codebook. The other builds
+Stata value labels from that same catalog, so the <code>.dta</code>
+carries the true codes and their meanings together:</p>
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">codes</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/brfss_labels.html">brfss_labels</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"GENHLTH"</span>, <span class="st">"SEXVAR"</span><span class="op">)</span>, years <span class="op">=</span> <span class="fl">2023</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">label_from_catalog</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">name</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">map</span> <span class="op">&lt;-</span> <span class="va">codes</span><span class="op">[</span><span class="va">codes</span><span class="op">$</span><span class="va">variable</span> <span class="op">==</span> <span class="va">name</span>, <span class="op">]</span></span>
+<span>  <span class="va">map</span> <span class="op">&lt;-</span> <span class="va">map</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="va">map</span><span class="op">$</span><span class="va">code</span><span class="op">)</span>, <span class="op">]</span></span>
+<span>  <span class="fu"><a href="https://haven.tidyverse.org/reference/labelled.html" class="external-link">labelled</a></span><span class="op">(</span><span class="va">x</span>, <span class="fu"><a href="https://rdrr.io/r/stats/setNames.html" class="external-link">setNames</a></span><span class="op">(</span><span class="va">map</span><span class="op">$</span><span class="va">code</span>, <span class="va">map</span><span class="op">$</span><span class="va">label</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">labeled_codes</span> <span class="op">&lt;-</span> <span class="va">for_stata</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span></span>
+<span>    GENHLTH <span class="op">=</span> <span class="fu">label_from_catalog</span><span class="op">(</span><span class="va">GENHLTH</span>, <span class="st">"GENHLTH"</span><span class="op">)</span>,</span>
+<span>    SEXVAR <span class="op">=</span> <span class="fu">label_from_catalog</span><span class="op">(</span><span class="va">SEXVAR</span>, <span class="st">"SEXVAR"</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span></span>
+<span><span class="va">codes_dta</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".dta"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://haven.tidyverse.org/reference/read_dta.html" class="external-link">write_dta</a></span><span class="op">(</span><span class="va">labeled_codes</span>, <span class="va">codes_dta</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://haven.tidyverse.org/reference/read_dta.html" class="external-link">read_dta</a></span><span class="op">(</span><span class="va">codes_dta</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span>value <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">GENHLTH</span><span class="op">)</span>, label <span class="op">=</span> <span class="fu"><a href="https://forcats.tidyverse.org/reference/as_factor.html" class="external-link">as_factor</a></span><span class="op">(</span><span class="va">GENHLTH</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 7 × 3</span></span></span>
+<span><span class="co">#&gt;   value label                  n</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>     1 Excellent            582</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>     2 Very good           <span style="text-decoration: underline;">1</span>442</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>     3 Good                <span style="text-decoration: underline;">1</span>752</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span>     4 Fair                 925</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span>     5 Poor                 286</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span>     7 Dont know/Not Sure     8</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">7</span>     9 Refused                5</span></span></code></pre></div>
+<p>CDC’s 7 and 9 survive, and <code>label list</code> in Stata shows the
+wording against them. Do this only for the variables the analysis
+touches. The catalog is per year and per variable, so a multi-year
+extract needs its labels checked for drift before one year’s map is
+applied to another.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="csv">CSV<a class="anchor" aria-label="anchor" href="#csv"></a>
 </h2>
 <p>CSV is the format nothing refuses, and when you do not know what the
 recipient will open the file with, it is the safe answer.</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">readr</span><span class="fu">::</span><span class="fu"><a href="https://readr.tidyverse.org/reference/write_delim.html" class="external-link">write_csv</a></span><span class="op">(</span><span class="va">for_stata</span>, <span class="st">"brfss_2023_extract.csv"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># base R only</span></span>
@@ -396,13 +507,13 @@ by the pipeline in <a href="https://github.com/muntasirmasum/brfssdata/tree/main
 and every published survey year has a <code>.sha256</code> companion at
 the same URL with <code>.sha256</code> appended. Anyone downloading
 outside R can check what they received:</p>
-<div class="sourceCode" id="cb20"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a><span class="va">base</span><span class="op">=</span>https://github.com/muntasirmasum/brfssdata/releases/download/data-2023</span>
-<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a></span>
-<span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-LO</span> <span class="va">$base</span>/brfss_2023.parquet</span>
-<span id="cb20-4"><a href="#cb20-4" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-LO</span> <span class="va">$base</span>/brfss_2023.parquet.sha256</span>
-<span id="cb20-5"><a href="#cb20-5" tabindex="-1"></a></span>
-<span id="cb20-6"><a href="#cb20-6" tabindex="-1"></a><span class="ex">shasum</span> <span class="at">-a</span> 256 <span class="at">-c</span> brfss_2023.parquet.sha256   <span class="co"># sha256sum -c on Linux</span></span>
-<span id="cb20-7"><a href="#cb20-7" tabindex="-1"></a><span class="co">#&gt; brfss_2023.parquet: OK</span></span></code></pre></div>
+<div class="sourceCode" id="cb22"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb22-1"><a href="#cb22-1" tabindex="-1"></a><span class="va">base</span><span class="op">=</span>https://github.com/muntasirmasum/brfssdata/releases/download/data-2023</span>
+<span id="cb22-2"><a href="#cb22-2" tabindex="-1"></a></span>
+<span id="cb22-3"><a href="#cb22-3" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-LO</span> <span class="va">$base</span>/brfss_2023.parquet</span>
+<span id="cb22-4"><a href="#cb22-4" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-LO</span> <span class="va">$base</span>/brfss_2023.parquet.sha256</span>
+<span id="cb22-5"><a href="#cb22-5" tabindex="-1"></a></span>
+<span id="cb22-6"><a href="#cb22-6" tabindex="-1"></a><span class="ex">shasum</span> <span class="at">-a</span> 256 <span class="at">-c</span> brfss_2023.parquet.sha256   <span class="co"># sha256sum -c on Linux</span></span>
+<span id="cb22-7"><a href="#cb22-7" tabindex="-1"></a><span class="co">#&gt; brfss_2023.parquet: OK</span></span></code></pre></div>
 <p>Recording that checksum alongside the analysis is what lets someone
 else confirm years later that they are holding the same file you
 analyzed.</p>

@@ -119,18 +119,18 @@ is no need to type out a crosswalk or download one.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/brfss_labels.html">brfss_labels</a></span><span class="op">(</span><span class="st">"_STATE"</span>, years <span class="op">=</span> <span class="fl">2023</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 54 × 5</span></span></span>
-<span><span class="co">#&gt;     year variable  code label    complete</span></span>
-<span><span class="co">#&gt;    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>   </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 1</span>  <span style="text-decoration: underline;">2</span>023 _STATE       4 Arizona  TRUE    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 2</span>  <span style="text-decoration: underline;">2</span>023 _STATE       5 Arkansas TRUE    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 3</span>  <span style="text-decoration: underline;">2</span>023 _STATE       1 Alabama  TRUE    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 4</span>  <span style="text-decoration: underline;">2</span>023 _STATE       2 Alaska   TRUE    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 5</span>  <span style="text-decoration: underline;">2</span>023 _STATE      13 Georgia  TRUE    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 6</span>  <span style="text-decoration: underline;">2</span>023 _STATE      15 Hawaii   TRUE    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 7</span>  <span style="text-decoration: underline;">2</span>023 _STATE      16 Idaho    TRUE    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 8</span>  <span style="text-decoration: underline;">2</span>023 _STATE      17 Illinois TRUE    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span>  <span style="text-decoration: underline;">2</span>023 _STATE      18 Indiana  TRUE    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">10</span>  <span style="text-decoration: underline;">2</span>023 _STATE      19 Iowa     TRUE    </span></span>
+<span><span class="co">#&gt;     year variable  code label                complete</span></span>
+<span><span class="co">#&gt;    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>   </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 1</span>  <span style="text-decoration: underline;">2</span>023 _STATE       1 Alabama              TRUE    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 2</span>  <span style="text-decoration: underline;">2</span>023 _STATE       2 Alaska               TRUE    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 3</span>  <span style="text-decoration: underline;">2</span>023 _STATE       4 Arizona              TRUE    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 4</span>  <span style="text-decoration: underline;">2</span>023 _STATE       5 Arkansas             TRUE    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 5</span>  <span style="text-decoration: underline;">2</span>023 _STATE       6 California           TRUE    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 6</span>  <span style="text-decoration: underline;">2</span>023 _STATE       8 Colorado             TRUE    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 7</span>  <span style="text-decoration: underline;">2</span>023 _STATE       9 Connecticut          TRUE    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 8</span>  <span style="text-decoration: underline;">2</span>023 _STATE      10 Delaware             TRUE    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span>  <span style="text-decoration: underline;">2</span>023 _STATE      11 District of Columbia TRUE    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">10</span>  <span style="text-decoration: underline;">2</span>023 _STATE      12 Florida              TRUE    </span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># ℹ 44 more rows</span></span></span></code></pre></div>
 <p>The catalog returns one row per code in whatever order the CDC format
 library stored them, with the <code>year</code>, <code>variable</code>,
@@ -376,10 +376,10 @@ hoping the join coerces.</p>
 demographic, economic, and housing characteristics, and the <a href="https://walker-data.com/tidycensus/" class="external-link">tidycensus</a> package pulls
 it directly into R once you register for a free Census API key. <a href="https://www.countyhealthrankings.org/" class="external-link">County Health Rankings and
 Roadmaps</a> publishes annual health outcome and health factor measures
-for states and counties. <a href="https://www.kff.org/statedata/" class="external-link">KFF
-State Health Facts</a> maintains more than 800 state-level indicators on
-coverage, Medicaid, spending, and health status, all downloadable. For
-policy exposures, the <a href="https://ippsr.msu.edu/public-policy/correlates-state-policy" class="external-link">Correlates
+for states and counties. <a href="https://www.kff.org/state-health-facts/" class="external-link">KFF State Health
+Facts</a> maintains more than 800 state-level indicators on coverage,
+Medicaid, spending, and health status, all downloadable. For policy
+exposures, the <a href="https://ippsr.msu.edu/public-policy/correlates-state-policy" class="external-link">Correlates
 of State Policy Project</a> assembles more than three thousand
 state-by-year policy variables, reaching back to the early twentieth
 century, in a single file with codebooks.</p>

@@ -505,18 +505,24 @@ brfss_labels("_AGE_G", years = 2023)
 #> # A tibble: 6 × 5
 #>    year variable  code label           complete
 #>   <int> <chr>    <int> <chr>           <lgl>   
-#> 1  2023 _AGE_G       2 Age 25 to 34    TRUE    
-#> 2  2023 _AGE_G       6 Age 65 or older TRUE    
-#> 3  2023 _AGE_G       4 Age 45 to 54    TRUE    
-#> 4  2023 _AGE_G       1 Age 18 to 24    TRUE    
-#> 5  2023 _AGE_G       3 Age 35 to 44    TRUE    
-#> 6  2023 _AGE_G       5 Age 55 to 64    TRUE
+#> 1  2023 _AGE_G       1 Age 18 to 24    TRUE    
+#> 2  2023 _AGE_G       2 Age 25 to 34    TRUE    
+#> 3  2023 _AGE_G       3 Age 35 to 44    TRUE    
+#> 4  2023 _AGE_G       4 Age 45 to 54    TRUE    
+#> 5  2023 _AGE_G       5 Age 55 to 64    TRUE    
+#> 6  2023 _AGE_G       6 Age 65 or older TRUE
 ```
 
 Then filter the design and summarize as usual. srvyr’s
 [`filter()`](https://dplyr.tidyverse.org/reference/filter.html) on a
-`tbl_svy` marks a domain rather than deleting rows; the design object
-keeps its structure and the excluded respondents carry zero weight.
+`tbl_svy` does delete the excluded rows: filtering the 2023 design to
+adults 65 and over leaves 164,955 of its 433,323 records. What survives
+the filter is the sampling structure. Each stratum keeps the number of
+sampled primary sampling units it was recorded with, so a stratum that
+was drawn with 137 still counts 137 in the variance formula when 111 of
+them fall inside the domain. That is what makes the standard error the
+textbook domain estimator rather than the standard error of a survey
+that had only ever sampled 65-year-olds.
 
 ``` r
 
@@ -583,6 +589,20 @@ same analysis written against 1995 would not be forgiving.
 [`filter()`](https://dplyr.tidyverse.org/reference/filter.html) on the
 design also says what the analysis is doing, and that intent survives
 into code someone else has to read. Filter the design.
+
+Narrow a domain far enough and there is nothing left to estimate
+variance from. A cell holding one respondent in one stratum has zero
+design degrees of freedom, and `survey` says so obliquely: the point
+estimate comes back, the confidence limits come back as `NaN`, and the
+only signal is an upstream `NaNs produced` warning from
+[`qt()`](https://rdrr.io/r/stats/TDist.html). A cell whose respondents
+all gave the same answer reports a standard error of 0 on top of that,
+which is a property of the cell and not a claim of perfect precision.
+[`degf()`](https://rdrr.io/pkg/survey/man/svychisq.html) on the filtered
+design and the `unweighted(n())` column in the summary are what catch
+this before it reaches a table. Cells this thin belong in a report as
+counts, or suppressed, which is how CDC handles small cells in its own
+publications.
 
 ## A workflow that holds up
 

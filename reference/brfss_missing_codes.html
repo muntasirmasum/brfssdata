@@ -152,6 +152,20 @@ missing catalog raises an error instead of being downloaded.</p></dd>
 cover 1998 on, so earlier years never appear.</p>
     </div>
     <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>This function says what <code>na = TRUE</code> <em>would</em> clear. For what a
+particular read did clear, <code>read_brfss(na = TRUE)</code> leaves the count
+on the tibble it returns, as a <code>brfss_na_recode</code> attribute: one row
+per variable, year, and code, with the number of values set to <code>NA</code>.
+It is there under <code>quiet = TRUE</code> too, when nothing is printed, so a
+missingness audit needs no second read of the raw year.
+<code>attr(dat, "brfss_na_recode")</code> reads it. Most dplyr verbs carry it
+along (<code><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter()</a></code>, <code><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate()</a></code>, <code><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select()</a></code> and their kin restore
+attributes they do not recognize), but <code><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise()</a></code> drops it, as
+does anything that rebuilds the tibble from scratch, so read it off
+the object <code><a href="read_brfss.html">read_brfss()</a></code> returned rather than out of a pipeline.</p>
+    </div>
+    <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="brfss_labels.html">brfss_labels()</a></code> for the full catalog.</p></div>
     </div>
@@ -162,8 +176,8 @@ cover 1998 on, so earlier years never appear.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 2 × 4</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    year variable  code label             </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>             </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      9 Refused           </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      7 Dont know/Not Sure</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      7 Dont know/Not Sure</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      9 Refused           </span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

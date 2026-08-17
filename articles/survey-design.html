@@ -528,16 +528,22 @@ for narrower reasons than it is usually given.</p>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 6 × 5</span></span></span>
 <span><span class="co">#&gt;    year variable  code label           complete</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>           <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>   </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>023 _AGE_G       2 Age 25 to 34    TRUE    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>023 _AGE_G       6 Age 65 or older TRUE    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>  <span style="text-decoration: underline;">2</span>023 _AGE_G       4 Age 45 to 54    TRUE    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span>  <span style="text-decoration: underline;">2</span>023 _AGE_G       1 Age 18 to 24    TRUE    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span>  <span style="text-decoration: underline;">2</span>023 _AGE_G       3 Age 35 to 44    TRUE    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span>  <span style="text-decoration: underline;">2</span>023 _AGE_G       5 Age 55 to 64    TRUE</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>023 _AGE_G       1 Age 18 to 24    TRUE    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>023 _AGE_G       2 Age 25 to 34    TRUE    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>  <span style="text-decoration: underline;">2</span>023 _AGE_G       3 Age 35 to 44    TRUE    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span>  <span style="text-decoration: underline;">2</span>023 _AGE_G       4 Age 45 to 54    TRUE    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span>  <span style="text-decoration: underline;">2</span>023 _AGE_G       5 Age 55 to 64    TRUE    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span>  <span style="text-decoration: underline;">2</span>023 _AGE_G       6 Age 65 or older TRUE</span></span></code></pre></div>
 <p>Then filter the design and summarize as usual. srvyr’s
-<code><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter()</a></code> on a <code>tbl_svy</code> marks a domain rather
-than deleting rows; the design object keeps its structure and the
-excluded respondents carry zero weight.</p>
+<code><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter()</a></code> on a <code>tbl_svy</code> does delete the excluded
+rows: filtering the 2023 design to adults 65 and over leaves 164,955 of
+its 433,323 records. What survives the filter is the sampling structure.
+Each stratum keeps the number of sampled primary sampling units it was
+recorded with, so a stratum that was drawn with 137 still counts 137 in
+the variance formula when 111 of them fall inside the domain. That is
+what makes the standard error the textbook domain estimator rather than
+the standard error of a survey that had only ever sampled
+65-year-olds.</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">des</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">`_AGE_G`</span> <span class="op">==</span> <span class="fl">6</span><span class="op">)</span> <span class="op">|&gt;</span></span>
@@ -596,6 +602,19 @@ same analysis written against 1995 would not be forgiving.
 <code><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter()</a></code> on the design also says what the analysis is
 doing, and that intent survives into code someone else has to read.
 Filter the design.</p>
+<p>Narrow a domain far enough and there is nothing left to estimate
+variance from. A cell holding one respondent in one stratum has zero
+design degrees of freedom, and <code>survey</code> says so obliquely:
+the point estimate comes back, the confidence limits come back as
+<code>NaN</code>, and the only signal is an upstream
+<code>NaNs produced</code> warning from <code><a href="https://rdrr.io/r/stats/TDist.html" class="external-link">qt()</a></code>. A cell whose
+respondents all gave the same answer reports a standard error of 0 on
+top of that, which is a property of the cell and not a claim of perfect
+precision. <code><a href="https://rdrr.io/pkg/survey/man/svychisq.html" class="external-link">degf()</a></code> on the filtered design and the
+<code>unweighted(n())</code> column in the summary are what catch this
+before it reaches a table. Cells this thin belong in a report as counts,
+or suppressed, which is how CDC handles small cells in its own
+publications.</p>
 </div>
 <div class="section level2">
 <h2 id="a-workflow-that-holds-up">A workflow that holds up<a class="anchor" aria-label="anchor" href="#a-workflow-that-holds-up"></a>

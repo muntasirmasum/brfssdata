@@ -26,15 +26,43 @@ uppercase names, leading underscores on calculated variables included
 CDC’s public-use file applies unchanged. One column is added, `year`,
 which matters once you read several files at once.
 
-Three companion assets sit under a single `data-meta` tag.
-`manifest.json` lists the published years, `brfss_variables.parquet` is
-the variable catalog (2,128 distinct variables with their labels and the
-years each one appears in), and `brfss_labels.parquet` is the
-value-label catalog covering 1998 onward.
+Almost every survey variable is stored as a physical DOUBLE, mirroring
+the SAS numerics these files come from. The exceptions are stored as
+strings, and which columns those are varies by year: the date parts
+(`IDATE`, `IMONTH`, `IDAY`, `IYEAR`) in every year, `SEQNO` from 1999
+on, `INTVID` through 2012, and a few text-coded columns in the middle
+years (`MRACE` and `RCSRACE` among them). The added `year` column is an
+integer. Storing the numerics uniformly is deliberate and keeps a code
+comparable across files, but it is not a guarantee about CDC’s own
+choices: a column published as text in one year and as a number in
+another still differs between files, which is what the
+`brfssdata_type_conflict` error reports when such a pair is read
+together. The cost of DOUBLE storage is cosmetic, since an integral code
+renders as `2.0` in a CSV extract, so cast in SQL (`GENHLTH::INTEGER`)
+when integers are wanted.
+
+The metadata lives under a single `data-meta` tag, nine assets in all.
+`manifest.json` lists the published years and carries a per-asset sha256
+and size. Four parquet catalogs sit beside it: `brfss_variables.parquet`
+is the variable catalog (2,128 distinct variables with their labels and
+the years each one appears in), `brfss_labels.parquet` is the
+value-label catalog covering 1998 onward, `brfss_crosswalk.parquet`
+holds CDC’s rename families, so `_DRNKWK1` through `_DRNKWK3` read as
+one concept with a review status and a comparability note, and
+`brfss_year_info.parquet` is the per-year inventory of respondents,
+variables, jurisdictions, file size, and codebook URL. Each of the four
+catalogs has a `.sha256` companion at the same URL with `.sha256`
+appended; `manifest.json` does not, since it is the record the hashes
+live in. An air-gapped mirror wants all nine. A mirror missing the
+crosswalk falls back to the snapshot bundled with the installed package,
+which is only as current as that package version, and a mirror missing
+the year inventory has no bundled fallback to reach for at all.
 
     https://github.com/muntasirmasum/brfssdata/releases/download/data-meta/manifest.json
     https://github.com/muntasirmasum/brfssdata/releases/download/data-meta/brfss_variables.parquet
     https://github.com/muntasirmasum/brfssdata/releases/download/data-meta/brfss_labels.parquet
+    https://github.com/muntasirmasum/brfssdata/releases/download/data-meta/brfss_crosswalk.parquet
+    https://github.com/muntasirmasum/brfssdata/releases/download/data-meta/brfss_year_info.parquet
 
 ## Python
 
@@ -57,8 +85,10 @@ df["GENHLTH"].value_counts().sort_index()
 DuckDB is the better tool when you want a slice of a year rather than
 the year. It reads the file over HTTP range requests, so a query
 touching three columns transfers roughly those three columns instead of
-all 351. Quote the underscore-prefixed names in SQL; unquoted, `_LLCPWT`
-is not a valid identifier.
+all 351. Quote the underscore-prefixed names in SQL. DuckDB itself
+accepts them bare, since its lexer follows PostgreSQL in allowing a
+leading underscore, so `sum(_LLCPWT)` runs; other engines do not, and
+quoting is what makes the query portable.
 
 ``` python
 import duckdb
@@ -325,17 +355,103 @@ each respondent their own primary sampling unit within a stratum, so any
 stratum holding one respondent holds one PSU. Software differs in what
 it does with them. In R,
 [`brfss_design()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_design.md)
-sets `options(survey.lonely.psu = "adjust")` when the option is unset
-(any value other than survey’s own load-time `"fail"` counts as set by
-you), which centers those strata at the grand mean;
-`singleunit(centered)` is the Stata option with the same behavior.
+sets `options(survey.lonely.psu = "adjust")` when the design it just
+built actually contains such a stratum and the option is unset (any
+value other than survey’s own load-time `"fail"` counts as set by you),
+which centers those strata at the grand mean; `singleunit(centered)` is
+the Stata option with the same behavior. A year with no single-PSU
+stratum leaves the option alone, so an unrelated survey analysis later
+in the session keeps survey’s own default.
 
-Reading with `read_brfss(labels = TRUE)` returns factors for variables
-whose CDC format is a complete code-to-label map covering every observed
-value, and
+### Value labels without losing CDC’s codes
+
+`read_brfss(labels = TRUE)` returns factors for variables whose CDC
+format is a complete code-to-label map, and
 [`write_dta()`](https://haven.tidyverse.org/reference/read_dta.html)
-turns those factors into Stata value labels, so the codes arrive already
-documented.
+does turn those factors into Stata value labels. What it cannot turn
+them into is CDC’s codes. A factor carries its levels and their
+positions, nothing else, so the export numbers the levels 1, 2, 3 in
+order and the original codes are gone:
+
+``` r
+
+labeled <- read_brfss(2023, vars = "GENHLTH", labels = TRUE, quiet = TRUE)
+
+factor_dta <- tempfile(fileext = ".dta")
+write_dta(labeled, factor_dta)
+
+read_dta(factor_dta) |>
+  count(value = as.numeric(GENHLTH), label = as_factor(GENHLTH))
+#> # A tibble: 8 × 3
+#>   value label                   n
+#>   <dbl> <fct>               <int>
+#> 1     1 Excellent           63410
+#> 2     2 Very good          142115
+#> 3     3 Good               144209
+#> 4     4 Fair                61955
+#> 5     5 Poor                20372
+#> 6     6 Dont know/Not Sure    897
+#> 7     7 Refused               361
+#> 8    NA NA                      4
+```
+
+“Dont know/Not Sure” arrives on value 6 and “Refused” on 7, where CDC
+wrote 7 and 9. Reading with `na = TRUE` does not rescue this; it drops
+the missing-type levels and renumbers whatever is left, which moves
+substantive codes too. `CHECKUP1`’s code 8 is “Never”, a real answer
+from 2,747 respondents in 2023, and under `na = TRUE` it arrives on
+value 5.
+
+The renumbering is silent, and Stata is where it does its damage,
+because the reflex there is a line like
+`replace GENHLTH = . if inlist(GENHLTH, 7, 9)`. Against a renumbered
+file that line matches nothing, and every don’t-know answer stays in the
+estimation sample.
+
+Two routes keep the codes. The plain one is to export the raw codes, as
+`for_stata` does above, and ship the relevant slice of
+[`brfss_labels()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_labels.md)
+alongside as a codebook. The other builds Stata value labels from that
+same catalog, so the `.dta` carries the true codes and their meanings
+together:
+
+``` r
+
+codes <- brfss_labels(c("GENHLTH", "SEXVAR"), years = 2023)
+
+label_from_catalog <- function(x, name) {
+  map <- codes[codes$variable == name, ]
+  map <- map[order(map$code), ]
+  labelled(x, setNames(map$code, map$label))
+}
+
+labeled_codes <- for_stata |>
+  mutate(
+    GENHLTH = label_from_catalog(GENHLTH, "GENHLTH"),
+    SEXVAR = label_from_catalog(SEXVAR, "SEXVAR")
+  )
+
+codes_dta <- tempfile(fileext = ".dta")
+write_dta(labeled_codes, codes_dta)
+
+read_dta(codes_dta) |>
+  count(value = as.numeric(GENHLTH), label = as_factor(GENHLTH))
+#> # A tibble: 7 × 3
+#>   value label                  n
+#>   <dbl> <fct>              <int>
+#> 1     1 Excellent            582
+#> 2     2 Very good           1442
+#> 3     3 Good                1752
+#> 4     4 Fair                 925
+#> 5     5 Poor                 286
+#> 6     7 Dont know/Not Sure     8
+#> 7     9 Refused                5
+```
+
+CDC’s 7 and 9 survive, and `label list` in Stata shows the wording
+against them. Do this only for the variables the analysis touches. The
+catalog is per year and per variable, so a multi-year extract needs its
+labels checked for drift before one year’s map is applied to another.
 
 ## CSV
 

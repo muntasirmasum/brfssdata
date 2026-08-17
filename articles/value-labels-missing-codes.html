@@ -108,13 +108,13 @@ lookup against these rows.</p>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 7 × 5</span></span></span>
 <span><span class="co">#&gt;    year variable  code label              complete</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>   </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      4 Fair               TRUE    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      3 Good               TRUE    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      9 Refused            TRUE    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      7 Dont know/Not Sure TRUE    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      1 Excellent          TRUE    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      2 Very good          TRUE    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">7</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      5 Poor               TRUE</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      1 Excellent          TRUE    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      2 Very good          TRUE    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      3 Good               TRUE    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      4 Fair               TRUE    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      5 Poor               TRUE    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      7 Dont know/Not Sure TRUE    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">7</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      9 Refused            TRUE</span></span></code></pre></div>
 <p>The <code>complete</code> column marks formats that are pure
 code-to-label maps. <code>PHYSHLTH</code> is the classic counterexample:
 its substantive values are a count of days, so CDC’s format documents
@@ -125,13 +125,18 @@ only the special codes and <code>complete</code> is
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 3 × 5</span></span></span>
 <span><span class="co">#&gt;    year variable  code label              complete</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>   </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>023 PHYSHLTH    88 None               FALSE   </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>023 PHYSHLTH    77 Dont know/Not sure FALSE   </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>023 PHYSHLTH    77 Dont know/Not sure FALSE   </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>023 PHYSHLTH    88 None               FALSE   </span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>  <span style="text-decoration: underline;">2</span>023 PHYSHLTH    99 Refused            FALSE</span></span></code></pre></div>
 <p>Labels cover 1998 onward. CDC does not distribute usable format
-libraries for earlier years, so both switches quietly have nothing to
-work with there (a coverage note tells you when a request touches those
-years).</p>
+libraries for earlier years, so neither switch has anything to work with
+there. <code>labels = TRUE</code> leaves the variables numeric and says
+nothing about it. <code>na = TRUE</code> does say something, because a
+silent no-op leaves CDC’s don’t-know and refused codes sitting in the
+data as if they were answers: a request touching a year with no catalog
+at all raises a <code>brfssdata_na_coverage_warning</code>, and a year
+the catalog covers only thinly, 1998 itself among them, raises a
+<code>brfssdata_na_coverage_note</code>.</p>
 </div>
 <div class="section level2">
 <h2 id="labels-true-conversion-conservatively">labels = TRUE: conversion, conservatively<a class="anchor" aria-label="anchor" href="#labels-true-conversion-conservatively"></a>
@@ -229,8 +234,57 @@ auditable.</p>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 2 × 4</span></span></span>
 <span><span class="co">#&gt;    year variable  code label             </span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>             </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      9 Refused           </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      7 Dont know/Not Sure</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      7 Dont know/Not Sure</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>023 GENHLTH      9 Refused</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="keeping-dont-know-apart-from-refused">Keeping don’t know apart from refused<a class="anchor" aria-label="anchor" href="#keeping-dont-know-apart-from-refused"></a>
+</h2>
+<p>Stata has extended missing values, <code>.a</code> through
+<code>.z</code>, and analysts arriving from it expect don’t know and
+refused to survive as distinct kinds of missing. R has one
+<code>NA</code>, so <code>na = TRUE</code> folds them together. For 2023
+<code>PHYSHLTH</code> that is 9,072 don’t-know answers and 1,710
+refusals arriving as the same thing, and a question about who declines
+to answer can no longer be asked of the result.</p>
+<p>The middle path is to read with <code>na = FALSE</code> and derive
+the distinction from the catalog, which already carries the reason in
+its <code>label</code> column. Join it on year and code, keep the reason
+in a column of its own, and clear the value afterwards:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">reasons</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/brfss_missing_codes.html">brfss_missing_codes</a></span><span class="op">(</span><span class="st">"PHYSHLTH"</span>, years <span class="op">=</span> <span class="fl">2023</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span></span>
+<span>    reason <span class="op">=</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/case-and-replace-when.html" class="external-link">case_when</a></span><span class="op">(</span></span>
+<span>      <span class="fu"><a href="https://rdrr.io/r/base/startsWith.html" class="external-link">startsWith</a></span><span class="op">(</span><span class="va">label</span>, <span class="st">"Don"</span><span class="op">)</span> <span class="op">~</span> <span class="st">"dont know"</span>,</span>
+<span>      <span class="fu"><a href="https://rdrr.io/r/base/startsWith.html" class="external-link">startsWith</a></span><span class="op">(</span><span class="va">label</span>, <span class="st">"Refus"</span><span class="op">)</span> <span class="op">~</span> <span class="st">"refused"</span>,</span>
+<span>      .default <span class="op">=</span> <span class="st">"other missing"</span></span>
+<span>    <span class="op">)</span></span>
+<span>  <span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">year</span>, <span class="va">code</span>, <span class="va">reason</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">phys</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_brfss.html">read_brfss</a></span><span class="op">(</span><span class="fl">2023</span>, vars <span class="op">=</span> <span class="st">"PHYSHLTH"</span>, na <span class="op">=</span> <span class="cn">FALSE</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate-joins.html" class="external-link">left_join</a></span><span class="op">(</span><span class="va">reasons</span>, by <span class="op">=</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/join_by.html" class="external-link">join_by</a></span><span class="op">(</span><span class="va">year</span>, <span class="va">PHYSHLTH</span> <span class="op">==</span> <span class="va">code</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span></span>
+<span>    reason <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span></span>
+<span>      <span class="fu"><a href="https://dplyr.tidyverse.org/reference/coalesce.html" class="external-link">coalesce</a></span><span class="op">(</span><span class="va">reason</span>, <span class="st">"answered"</span><span class="op">)</span>,</span>
+<span>      levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"answered"</span>, <span class="st">"dont know"</span>, <span class="st">"refused"</span>, <span class="st">"other missing"</span><span class="op">)</span></span>
+<span>    <span class="op">)</span>,</span>
+<span>    PHYSHLTH <span class="op">=</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/if_else.html" class="external-link">if_else</a></span><span class="op">(</span><span class="va">reason</span> <span class="op">==</span> <span class="st">"answered"</span>, <span class="va">PHYSHLTH</span>, <span class="cn">NA</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">phys</span>, <span class="va">reason</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 3 × 2</span></span></span>
+<span><span class="co">#&gt;   reason         n</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> answered  <span style="text-decoration: underline;">422</span>541</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> dont know   <span style="text-decoration: underline;">9</span>072</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> refused     <span style="text-decoration: underline;">1</span>710</span></span></code></pre></div>
+<p><code>PHYSHLTH</code> is now what <code>na = TRUE</code> would have
+given, and <code>reason</code> carries what was lost, so a nonresponse
+model or a sensitivity analysis that treats refusal differently from
+don’t know still has its inputs. Joining on <code>year</code> as well as
+code is what makes this safe across years, since CDC’s codes for a
+variable are not guaranteed to hold still.</p>
 </div>
 <div class="section level2">
 <h2 id="the-88-trap-none-is-an-answer-not-a-missing-code">The 88 trap: “None” is an answer, not a missing code<a class="anchor" aria-label="anchor" href="#the-88-trap-none-is-an-answer-not-a-missing-code"></a>
@@ -242,7 +296,7 @@ averages the column as-is: with 77 and 99 cleared, the healthiest
 respondents still carry the value 88, and mean “days of poor physical
 health” comes out absurdly high. Recode it yourself, on purpose, before
 any arithmetic:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_brfss.html">read_brfss</a></span><span class="op">(</span><span class="fl">2023</span>, vars <span class="op">=</span> <span class="st">"PHYSHLTH"</span>, na <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>PHYSHLTH <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/replace.html" class="external-link">replace</a></span><span class="op">(</span><span class="va">PHYSHLTH</span>, <span class="va">PHYSHLTH</span> <span class="op">==</span> <span class="fl">88</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">PHYSHLTH</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
@@ -258,7 +312,7 @@ missing answer as “not fair/poor”, which is a claim about people who
 refused to answer. Comparisons that propagate <code>NA</code>, like
 <code>GENHLTH &gt;= 4</code>, keep the missingness honest, and survey
 estimators then handle it explicitly.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_brfss.html">read_brfss</a></span><span class="op">(</span><span class="fl">2023</span>, vars <span class="op">=</span> <span class="st">"GENHLTH"</span>, na <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="co"># NA stays NA:</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">GENHLTH</span> <span class="op">&gt;=</span> <span class="fl">4</span>, useNA <span class="op">=</span> <span class="st">"ifany"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="op">)</span></span>
@@ -281,17 +335,43 @@ are <code>brfssdata_na_coverage_note</code> and
 <code>brfssdata_na_coverage_warning</code>; label drift is
 <code>brfssdata_label_drift_warning</code>. The full catalog is in
 <code>?brfssdata-conditions</code>.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">withCallingHandlers</a></span><span class="op">(</span></span>
 <span>  <span class="va">des</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/brfss_design.html">brfss_design</a></span><span class="op">(</span><span class="fl">2019</span><span class="op">:</span><span class="fl">2023</span>, vars <span class="op">=</span> <span class="st">"GENHLTH"</span><span class="op">)</span>,</span>
 <span>  brfssdata_na_note <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">cnd</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">invokeRestart</a></span><span class="op">(</span><span class="st">"muffleMessage"</span><span class="op">)</span></span>
 <span>  <span class="op">}</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p>The <code>quiet</code> argument, by contrast, governs progress
-narration only. Analytical signals, including everything above, fire
-regardless, and are silenced by class, never by
-<code>quiet = TRUE</code>.</p>
+<p>The <code>quiet</code> argument is a narrower control, and it does
+reach one of these. It silences progress narration and the recode tally
+with it, since the tally reports what a read did rather than cautioning
+about it. The tally itself survives: <code>na = TRUE</code> attaches it
+to the result as the <code>brfss_na_recode</code> attribute, one row per
+variable, year, and code, so a quiet read is still auditable. Most dplyr
+verbs carry it along, but <code><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise()</a></code> drops it, so read it
+off the object <code><a href="../reference/read_brfss.html">read_brfss()</a></code> returned rather than out of the
+middle of a pipeline.</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">recoded</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_brfss.html">read_brfss</a></span><span class="op">(</span></span>
+<span>  <span class="fl">2023</span>,</span>
+<span>  vars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"GENHLTH"</span>, <span class="st">"PHYSHLTH"</span><span class="op">)</span>,</span>
+<span>  na <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  quiet <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">recoded</span>, <span class="st">"brfss_na_recode"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 4 × 4</span></span></span>
+<span><span class="co">#&gt;   variable  year  code     n</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> GENHLTH   <span style="text-decoration: underline;">2</span>023     7   897</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> GENHLTH   <span style="text-decoration: underline;">2</span>023     9   361</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> PHYSHLTH  <span style="text-decoration: underline;">2</span>023    77  <span style="text-decoration: underline;">9</span>072</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> PHYSHLTH  <span style="text-decoration: underline;">2</span>023    99  <span style="text-decoration: underline;">1</span>710</span></span></code></pre></div>
+<p>The coverage and drift signals are not gated on <code>quiet</code> at
+all. <code>brfssdata_na_coverage_warning</code>,
+<code>brfssdata_na_coverage_note</code>, and
+<code>brfssdata_label_drift_warning</code> fire whatever it is set to,
+and are silenced by class.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
