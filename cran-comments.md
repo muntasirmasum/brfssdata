@@ -18,6 +18,12 @@ in DESCRIPTION and inst/CITATION, so the incoming check requests the
 same URL twice concurrently; the flag on one of the two copies is a
 transient non-200 from orcid.org, not a property of the iD.
 
+One win-builder run on 2026-08-17 additionally flagged the BugReports
+URL (https://github.com/muntasirmasum/brfssdata/issues) as returning
+HTTP 503. That run coincided with a GitHub service incident
+(githubstatus.com reported a partial system outage that day); the URL
+is correct and resolves normally.
+
 ## Test environments
 
 * local macOS (aarch64), R 4.6.1, checked 2026-08-16: 0 errors, 0 warnings,
@@ -25,8 +31,9 @@ transient non-200 from orcid.org, not a property of the iD.
   0 skipped
 * GitHub Actions: ubuntu-latest (R 4.2, release, devel, oldrel-1),
   windows-latest (release), macos-latest (release): all passing
-* win-builder (devel): 1 note (the DESCRIPTION spelling
-  false-positive described above)
+* win-builder (devel and release): 0 errors, 0 warnings, 1 note each
+  (the New-submission note with the DESCRIPTION spelling
+  false-positives described above)
 * R-hub v2 (R-devel): linux, windows, macos: Status OK on all three
 
 ## Notes for reviewers
