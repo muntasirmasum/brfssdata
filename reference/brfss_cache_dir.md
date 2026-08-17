@@ -89,7 +89,7 @@ brfss_cache_info()
 #> 1 brfss_2021.parquet       2021 26033879
 #> 2 brfss_2022.parquet       2022 26280485
 #> 3 brfss_2023.parquet       2023 29077288
-#> 4 brfss_labels.parquet       NA   119739
+#> 4 brfss_labels.parquet       NA   120958
 #> 5 brfss_variables.parquet    NA    63889
 #> 6 manifest.json              NA     6562
 ```
