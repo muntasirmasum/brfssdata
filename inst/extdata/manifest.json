@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated": "2026-08-07",
+  "generated": "2026-08-16",
   "note": "Bundled fallback snapshot. The live manifest is published as a release asset (tag data-meta) and is the source of truth for currently hosted years.",
   "years": [1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024],
   "files": {
@@ -169,12 +169,12 @@
       "size": 63889
     },
     "brfss_labels.parquet": {
-      "sha256": "e07a330fbf1ec778bc2e7dc8e2627aca55dbf35d012b63e87c9c0d4e572a7b2f",
-      "size": 119739
+      "sha256": "25c50a8d8f53799606bff06799967aaf0202cdaa00c0c8eea014d1cc8e8a0a92",
+      "size": 120958
     },
     "brfss_crosswalk.parquet": {
-      "sha256": "e21c724ff4743a6fe686fe751a4407841f315c1579a302bb0757c58d8ea2f056",
-      "size": 23478
+      "sha256": "90947de7645d1d8340d5fa903144509b2483e791d876ab0bcab8ae9f2cd0b992",
+      "size": 28350
     },
     "brfss_year_info.parquet": {
       "sha256": "19f8997d25f8a1df020a2f6f538a7a92f52638dcab41b1249b8ff41cfe6a13b1",
