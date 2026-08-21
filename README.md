@@ -1,8 +1,9 @@
 # brfssdata <img src="man/figures/logo.svg" align="right" width="150" alt="brfssdata hex logo: an ECG pulse trace sweeping across a purple hexagon" />
 
 <!-- badges: start -->
+[![CRAN status](https://www.r-pkg.org/badges/version/brfssdata)](https://CRAN.R-project.org/package=brfssdata)
 [![R-CMD-check](https://github.com/muntasirmasum/brfssdata/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/muntasirmasum/brfssdata/actions/workflows/R-CMD-check.yaml)
-[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+[![Lifecycle: stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
 <!-- badges: end -->
 
 brfssdata gives R users direct, reproducible access to annual microdata
@@ -28,17 +29,17 @@ sampling units for each survey era.
 
 ## Installation
 
-Install the development version from GitHub:
+Install from CRAN:
+
+``` r
+install.packages("brfssdata")
+```
+
+Or install the development version from GitHub:
 
 ``` r
 # install.packages("pak")
 pak::pak("muntasirmasum/brfssdata")
-```
-
-Once the package is on CRAN, install it the usual way.
-
-``` r
-install.packages("brfssdata")
 ```
 
 ## First estimate
@@ -167,8 +168,9 @@ strata (`_STSTR`), and PSU (`_PSU`). The list of available years lives at
 To cite the package, use `citation("brfssdata")`:
 
 > Masum M (2026). *brfssdata: Access CDC Behavioral Risk Factor
-> Surveillance System Data*. R package version 0.1.0,
-> <https://muntasirmasum.github.io/brfssdata/>.
+> Surveillance System Data*. doi:10.32614/CRAN.package.brfssdata
+> <https://doi.org/10.32614/CRAN.package.brfssdata>. R package version
+> 0.1.0, <https://muntasirmasum.github.io/brfssdata/>.
 
 Analyses should also cite the underlying survey data (below).
 

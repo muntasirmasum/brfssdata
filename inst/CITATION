@@ -19,6 +19,7 @@ bibentry(
     format(Sys.Date(), "%Y")
   },
   note = sprintf("R package version %s", meta$Version),
+  doi = "10.32614/CRAN.package.brfssdata",
   url = "https://muntasirmasum.github.io/brfssdata/"
 )
 
