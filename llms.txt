@@ -25,19 +25,19 @@ survey era.
 
 ## Installation
 
-Install the development version from GitHub:
+Install from CRAN:
+
+``` r
+
+install.packages("brfssdata")
+```
+
+Or install the development version from GitHub:
 
 ``` r
 
 # install.packages("pak")
 pak::pak("muntasirmasum/brfssdata")
-```
-
-Once the package is on CRAN, install it the usual way.
-
-``` r
-
-install.packages("brfssdata")
 ```
 
 ## First estimate
@@ -177,8 +177,9 @@ file has a `.sha256` companion for verification.
 To cite the package, use `citation("brfssdata")`:
 
 > Masum M (2026). *brfssdata: Access CDC Behavioral Risk Factor
-> Surveillance System Data*. R package version 0.1.0,
-> <https://muntasirmasum.github.io/brfssdata/>.
+> Surveillance System Data*. <doi:10.32614/CRAN.package.brfssdata>
+> <https://doi.org/10.32614/CRAN.package.brfssdata>. R package version
+> 0.1.0, <https://muntasirmasum.github.io/brfssdata/>.
 
 Analyses should also cite the underlying survey data (below).
 

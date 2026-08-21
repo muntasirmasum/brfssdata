@@ -675,8 +675,9 @@ citation("brfssdata")
 #> year(s) used.
 #> 
 #>   Masum M (2026). _brfssdata: Access CDC Behavioral Risk Factor
-#>   Surveillance System Data_. R package version 0.1.0,
-#>   <https://muntasirmasum.github.io/brfssdata/>.
+#>   Surveillance System Data_. doi:10.32614/CRAN.package.brfssdata
+#>   <https://doi.org/10.32614/CRAN.package.brfssdata>. R package version
+#>   0.1.0, <https://muntasirmasum.github.io/brfssdata/>.
 #> 
 #>   Centers for Disease Control and Prevention (CDC). Behavioral Risk
 #>   Factor Surveillance System Survey Data. Atlanta, Georgia: U.S.
