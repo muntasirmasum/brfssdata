@@ -3,8 +3,9 @@
 #' @description
 #' The year inventory that accompanies the data releases: respondent
 #' and variable counts, the number of reporting jurisdictions, the
-#' hosted file's size in bytes, and the CDC documentation page for the
-#' year, plus a locally computed `cached` flag saying whether the year
+#' hosted file's size in bytes, the CDC documentation page for the
+#' year, and the identity of the CDC source file each year was built
+#' from, plus a locally computed `cached` flag saying whether the year
 #' is already in [brfss_cache_dir()]. Use it to see the collection at a
 #' glance before downloading anything; [brfss_years()] remains the
 #' plain integer vector of published years.
@@ -15,7 +16,10 @@
 #' @return A tibble with columns `year`, `respondents`, `variables`,
 #'   `states` (reporting jurisdictions in the file), `size` (bytes of
 #'   the hosted parquet), `codebook_url` (CDC's documentation page for
-#'   the year), and `cached` (logical, computed locally).
+#'   the year), the source-identity columns `source_file` (the CDC
+#'   file the year was built from), `source_format`, `source_sha256`
+#'   (its checksum as downloaded), and `downloaded` (the date it was
+#'   retrieved from CDC), and `cached` (logical, computed locally).
 #'
 #' @examplesIf interactive()
 #' brfss_year_info(2019:2023)

@@ -1,5 +1,16 @@
 # brfssdata (development version)
 
+* The data manifest now records upstream provenance for every annual
+  asset: the CDC download URL of the source SAS Transport zip, that
+  file's sha256 and size as downloaded, the download and processing
+  dates, and the row and column counts of the published parquet. The
+  fields are additive within manifest schema 2, so installed versions
+  that predate them read the new manifest unchanged (#1).
+* `brfss_year_info()` reports the CDC source file behind each year:
+  new `source_file`, `source_format`, and `source_sha256` columns plus
+  a `downloaded` date, joined from the same build-pipeline provenance
+  record as the manifest (#5).
+
 # brfssdata 0.1.0
 
 Initial CRAN release.

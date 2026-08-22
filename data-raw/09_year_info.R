@@ -1,8 +1,11 @@
 # Build brfss_year_info.parquet, the year inventory behind
 # brfss_year_info(): respondents, variables, reporting jurisdictions,
-# hosted file size, and the CDC documentation page per year. Run from
-# the package root AFTER the parquet files are final for the release
-# (the size column must describe the bytes actually published), then
+# hosted file size, the CDC documentation page per year, and the
+# upstream source identity (CDC file name, format, sha256 as
+# downloaded, download date) joined from data-raw/provenance.csv. Run
+# from the package root AFTER the parquet files are final for the
+# release (the size column must describe the bytes actually published)
+# and after 01b_provenance.R has recorded every year's source, then
 # publish with the other data-meta assets via 04_upload.R.
 
 out_dir <- "data-raw/parquet"
@@ -63,6 +66,27 @@ rows <- lapply(paths, function(path) {
 })
 info <- do.call(rbind, rows)
 info <- info[order(info$year), ]
+
+# The source identity per year. Hard requirement: an inventory row
+# without provenance would ship NA source columns for a year we in fact
+# built from a recorded zip, so a gap here means 01b_provenance.R has
+# not been run since that year's zip arrived.
+prov <- utils::read.csv("data-raw/provenance.csv", colClasses = "character")
+prov$year <- as.integer(prov$year)
+absent <- setdiff(info$year, prov$year)
+if (length(absent) > 0) {
+  stop(
+    "no provenance recorded for year(s) ",
+    paste(absent, collapse = ", "),
+    "; run data-raw/01b_provenance.R first",
+    call. = FALSE
+  )
+}
+at <- match(info$year, prov$year)
+info$source_file <- prov$source_file[at]
+info$source_format <- "SAS Transport (XPT), zip-compressed"
+info$source_sha256 <- prov$source_sha256[at]
+info$downloaded <- as.Date(prov$downloaded[at])
 
 duckdb::duckdb_register(con, "info", info)
 DBI::dbExecute(

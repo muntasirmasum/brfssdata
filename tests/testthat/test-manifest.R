@@ -101,6 +101,41 @@ test_that("parse_manifest reads v2 checksums and drops unusable entries", {
   expect_true(is.na(manifest_size("not-listed.parquet", m)))
 })
 
+test_that("provenance fields on annual entries pass through untouched", {
+  # The published manifest carries additive provenance and shape fields
+  # on annual entries (data-raw/04_upload.R). They ride inside schema 2:
+  # parse_manifest() reads per-file fields by name, so the extras must
+  # neither be dropped nor disturb the checksum lookups.
+  local_manifest_state()
+  path <- withr::local_tempfile(
+    lines = '{
+      "schema_version": 2,
+      "years": [2023],
+      "files": {
+        "brfss_2023.parquet": {
+          "sha256": "abc123",
+          "size": 42,
+          "rows": 433323,
+          "columns": 351,
+          "processed": "2026-08-06",
+          "source_url": "https://www.cdc.gov/brfss/annual_data/2023/files/LLCP2023XPT.zip",
+          "source_sha256": "def456",
+          "source_size": 93237818,
+          "downloaded": "2026-08-02"
+        }
+      }
+    }'
+  )
+  m <- parse_manifest(path)
+  expect_identical(manifest_sha256("brfss_2023.parquet", m), "abc123")
+  expect_identical(manifest_size("brfss_2023.parquet", m), 42)
+  entry <- m$files[["brfss_2023.parquet"]]
+  expect_equal(entry$rows, 433323)
+  expect_equal(entry$columns, 351)
+  expect_identical(entry$source_sha256, "def456")
+  expect_identical(entry$downloaded, "2026-08-02")
+})
+
 test_that("manifest_json memoizes per file state and invalidates on change", {
   local_manifest_state()
   path <- withr::local_tempfile(lines = '{"years": [2023]}')

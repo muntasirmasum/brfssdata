@@ -15,10 +15,17 @@ test_that("brfss_year_info returns the inventory with a cached flag", {
       "states",
       "size",
       "codebook_url",
+      "source_file",
+      "source_format",
+      "source_sha256",
+      "downloaded",
       "cached"
     ) %in%
       names(info)
   ))
+  # The source-identity columns arrive typed, not as bare text dates.
+  expect_s3_class(info$downloaded, "Date")
+  expect_match(info$source_sha256, "^[0-9a-f]{64}$")
   # 2023's parquet is in the fixture cache; 2022's is not.
   expect_true(info$cached[info$year == 2023])
   expect_false(info$cached[info$year == 2022])

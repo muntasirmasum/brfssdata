@@ -55,6 +55,58 @@ for (year in years) {
 }
 message("row counts match brfss_year_stats.csv")
 
+# 3b. The manifest's provenance shape fields describe the published
+#     files. The fields are additive (first published with the 0.1.1
+#     data release), so a manifest that predates them passes with a
+#     note instead of failing; once present, a rows/columns mismatch
+#     means the manifest and the parquet were published from different
+#     builds. Cached bytes already matched the manifest sha256 inside
+#     read_brfss (step 1), so rows are read from the cached copy.
+manifest <- brfssdata:::read_manifest_cached()
+checked <- 0L
+for (year in years) {
+  entry <- manifest$files[[sprintf("brfss_%d.parquet", year)]]
+  if (is.null(entry$rows) || is.null(entry$columns)) {
+    next
+  }
+  checked <- checked + 1L
+  path <- file.path(brfss_cache_dir(), sprintf("brfss_%d.parquet", year))
+  con <- brfssdata:::duckdb_connect()
+  shape <- DBI::dbGetQuery(
+    con,
+    sprintf(
+      "SELECT count(*) AS n FROM read_parquet('%s')",
+      gsub("'", "''", path)
+    )
+  )
+  cols <- nrow(DBI::dbGetQuery(
+    con,
+    sprintf(
+      "SELECT name FROM parquet_schema('%s') WHERE type IS NOT NULL",
+      gsub("'", "''", path)
+    )
+  ))
+  DBI::dbDisconnect(con, shutdown = TRUE)
+  if (shape$n != entry$rows || cols != entry$columns) {
+    fail(
+      "%d: cached file is %d x %d but the manifest advertises %d x %d",
+      year,
+      shape$n,
+      cols,
+      entry$rows,
+      entry$columns
+    )
+  }
+}
+if (checked > 0) {
+  message(sprintf(
+    "manifest row/column provenance verified for %d year(s)",
+    checked
+  ))
+} else {
+  message("manifest carries no provenance shape fields yet; skipped")
+}
+
 # 4. Era-correct design columns are present.
 pre <- read_brfss(1993, vars = c("_FINALWT", "_STSTR", "_PSU"), quiet = TRUE)
 if (anyNA(pre$`_FINALWT`)) {

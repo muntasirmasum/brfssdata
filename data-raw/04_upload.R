@@ -19,6 +19,118 @@ sha256_file <- function(path) {
   sums
 }
 
+# Upstream provenance recorded by 01b_provenance.R: the CDC URL and the
+# sha256/size of each source zip as downloaded, plus the download date
+# and any hand-curated CDC revision label. Missing rows degrade to
+# entries without provenance rather than failing the publish, because
+# the manifest must still be rewritable on a machine that never held
+# the source zips.
+read_provenance <- function() {
+  path <- "data-raw/provenance.csv"
+  if (!file.exists(path)) {
+    warning(
+      "data-raw/provenance.csv missing; annual manifest entries will ",
+      "carry no provenance (run 01b_provenance.R)",
+      call. = FALSE
+    )
+    return(NULL)
+  }
+  utils::read.csv(path, colClasses = "character")
+}
+
+# Row and column counts of a published parquet, read from the file
+# footer (no data scan). Columns are the physical columns of the
+# published file, so they include the added integer `year`; the year
+# inventory's `variables` column is the one that reports CDC's count.
+parquet_shape <- function(con, path) {
+  esc <- gsub("'", "''", path)
+  rows <- DBI::dbGetQuery(
+    con,
+    sprintf("SELECT count(*) AS n FROM read_parquet('%s')", esc)
+  )$n
+  cols <- nrow(DBI::dbGetQuery(
+    con,
+    sprintf("SELECT name FROM parquet_schema('%s') WHERE type IS NOT NULL", esc)
+  ))
+  list(rows = as.integer(rows), columns = as.integer(cols))
+}
+
+# The manifest body, rewritten wholesale on every publish. The schema
+# stays 2: the provenance and shape fields on annual entries are
+# additive, and the installed package's parse_manifest() reads per-file
+# fields by name, so clients that predate them are unaffected. (The
+# revision-detection schema v3 of issue #9 is a separate, deliberate
+# change.) An advertised year whose parquet is not on this machine gets
+# no entry, and the package falls back to an unverified download for
+# it, so warn rather than fail.
+build_manifest_body <- function(years) {
+  catalogs <- file.path(
+    out_dir,
+    c(
+      "brfss_variables.parquet",
+      "brfss_labels.parquet",
+      "brfss_crosswalk.parquet",
+      "brfss_year_info.parquet"
+    )
+  )
+  assets <- c(file.path(out_dir, sprintf("brfss_%d.parquet", years)), catalogs)
+  missing <- assets[!file.exists(assets)]
+  if (length(missing) > 0) {
+    warning(
+      "no local copy to hash; these will be advertised unverified: ",
+      paste(basename(missing), collapse = ", "),
+      call. = FALSE
+    )
+  }
+  assets <- assets[file.exists(assets)]
+
+  prov <- read_provenance()
+  con <- DBI::dbConnect(duckdb::duckdb(shared_home = FALSE))
+  on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
+
+  files <- lapply(assets, function(path) {
+    entry <- list(sha256 = cli::hash_file_sha256(path), size = file.size(path))
+    year <- sub("^brfss_([0-9]{4})\\.parquet$", "\\1", basename(path))
+    if (identical(year, basename(path))) {
+      return(entry) # a catalog, not an annual asset
+    }
+    shape <- parquet_shape(con, path)
+    entry$rows <- shape$rows
+    entry$columns <- shape$columns
+    entry$processed <- format(as.Date(file.mtime(path)))
+    if (!is.null(prov)) {
+      row <- prov[prov$year == year, , drop = FALSE]
+      if (nrow(row) == 1) {
+        entry$source_url <- row$source_url
+        entry$source_sha256 <- row$source_sha256
+        entry$source_size <- as.numeric(row$source_size)
+        entry$downloaded <- row$downloaded
+        if (nzchar(row$cdc_release)) {
+          entry$cdc_release <- row$cdc_release
+        }
+      } else {
+        # read_provenance() already warned once when the whole file is
+        # missing; this is the one-year gap case.
+        warning(
+          "no provenance row for ",
+          year,
+          "; its manifest entry carries none",
+          call. = FALSE
+        )
+      }
+    }
+    entry
+  })
+  names(files) <- basename(assets)
+
+  list(
+    schema_version = 2L,
+    generated = format(Sys.Date()),
+    years = years,
+    files = files
+  )
+}
+
 release_info <- function(tag) {
   # A 404 means the release does not exist yet; anything else (auth,
   # rate limit) should propagate loudly.
@@ -223,31 +335,10 @@ publish_meta <- function(years) {
     }
   }
 
-  # Manifest schema v2: a per-asset sha256/size map that the package
-  # verifies at download time. An advertised year whose parquet is not on
-  # this machine gets no entry, and the package falls back to an
-  # unverified download for it, so warn rather than fail.
-  assets <- c(file.path(out_dir, sprintf("brfss_%d.parquet", years)), catalogs)
-  missing <- assets[!file.exists(assets)]
-  if (length(missing) > 0) {
-    warning(
-      "no local copy to hash; these will be advertised unverified: ",
-      paste(basename(missing), collapse = ", "),
-      call. = FALSE
-    )
-  }
-  assets <- assets[file.exists(assets)]
-  files <- lapply(assets, function(path) {
-    list(sha256 = cli::hash_file_sha256(path), size = file.size(path))
-  })
-  names(files) <- basename(assets)
-
-  manifest_body <- list(
-    schema_version = 2L,
-    generated = format(Sys.Date()),
-    years = years,
-    files = files
-  )
+  # Schema v2 with a per-asset sha256/size map that the package verifies
+  # at download time, plus upstream provenance and row/column counts on
+  # the annual entries; see build_manifest_body().
+  manifest_body <- build_manifest_body(years)
   manifest <- file.path(out_dir, "manifest.json")
   jsonlite::write_json(
     manifest_body,

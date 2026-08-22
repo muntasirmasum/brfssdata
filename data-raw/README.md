@@ -11,7 +11,15 @@ environment:
    that 403s most non-browser clients; the script sends browser-like
    headers, but expect to run this step from a residential network, or
    drop manually downloaded zips into `data-raw/raw/`.
-2. `02_build_parquet.R` — read each XPT with haven, add an integer
+2. `01b_provenance.R` — record each zip's upstream identity (CDC URL,
+   sha256 and size as downloaded, download date) into
+   `data-raw/provenance.csv`, which IS committed since the zips are
+   not. Re-runs preserve rows whose sha256 still matches, so recorded
+   download dates and hand-curated `cdc_release` labels survive; the
+   `cdc_release` column is filled by hand when CDC's annual-data page
+   names a revision. The manifest (step 9) and the year inventory
+   (step 8) both join on this file.
+3. `02_build_parquet.R` — read each XPT with haven, add an integer
    `year` column, keep CDC variable names verbatim, write one
    zstd-compressed parquet per year to `data-raw/parquet/` (gitignored),
    and assert row counts against both CDC's year pages (where known) and
@@ -23,36 +31,40 @@ environment:
    across every year, values unchanged, so a multi-year
    `union_by_name` read can never promote a numeric year to text
    (`1120` vs `"1120.0"`).
-3. `03_catalog.R` — build `brfss_variables.parquet` (variable, label,
+4. `03_catalog.R` — build `brfss_variables.parquet` (variable, label,
    year) from the processed years, using the variable labels haven reads
    from the XPT files.
-4. `05_labels.R` — parse CDC's SAS format libraries into
+5. `05_labels.R` — parse CDC's SAS format libraries into
    `brfss_labels.parquet` (year, variable, code, label, complete), the
    value-label catalog behind `brfss_labels()`, `labels = TRUE`, and the
    `na = TRUE` missing-code handling. Character (`$`) formats are
    currently skipped; supporting them needs character codes in the
    catalog schema.
-5. `06_crosswalk.R` — propose rename families (same stem,
+6. `06_crosswalk.R` — propose rename families (same stem,
    non-overlapping year ranges, similar labels) into
    `data-raw/crosswalk_review.csv`, which is the human-reviewed curation
    artifact checked into git (candidate rows become `verified` by hand;
    reviewed rows are never overwritten by re-runs), then expand the
    review file into `brfss_crosswalk.parquet` behind
    `brfss_crosswalk()` and the read path's rename note.
-6. `07_validate.R` — hard invariants before anything publishes: one
+7. `07_validate.R` — hard invariants before anything publishes: one
    stored type per variable across all years, zero blank strings, row
    counts identical to the recorded pins; plus a printed audit of
    missing-looking labels the matcher does not flag, to review with
    each new survey year.
-7. `09_year_info.R` — build `brfss_year_info.parquet` (respondents,
-   variables, states, hosted size, CDC documentation URL per year)
-   behind `brfss_year_info()`. Run after the parquet files are final,
-   because the size column must describe the published bytes.
-8. `04_upload.R` — create/refresh the GitHub releases: one `data-YYYY`
+8. `09_year_info.R` — build `brfss_year_info.parquet` (respondents,
+   variables, states, hosted size, CDC documentation URL, and the
+   source identity joined from `provenance.csv` per year) behind
+   `brfss_year_info()`. Run after the parquet files are final, because
+   the size column must describe the published bytes.
+9. `04_upload.R` — create/refresh the GitHub releases: one `data-YYYY`
    release per year with its parquet plus a `.sha256` file, and a
    `data-meta` release holding `manifest.json` (schema v2, with a
-   per-asset sha256/size map the package verifies at download time),
-   the four metadata catalogs, and their `.sha256` sidecars. The
+   per-asset sha256/size map the package verifies at download time,
+   and on every annual entry the upstream provenance from
+   `provenance.csv` plus the published file's row/column counts and
+   processing date), the four metadata catalogs, and their `.sha256`
+   sidecars. The
    manifest is uploaded last, so a partially published year is never
    advertised. `publish_meta()` also refreshes the bundled fallback
    `inst/extdata/manifest.json` and the bundled metadata snapshots
@@ -60,12 +72,12 @@ environment:
    Re-releasing a year whose bytes changed is deliberate:
    `publish_year(year, force = TRUE)`, then always `publish_meta()`
    over the full hosted range.
-9. `site_year_stats.R` — record per-year row/column/size statistics
-   from the published releases into
-   `vignettes/articles/brfss_year_stats.csv`, which feeds the "The
-   datasets" article and the row-count regression pins in step 2.
-   Re-run after publishing new data years.
-10. `08_package_data.R` — rebuild the shipped `data/` objects
+10. `site_year_stats.R` — record per-year row/column/size statistics
+    from the published releases into
+    `vignettes/articles/brfss_year_stats.csv`, which feeds the "The
+    datasets" article and the row-count regression pins in step 3.
+    Re-run after publishing new data years.
+11. `08_package_data.R` — rebuild the shipped `data/` objects
     (`brfss_states`, `brfss_std_pop_2000`). Their sources are fixed, so
     this reruns only when the jurisdiction list or the standard
     population table itself changes (effectively never).

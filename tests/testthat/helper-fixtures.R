@@ -153,6 +153,10 @@ write_fixture_year_info <- function(dir, years = c(2022L, 2023L)) {
       "https://www.cdc.gov/brfss/annual_data/annual_%d.html",
       years
     ),
+    source_file = sprintf("LLCP%dXPT.zip", years),
+    source_format = "SAS Transport (XPT), zip-compressed",
+    source_sha256 = strrep("ab", 32),
+    downloaded = as.Date("2026-08-02"),
     stringsAsFactors = FALSE
   )
   write_fixture_parquet(info, file.path(dir, "brfss_year_info.parquet"))

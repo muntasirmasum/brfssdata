@@ -18,13 +18,17 @@ missing catalog raises an error instead of being downloaded.}
 A tibble with columns \code{year}, \code{respondents}, \code{variables},
 \code{states} (reporting jurisdictions in the file), \code{size} (bytes of
 the hosted parquet), \code{codebook_url} (CDC's documentation page for
-the year), and \code{cached} (logical, computed locally).
+the year), the source-identity columns \code{source_file} (the CDC
+file the year was built from), \code{source_format}, \code{source_sha256}
+(its checksum as downloaded), and \code{downloaded} (the date it was
+retrieved from CDC), and \code{cached} (logical, computed locally).
 }
 \description{
 The year inventory that accompanies the data releases: respondent
 and variable counts, the number of reporting jurisdictions, the
-hosted file's size in bytes, and the CDC documentation page for the
-year, plus a locally computed \code{cached} flag saying whether the year
+hosted file's size in bytes, the CDC documentation page for the
+year, and the identity of the CDC source file each year was built
+from, plus a locally computed \code{cached} flag saying whether the year
 is already in \code{\link[=brfss_cache_dir]{brfss_cache_dir()}}. Use it to see the collection at a
 glance before downloading anything; \code{\link[=brfss_years]{brfss_years()}} remains the
 plain integer vector of published years.

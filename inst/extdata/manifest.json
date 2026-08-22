@@ -1,168 +1,448 @@
 {
   "schema_version": 2,
-  "generated": "2026-08-16",
+  "generated": "2026-08-21",
   "note": "Bundled fallback snapshot. The live manifest is published as a release asset (tag data-meta) and is the source of truth for currently hosted years.",
   "years": [1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024],
   "files": {
     "brfss_1985.parquet": {
       "sha256": "fa7a459f8fe860ddf83945c23cd37ac58b45fc4890ddd236518e9ea5b1f27f02",
-      "size": 816636
+      "size": 816636,
+      "rows": 25221,
+      "columns": 101,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/1985/files/CDBRFS85_XPT.zip",
+      "source_sha256": "2084ed701e19caad571e82a41f7f3dc3b3205709e7589d14107bcd7d9d2a52d6",
+      "source_size": 1671690,
+      "downloaded": "2026-08-02"
     },
     "brfss_1986.parquet": {
       "sha256": "12b74ec5eb2b1d6f67614cf949d46be0b6fbd12fc691e04b223278e9e6859ac5",
-      "size": 1151687
+      "size": 1151687,
+      "rows": 34395,
+      "columns": 109,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/1986/files/CDBRFS86_XPT.zip",
+      "source_sha256": "ac0af854a94da9293c96b346071d56e43cb7252551d8f25c2cdc4785cbd2a266",
+      "source_size": 2421576,
+      "downloaded": "2026-08-02"
     },
     "brfss_1987.parquet": {
       "sha256": "16734c1e74bf6a536f03b2011b40506d7fca8f2cb514aee035f1ed8e11a122ad",
-      "size": 1855359
+      "size": 1855359,
+      "rows": 50081,
+      "columns": 117,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/1987/files/CDBRFS87_XPT.zip",
+      "source_sha256": "504f8f582723a15da0c33e93e9558efcbcf845c554353d899eed818ce6ef6610",
+      "source_size": 3935248,
+      "downloaded": "2026-08-02"
     },
     "brfss_1988.parquet": {
       "sha256": "238ccb8cd7c37a1e7a410a64d894829b67ccd2f5405b7b785373aba537a39b1d",
-      "size": 2286161
+      "size": 2286161,
+      "rows": 56448,
+      "columns": 153,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/1988/files/CDBRFS88_XPT.zip",
+      "source_sha256": "19f0edafdbaa98ae25a8235b2eab39f059fba1d2084a55ac03885cf637e823be",
+      "source_size": 5152478,
+      "downloaded": "2026-08-02"
     },
     "brfss_1989.parquet": {
       "sha256": "7ab4922e58906e3440bb98541b663cf2c605efa3d9397e7e5bb3b77e9e47d087",
-      "size": 2778571
+      "size": 2778571,
+      "rows": 66867,
+      "columns": 163,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/1989/files/CDBRFS89_XPT.zip",
+      "source_sha256": "329ffa0a50c00360f0c8184528feec68819bb6c353f0c4bfe11481e56f6fa320",
+      "source_size": 6409896,
+      "downloaded": "2026-08-02"
     },
     "brfss_1990.parquet": {
       "sha256": "4ea8e602d0c786d6aeb27ce500254b6a3856f60a75db5e190b90b9ebc7d11e08",
-      "size": 3664185
+      "size": 3664185,
+      "rows": 81557,
+      "columns": 194,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/1990/files/CDBRFS90XPT.zip",
+      "source_sha256": "a2636e0ca260fa8e9f2850504a91be022b43532611586898c410ff6e783014e7",
+      "source_size": 9216925,
+      "downloaded": "2026-08-02"
     },
     "brfss_1991.parquet": {
       "sha256": "6fe771fb6fd2045cdb7ba842de46c486c6fec96016ef1b73e49ae04c65b7d301",
-      "size": 3837439
+      "size": 3837439,
+      "rows": 87846,
+      "columns": 181,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/1991/files/CDBRFS91XPT.zip",
+      "source_sha256": "c928fde12f94217dfc85bb16eaa0cc28b8bdc43f30f34da2fae0e2855a0e420d",
+      "source_size": 9441502,
+      "downloaded": "2026-08-02"
     },
     "brfss_1992.parquet": {
       "sha256": "8a87a028d0bf02dddd54652f3abd0c8a81799696398cbfedebb21fa61d3a0842",
-      "size": 4144590
+      "size": 4144590,
+      "rows": 96213,
+      "columns": 182,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/1992/files/CDBRFS92XPT.zip",
+      "source_sha256": "08365306ecee4f75d1b3cb232ed944703d0bc3283d5a1f0b505e67ea2623adab",
+      "source_size": 10255374,
+      "downloaded": "2026-08-02"
     },
     "brfss_1993.parquet": {
       "sha256": "a129bb902d47b95070c9b33e0d31e0c1faa30223b87036fd1afe1b4d392038bf",
-      "size": 4142352
+      "size": 4142352,
+      "rows": 102263,
+      "columns": 198,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/1993/files/CDBRFS93XPT.zip",
+      "source_sha256": "67d67180a1ee8a8b1d0b7a1f814d21d2998503b5e904df99dab9489681392c21",
+      "source_size": 10513468,
+      "downloaded": "2026-08-02"
     },
     "brfss_1994.parquet": {
       "sha256": "7683f225cb5a6e1aa8dee13fcd5b18b5f7450492b85ace853215fb0485449b2f",
-      "size": 4871357
+      "size": 4871357,
+      "rows": 105853,
+      "columns": 210,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/1994/files/CDBRFS94XPT.zip",
+      "source_sha256": "e3f9bcc4ced91298a4cbc359cea767c79886b04e2fc2917ff496abcd8307de0d",
+      "source_size": 12464874,
+      "downloaded": "2026-08-02"
     },
     "brfss_1995.parquet": {
       "sha256": "643da8b2bcf5df15aad7e47cca0f19ba54a4cab3ab2d26e38a2dd123272b105e",
-      "size": 4840114
+      "size": 4840114,
+      "rows": 113934,
+      "columns": 213,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/1995/files/CDBRFS95XPT.zip",
+      "source_sha256": "c719ab53dbc408c614fc1948c6b3380ac6fd076099a301af3023c97cef0d7da4",
+      "source_size": 12564199,
+      "downloaded": "2026-08-02"
     },
     "brfss_1996.parquet": {
       "sha256": "733f0af75506b3e46415a7c21611fa3f444fb3950dddf07bb3de09b7943fe71c",
-      "size": 6155327
+      "size": 6155327,
+      "rows": 124085,
+      "columns": 264,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/1996/files/CDBRFS96XPT.zip",
+      "source_sha256": "d1f6ab74c94065ff3fa5575dec037ce4618f7d2044b91913e9a6be80f5c49c9c",
+      "source_size": 17037268,
+      "downloaded": "2026-08-02"
     },
     "brfss_1997.parquet": {
       "sha256": "c3f682b8415f19f2116c20bb8375d39a6a15ec4adecfb60e1a2cb885ab9aefd5",
-      "size": 6242600
+      "size": 6242600,
+      "rows": 135582,
+      "columns": 269,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/1997/files/CDBRFS97XPT.zip",
+      "source_sha256": "6a1a4e74786a8018a52a7b307f0c652d788d0fb3def6835d56da1b9792face4a",
+      "source_size": 17685096,
+      "downloaded": "2026-08-02"
     },
     "brfss_1998.parquet": {
       "sha256": "95ac4af58d63f69cb7bbbd16cb329920929734d769f1579875c9996e91af4443",
-      "size": 8220675
+      "size": 8220675,
+      "rows": 149342,
+      "columns": 327,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/1998/files/CDBRFS98XPT.zip",
+      "source_sha256": "6ef78a151d7ef980333edab9cee84c13d6d5ed88cee9da0f1c560fb827da3cf4",
+      "source_size": 22460106,
+      "downloaded": "2026-08-02"
     },
     "brfss_1999.parquet": {
       "sha256": "7d425f1fb9564aca882873defdf23797a30a9b6d58ac394276b30915a139b977",
-      "size": 8139662
+      "size": 8139662,
+      "rows": 159989,
+      "columns": 282,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/1999/files/CDBRFS99XPT.zip",
+      "source_sha256": "2fd01153bb88fb0bda287880edb7c777e31e3a77dd01282c14755b70615deca0",
+      "source_size": 21949279,
+      "downloaded": "2026-08-02"
     },
     "brfss_2000.parquet": {
       "sha256": "8c36ee7b42a1cce329af448acd4f1f31bba61f89807708770a4907d9e62638cb",
-      "size": 10459451
+      "size": 10459451,
+      "rows": 184450,
+      "columns": 290,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/2000/files/CDBRFS00XPT.zip",
+      "source_sha256": "a64a7394a5daa84d7a6542b2075e274d00e6025a9d9f0c4806d92c2049361a03",
+      "source_size": 27093206,
+      "downloaded": "2026-08-02"
     },
     "brfss_2001.parquet": {
       "sha256": "61c4c060f786240d6f92a5c05a62095bf1e6dddfcb105a9abad4249655a97a94",
-      "size": 11703815
+      "size": 11703815,
+      "rows": 212510,
+      "columns": 292,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/2001/files/CDBRFS01XPT.zip",
+      "source_sha256": "3554a5de587d336650932f9271fd93b48e8ca7f59fa464f40fc275a0ed121faf",
+      "source_size": 33961868,
+      "downloaded": "2026-08-02"
     },
     "brfss_2002.parquet": {
       "sha256": "e3db6d5c6390ba1563148eaed85aa4b3f93db1b24a1f8e0c9933f6ad9e8872f7",
-      "size": 15717709
+      "size": 15717709,
+      "rows": 247964,
+      "columns": 311,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/2002/files/CDBRFS02XPT.zip",
+      "source_sha256": "6f335566d4c5c15aa53c2d627da7136ffba4627c6bd372473a068f084bce4ead",
+      "source_size": 48516720,
+      "downloaded": "2026-08-02"
     },
     "brfss_2003.parquet": {
       "sha256": "e8b2a0b5bed1ffe1befa4123cceeb667a247d9da8f5bd63b0161effa7e4acbf5",
-      "size": 17889802
+      "size": 17889802,
+      "rows": 264684,
+      "columns": 295,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/2003/files/CDBRFS03XPT.zip",
+      "source_sha256": "9cd00fc2e6aa44102d1427d0de7181e9151580fdbc89eda0cdf4731ed9b68463",
+      "source_size": 50529263,
+      "downloaded": "2026-08-02"
     },
     "brfss_2004.parquet": {
       "sha256": "aa17a353e2369a07239425d3016335170c8ae1bac91c4eb6aa40d6a4ba103c2f",
-      "size": 16585695
+      "size": 16585695,
+      "rows": 303822,
+      "columns": 294,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/2004/files/CDBRFS04XPT.zip",
+      "source_sha256": "98d0d515d2d56ff545ef73c73e5c37bfe2266eed4f33619654426e30b06078ab",
+      "source_size": 43429342,
+      "downloaded": "2026-08-02"
     },
     "brfss_2005.parquet": {
       "sha256": "7bf6b53a92dcbb8482baf9f4a872859995e3bf2a9d811be4e9f8e7cb3c1a6ca8",
-      "size": 24177277
+      "size": 24177277,
+      "rows": 356112,
+      "columns": 326,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/2005/files/CDBRFS05XPT.zip",
+      "source_sha256": "10d1d1a4aba0cf71b68fe27710563fd038c8a6046cc976126a4dea9d05fcca37",
+      "source_size": 69965003,
+      "downloaded": "2026-08-02"
     },
     "brfss_2006.parquet": {
       "sha256": "6625408757fefad938bb6deed12fa7c9f8739a975bb251af1a9bb68bc85e4ec7",
-      "size": 23438765
+      "size": 23438765,
+      "rows": 355710,
+      "columns": 303,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/2006/files/CDBRFS06XPT.zip",
+      "source_sha256": "abb6a41e71c290a93baae158659fdc67d4d4d9d85f9224ba62d149c2fd8a8118",
+      "source_size": 63735947,
+      "downloaded": "2026-08-02"
     },
     "brfss_2007.parquet": {
       "sha256": "4c268c5f3ab82334e0d78a297ee7e04bfc8d651ac6a8f5bee94e579e5085aa25",
-      "size": 36858183
+      "size": 36858183,
+      "rows": 430912,
+      "columns": 363,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/2007/files/CDBRFS07XPT.zip",
+      "source_sha256": "5dcaf7141f1374649db97383858177fff855f3780ebea60a4b9c808f6f4c9fa4",
+      "source_size": 105701730,
+      "downloaded": "2026-08-02"
     },
     "brfss_2008.parquet": {
       "sha256": "351b859e3ace0f8840df39f09cb21ce157a53b19272475a7d2d38c987bead1de",
-      "size": 27595379
+      "size": 27595379,
+      "rows": 414509,
+      "columns": 292,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/2008/files/CDBRFS08XPT.zip",
+      "source_sha256": "9bbc4f00db5244b4433ed0c69062044ab707c1a3cc7ab9dffc1a43882bc9369e",
+      "source_size": 82390412,
+      "downloaded": "2026-08-02"
     },
     "brfss_2009.parquet": {
       "sha256": "3239eee84204de01e6067849689f15bd1a89476fec0cd44dfeb7d3c0bc867b05",
-      "size": 36645448
+      "size": 36645448,
+      "rows": 432607,
+      "columns": 406,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/2009/files/CDBRFS09XPT.zip",
+      "source_sha256": "37a168e41a96b8cb509c068907d274e112a2ce6583e3e9c66232a6344caa11fa",
+      "source_size": 112539395,
+      "downloaded": "2026-08-02"
     },
     "brfss_2010.parquet": {
       "sha256": "e5ffba8675ef61eedf5deedea71fe449feaf41057f2b034da0088c8e51062645",
-      "size": 32366322
+      "size": 32366322,
+      "rows": 451075,
+      "columns": 398,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/2010/files/CDBRFS10XPT.zip",
+      "source_sha256": "83a40c98a33633b3e9f3cf502b722cc3d584df76aedd9518fad0ffc7367ebed0",
+      "source_size": 100881218,
+      "downloaded": "2026-08-02"
     },
     "brfss_2011.parquet": {
       "sha256": "60323d53dfef9800c5f47bb471d8539009e2e2256d0eb2fe27dac9438b75d565",
-      "size": 44366883
+      "size": 44366883,
+      "rows": 506467,
+      "columns": 455,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/2011/files/LLCP2011XPT.ZIP",
+      "source_sha256": "b8839b393b2f162571223ea40f4f7e60027e24638c200b2ed4751cc7df6f3ad9",
+      "source_size": 131547028,
+      "downloaded": "2026-08-02"
     },
     "brfss_2012.parquet": {
       "sha256": "855819a6866e7a77e3d29215dab8e850e0a8a3cb8192eca18febda0ff8d04168",
-      "size": 31785555
+      "size": 31785555,
+      "rows": 475687,
+      "columns": 360,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/2012/files/LLCP2012XPT.ZIP",
+      "source_sha256": "74dfb4dad0eab7a9d84134477a98796dcc1ad9eb7e853e89ebc0d4a5d6be04a5",
+      "source_size": 95413628,
+      "downloaded": "2026-08-02"
     },
     "brfss_2013.parquet": {
       "sha256": "aa71bbbb219335d7dd19a07a0f910759f38722d88e8539ba8bab978d1ec8fc62",
-      "size": 41280852
+      "size": 41280852,
+      "rows": 491773,
+      "columns": 337,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/2013/files/LLCP2013XPT.ZIP",
+      "source_sha256": "1d227324b889ad03a95e3262dd59b33a7557390c1ed586777f2ade9f1df70e48",
+      "source_size": 128972628,
+      "downloaded": "2026-08-02"
     },
     "brfss_2014.parquet": {
       "sha256": "bbdd3885bcc054606051539e50b1942d142be4f2ce8c7440617ec9e2b550df5d",
-      "size": 25839699
+      "size": 25839699,
+      "rows": 464664,
+      "columns": 280,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/2014/files/LLCP2014XPT.zip",
+      "source_sha256": "ee6d43cc7034d04635901e06186e8d90a07bd94b39b20ed72c8ce8943315fabe",
+      "source_size": 72251217,
+      "downloaded": "2026-08-02"
     },
     "brfss_2015.parquet": {
       "sha256": "f23da3cbed4b7416d0990fb60a87a1fd21954ec3e93232b9836bdd3f878a170d",
-      "size": 33255244
+      "size": 33255244,
+      "rows": 441456,
+      "columns": 331,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/2015/files/LLCP2015XPT.zip",
+      "source_sha256": "38bfd48c64b99328c67feac36cedfff6f2991d49e89c4ffd549083cb626764f0",
+      "source_size": 98843355,
+      "downloaded": "2026-08-02"
     },
     "brfss_2016.parquet": {
       "sha256": "173d4ee1f1e074c5fdd054508cb7a795f086d3372bf4ce5c7563c7336e49d925",
-      "size": 24831552
+      "size": 24831552,
+      "rows": 486303,
+      "columns": 276,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/2016/files/LLCP2016XPT.zip",
+      "source_sha256": "eac600a8817ef2375eff5cdccba07d820565b61930cab32e24b1c673002ebe83",
+      "source_size": 83360774,
+      "downloaded": "2026-08-02"
     },
     "brfss_2017.parquet": {
       "sha256": "c621099b3565fb9a266ba6cf63e6ce30f944ea0af50a215f4aa4117dd33ca4b8",
-      "size": 35335920
+      "size": 35335920,
+      "rows": 450016,
+      "columns": 359,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/2017/files/LLCP2017XPT.zip",
+      "source_sha256": "ed692aae6a5b240c07fe186f0397b874553b805dcc83ab043c234386003bea07",
+      "source_size": 106730113,
+      "downloaded": "2026-08-02"
     },
     "brfss_2018.parquet": {
       "sha256": "51b62146af9feec6fce05de51dbf5f72ed5449cedaf661b86294e8d41cbbe001",
-      "size": 22461722
+      "size": 22461722,
+      "rows": 437436,
+      "columns": 276,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/2018/files/LLCP2018XPT.zip",
+      "source_sha256": "279fa976b2f651839fb15f801f8e822806405ba7280fac705af0ffda3bfef648",
+      "source_size": 72859719,
+      "downloaded": "2026-08-02"
     },
     "brfss_2019.parquet": {
       "sha256": "bdff1093ad27be10dc9e32371bbaaefd510c0d32d203d235e02a217b7e564b55",
-      "size": 32618442
+      "size": 32618442,
+      "rows": 418268,
+      "columns": 343,
+      "processed": "2026-08-15",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/2019/files/LLCP2019XPT.zip",
+      "source_sha256": "67f64f88ba45faf7c6e73341e75ee392e525c672fcadd5a6618bf5c4fffba304",
+      "source_size": 97972814,
+      "downloaded": "2026-08-02"
     },
     "brfss_2020.parquet": {
       "sha256": "dc4139ae9c0c0010e0971867ad7255013be1ad7d0e270ded447567c5aab1f5e2",
-      "size": 21434090
+      "size": 21434090,
+      "rows": 401958,
+      "columns": 280,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/2020/files/LLCP2020XPT.zip",
+      "source_sha256": "132269948a09506392c417c4042c052f088c86334ee3bc34c2776501f240b4b6",
+      "source_size": 67497017,
+      "downloaded": "2026-08-02"
     },
     "brfss_2021.parquet": {
       "sha256": "cd57d48bcbca2a8d5572776100c67dbf3a29b80d81e5fbfa7e0235958779a7c7",
-      "size": 26033879
+      "size": 26033879,
+      "rows": 438693,
+      "columns": 304,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/2021/files/LLCP2021XPT.zip",
+      "source_sha256": "e8a6e290cdcb6bff82d8f37dff6c3f3e435d428191eb529a716cf9f5316aa621",
+      "source_size": 81597005,
+      "downloaded": "2026-08-02"
     },
     "brfss_2022.parquet": {
       "sha256": "303e456bc19183e9a06acbc66b78ea4f20d6c7554634df0218a7d0b6c35b27f8",
-      "size": 26280485
+      "size": 26280485,
+      "rows": 445132,
+      "columns": 329,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/2022/files/LLCP2022XPT.zip",
+      "source_sha256": "b6319c949b7289f8020fc903c3c2d38fe7e0b28ad703dcd81547f5cd0c0dcfeb",
+      "source_size": 84614105,
+      "downloaded": "2026-08-02"
     },
     "brfss_2023.parquet": {
       "sha256": "128ef26a1c0a84e271e1e35e6584f3c7bfd7690c8cd7ba602313c0d738021ffe",
-      "size": 29077288
+      "size": 29077288,
+      "rows": 433323,
+      "columns": 351,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/2023/files/LLCP2023XPT.zip",
+      "source_sha256": "d1ab80e4806a1d07bd3e40ec78c971ad9ff920f3ea5f6049780aeaa41ff31f43",
+      "source_size": 93237818,
+      "downloaded": "2026-08-02"
     },
     "brfss_2024.parquet": {
       "sha256": "00c40d2c741bc5594b5a146b433249dd02b30c4963c85a9133f35d91fc70829b",
-      "size": 25575620
+      "size": 25575620,
+      "rows": 457670,
+      "columns": 302,
+      "processed": "2026-08-06",
+      "source_url": "https://www.cdc.gov/brfss/annual_data/2024/files/LLCP2024XPT.zip",
+      "source_sha256": "d33de91a584e866f657d29b1d5b51b5672467286ed22d021e36ee3c7b4d712a4",
+      "source_size": 83007956,
+      "downloaded": "2026-08-02"
     },
     "brfss_variables.parquet": {
       "sha256": "1898bb13befb4efac53fd737c92e155c68e40c4e5bf89d2eac3cd6bcb73ce747",
@@ -173,12 +453,12 @@
       "size": 120958
     },
     "brfss_crosswalk.parquet": {
-      "sha256": "90947de7645d1d8340d5fa903144509b2483e791d876ab0bcab8ae9f2cd0b992",
-      "size": 28350
+      "sha256": "14edb0ff1d7d0a8c6aff6532238ab88230e486a7550eb44f25c56d54e12dd17d",
+      "size": 28772
     },
     "brfss_year_info.parquet": {
-      "sha256": "19f8997d25f8a1df020a2f6f538a7a92f52638dcab41b1249b8ff41cfe6a13b1",
-      "size": 1867
+      "sha256": "ca9738762d7fd126c89c8b2867f68c0aa28b6a4e5bb4db3c2bfcd8a24dc5eff2",
+      "size": 4546
     }
   }
 }
