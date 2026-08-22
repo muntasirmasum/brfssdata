@@ -2,7 +2,10 @@
 
 <!-- badges: start -->
 [![CRAN status](https://www.r-pkg.org/badges/version/brfssdata)](https://CRAN.R-project.org/package=brfssdata)
+[![Downloads](https://cranlogs.r-pkg.org/badges/brfssdata)](https://CRAN.R-project.org/package=brfssdata)
 [![R-CMD-check](https://github.com/muntasirmasum/brfssdata/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/muntasirmasum/brfssdata/actions/workflows/R-CMD-check.yaml)
+[![Codecov test coverage](https://codecov.io/gh/muntasirmasum/brfssdata/graph/badge.svg)](https://app.codecov.io/gh/muntasirmasum/brfssdata)
+[![Integration](https://github.com/muntasirmasum/brfssdata/actions/workflows/integration.yaml/badge.svg)](https://github.com/muntasirmasum/brfssdata/actions/workflows/integration.yaml)
 [![Lifecycle: stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
 <!-- badges: end -->
 
