@@ -50,13 +50,14 @@ value-label catalog covering 1998 onward, `brfss_crosswalk.parquet`
 holds CDC’s rename families, so `_DRNKWK1` through `_DRNKWK3` read as
 one concept with a review status and a comparability note, and
 `brfss_year_info.parquet` is the per-year inventory of respondents,
-variables, jurisdictions, file size, and codebook URL. Each of the four
-catalogs has a `.sha256` companion at the same URL with `.sha256`
-appended; `manifest.json` does not, since it is the record the hashes
-live in. An air-gapped mirror wants all nine. A mirror missing the
-crosswalk falls back to the snapshot bundled with the installed package,
-which is only as current as that package version, and a mirror missing
-the year inventory has no bundled fallback to reach for at all.
+variables, jurisdictions, file size, codebook URL, and the upstream
+source identity (CDC file name, sha256 as downloaded, download date).
+Each of the four catalogs has a `.sha256` companion at the same URL with
+`.sha256` appended; `manifest.json` does not, since it is the record the
+hashes live in. An air-gapped mirror wants all nine. A mirror missing
+the crosswalk falls back to the snapshot bundled with the installed
+package, which is only as current as that package version, and a mirror
+missing the year inventory has no bundled fallback to reach for at all.
 
     https://github.com/muntasirmasum/brfssdata/releases/download/data-meta/manifest.json
     https://github.com/muntasirmasum/brfssdata/releases/download/data-meta/brfss_variables.parquet

@@ -50,7 +50,10 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="brfssdata-development-version">brfssdata (development version)<a class="anchor" aria-label="anchor" href="#brfssdata-development-version"></a></h2>
-</div>
+<ul><li>The data manifest now records upstream provenance for every annual asset: the CDC download URL of the source SAS Transport zip, that file’s sha256 and size as downloaded, the download and processing dates, and the row and column counts of the published parquet. The fields are additive within manifest schema 2, so installed versions that predate them read the new manifest unchanged (<a href="https://github.com/muntasirmasum/brfssdata/issues/1" class="external-link">#1</a>).</li>
+<li>
+<code><a href="../reference/brfss_year_info.html">brfss_year_info()</a></code> reports the CDC source file behind each year: new <code>source_file</code>, <code>source_format</code>, and <code>source_sha256</code> columns plus a <code>downloaded</code> date, joined from the same build-pipeline provenance record as the manifest (<a href="https://github.com/muntasirmasum/brfssdata/issues/5" class="external-link">#5</a>).</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.0" id="brfssdata-010">brfssdata 0.1.0<a class="anchor" aria-label="anchor" href="#brfssdata-010"></a></h2><p class="text-muted">CRAN release: 2026-08-21</p>
 <p>Initial CRAN release.</p>

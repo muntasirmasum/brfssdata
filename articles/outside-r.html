@@ -134,14 +134,15 @@ distinct variables with their labels and the years each one appears in),
 families, so <code>_DRNKWK1</code> through <code>_DRNKWK3</code> read as
 one concept with a review status and a comparability note, and
 <code>brfss_year_info.parquet</code> is the per-year inventory of
-respondents, variables, jurisdictions, file size, and codebook URL. Each
-of the four catalogs has a <code>.sha256</code> companion at the same
-URL with <code>.sha256</code> appended; <code>manifest.json</code> does
-not, since it is the record the hashes live in. An air-gapped mirror
-wants all nine. A mirror missing the crosswalk falls back to the
-snapshot bundled with the installed package, which is only as current as
-that package version, and a mirror missing the year inventory has no
-bundled fallback to reach for at all.</p>
+respondents, variables, jurisdictions, file size, codebook URL, and the
+upstream source identity (CDC file name, sha256 as downloaded, download
+date). Each of the four catalogs has a <code>.sha256</code> companion at
+the same URL with <code>.sha256</code> appended;
+<code>manifest.json</code> does not, since it is the record the hashes
+live in. An air-gapped mirror wants all nine. A mirror missing the
+crosswalk falls back to the snapshot bundled with the installed package,
+which is only as current as that package version, and a mirror missing
+the year inventory has no bundled fallback to reach for at all.</p>
 <pre><code>https://github.com/muntasirmasum/brfssdata/releases/download/data-meta/manifest.json
 https://github.com/muntasirmasum/brfssdata/releases/download/data-meta/brfss_variables.parquet
 https://github.com/muntasirmasum/brfssdata/releases/download/data-meta/brfss_labels.parquet

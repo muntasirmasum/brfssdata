@@ -2,8 +2,9 @@
 
 The year inventory that accompanies the data releases: respondent and
 variable counts, the number of reporting jurisdictions, the hosted
-file's size in bytes, and the CDC documentation page for the year, plus
-a locally computed `cached` flag saying whether the year is already in
+file's size in bytes, the CDC documentation page for the year, and the
+identity of the CDC source file each year was built from, plus a locally
+computed `cached` flag saying whether the year is already in
 [`brfss_cache_dir()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_cache_dir.md).
 Use it to see the collection at a glance before downloading anything;
 [`brfss_years()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_years.md)
@@ -34,8 +35,11 @@ brfss_year_info(years = NULL, download = TRUE, quiet = TRUE)
 
 A tibble with columns `year`, `respondents`, `variables`, `states`
 (reporting jurisdictions in the file), `size` (bytes of the hosted
-parquet), `codebook_url` (CDC's documentation page for the year), and
-`cached` (logical, computed locally).
+parquet), `codebook_url` (CDC's documentation page for the year), the
+source-identity columns `source_file` (the CDC file the year was built
+from), `source_format`, `source_sha256` (its checksum as downloaded),
+and `downloaded` (the date it was retrieved from CDC), and `cached`
+(logical, computed locally).
 
 ## See also
 

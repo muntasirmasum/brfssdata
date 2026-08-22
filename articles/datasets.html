@@ -592,12 +592,14 @@ rows would come back all <code>NA</code> for that column.</p>
 <h2 id="known-limitations">Known limitations<a class="anchor" aria-label="anchor" href="#known-limitations"></a>
 </h2>
 <p>The collection has a few known gaps.</p>
-<p>The files carry no upstream provenance yet.
-<code><a href="../reference/brfss_year_info.html">brfss_year_info()</a></code> reports what the hosted copy contains,
-but not the CDC URL it was built from, when it was retrieved, or the
-hash of the upstream Transport file, so there is no way from inside the
-package to tell which CDC revision of a year you are holding. Those
-columns are planned for the next data republish.</p>
+<p>Upstream revisions are not detected. Each annual entry in the
+manifest records the CDC URL its year was built from, the sha256 and
+size of that Transport zip as downloaded, the download and processing
+dates, and the published file’s row and column counts, and
+<code><a href="../reference/brfss_year_info.html">brfss_year_info()</a></code> carries the source file name, format,
+checksum, and download date. But nothing watches CDC’s side: if CDC
+replaces a year’s file, the provenance identifies the copy this
+collection was built from, not whether a newer one exists upstream.</p>
 <p>Calculated variables keep CDC’s stored scaling. <code>_BMI5</code>
 and <code>_DRNKWK2</code> carry two implied decimal places, so a stored
 2704 is a BMI of 27.04, and nothing in the files or catalogs records

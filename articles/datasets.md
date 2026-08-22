@@ -283,13 +283,15 @@ rows would come back all `NA` for that column.
 
 The collection has a few known gaps.
 
-The files carry no upstream provenance yet.
+Upstream revisions are not detected. Each annual entry in the manifest
+records the CDC URL its year was built from, the sha256 and size of that
+Transport zip as downloaded, the download and processing dates, and the
+published file’s row and column counts, and
 [`brfss_year_info()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_year_info.md)
-reports what the hosted copy contains, but not the CDC URL it was built
-from, when it was retrieved, or the hash of the upstream Transport file,
-so there is no way from inside the package to tell which CDC revision of
-a year you are holding. Those columns are planned for the next data
-republish.
+carries the source file name, format, checksum, and download date. But
+nothing watches CDC’s side: if CDC replaces a year’s file, the
+provenance identifies the copy this collection was built from, not
+whether a newer one exists upstream.
 
 Calculated variables keep CDC’s stored scaling. `_BMI5` and `_DRNKWK2`
 carry two implied decimal places, so a stored 2704 is a BMI of 27.04,

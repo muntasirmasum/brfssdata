@@ -466,7 +466,7 @@ brfss_cache_info()
 #> 3 brfss_2023.parquet       2023 29077288
 #> 4 brfss_labels.parquet       NA   120958
 #> 5 brfss_variables.parquet    NA    63889
-#> 6 manifest.json              NA     6562
+#> 6 manifest.json              NA    19398
 ```
 
 Because reads come from the cache, a year you have already downloaded is
