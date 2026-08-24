@@ -114,12 +114,12 @@ CDC initiated BRFSS in 1984 with 15 states collecting risk-behavior
 data through monthly telephone interviews. Participation grew from
 there, and the survey now collects data in all 50 states, the District
 of Columbia, and participating US territories, completing more than
-400,000 adult interviews a year. A public-use file for 1984 exists too,
-12,258 records from those first 15 states, but its documentation now
-sits in [CDC's web
-archive](https://archive.cdc.gov/www_cdc_gov/brfss/annual_data/annual_1984.htm)
-instead of the current annual-data index, and it is not part of these
-releases, which begin at 1985.
+400,000 adult interviews a year. A public-use file for 1984 existed too,
+12,258 records from those first 15 states according to its
+documentation page, which now sits in [CDC's web
+archive](https://archive.cdc.gov/www_cdc_gov/brfss/annual_data/annual_1984.htm).
+The data file itself is no longer served, from cdc.gov or from the
+archive (checked August 2026), so these releases begin at 1985.
 
 The 2011 survey year is the one methodological boundary that matters for
 almost every analysis. CDC added a cell-phone sampling frame and
@@ -148,14 +148,19 @@ each year instead of assuming a constant panel of states.
 
 ## Per-year CDC documentation
 
-Each survey year has its own documentation page on cdc.gov, all of them
-reachable from the [annual survey data
-index](https://www.cdc.gov/brfss/annual_data/annual_data.htm). Recent
-years follow the pattern
+Each survey year has its own documentation page on cdc.gov, and the
+[annual survey data
+index](https://www.cdc.gov/brfss/annual_data/annual_data.htm) links
+the pages from 1990 on. Recent years follow the pattern
 `https://www.cdc.gov/brfss/annual_data/annual_YYYY.html`, for example
 [annual_2023.html](https://www.cdc.gov/brfss/annual_data/annual_2023.html).
 Years through 2011 use an `.htm` extension instead, and the pages for
-1984 through 1988 have moved to CDC's web archive.
+1984 through 1989 have moved to CDC's web archive. CDC retires early
+years there over time (the 1989 page moved in August 2026), and a
+retired address still forwards a browser to the archived copy, so an
+old link degrades gracefully for a reader but returns a 404 to a
+script. `brfss_year_info()` carries the address that currently works
+for each year.
 
 Those pages are where to answer the questions this package deliberately
 leaves alone. A recent year carries the annual overview (background,

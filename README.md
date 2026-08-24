@@ -23,12 +23,13 @@ survey-design object with the correct weights, strata, and primary
 sampling units for each survey era.
 
 > **Status:** 40 survey years, 1985 through 2024, are published as data
-> releases. BRFSS began in 1984, and CDC does distribute a 1984 file
-> (12,258 records from the first 15 states) from its
-> [web archive](https://archive.cdc.gov/www_cdc_gov/brfss/annual_data/annual_1984.htm);
-> that year is not part of this collection. `brfss_years()` reports the
-> currently hosted years, refreshing its manifest at most once a day
-> (`refresh = TRUE` forces a fresh look).
+> releases. BRFSS began in 1984, but CDC no longer serves the 1984 file.
+> Its [archived documentation page](https://archive.cdc.gov/www_cdc_gov/brfss/annual_data/annual_1984.htm)
+> describes 12,258 records from the first 15 states, and the download
+> link there no longer resolves (checked August 2026), so the collection
+> begins at 1985. `brfss_years()` reports the currently hosted years,
+> refreshing its manifest at most once a day (`refresh = TRUE` forces a
+> fresh look).
 
 ## Installation
 

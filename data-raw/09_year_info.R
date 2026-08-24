@@ -20,13 +20,17 @@ con <- DBI::dbConnect(duckdb::duckdb(shared_home = FALSE))
 on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
 
 # URL rules per the datasets article: .html from 2012 on, .htm through
-# 2011, CDC's web archive for 1984-1988.
+# 2011, CDC's web archive for 1984-1989. CDC retires early years to the
+# archive over time (the 1989 page moved there in August 2026), so this
+# boundary is expected to drift; the archive check further down fails
+# the build if an archive-era page is not actually archived.
+live_from <- 1990L
 codebook_url <- function(year) {
   ifelse(
     year >= 2012,
     sprintf("https://www.cdc.gov/brfss/annual_data/annual_%d.html", year),
     ifelse(
-      year >= 1989,
+      year >= live_from,
       sprintf("https://www.cdc.gov/brfss/annual_data/annual_%d.htm", year),
       sprintf(
         "https://archive.cdc.gov/www_cdc_gov/brfss/annual_data/annual_%d.htm",
@@ -87,6 +91,22 @@ info$source_file <- prov$source_file[at]
 info$source_format <- "SAS Transport (XPT), zip-compressed"
 info$source_sha256 <- prov$source_sha256[at]
 info$downloaded <- as.Date(prov$downloaded[at])
+
+# The archive-era addresses must exist. archive.cdc.gov answers scripted
+# clients (www.cdc.gov's CDN does not, so the live-era pages cannot be
+# checked the same way); a miss means live_from is wrong for that year.
+for (u in codebook_url(info$year[info$year < live_from])) {
+  status <- curl::curl_fetch_memory(
+    u,
+    handle = curl::new_handle(followlocation = TRUE, timeout = 60)
+  )$status_code
+  if (status != 200L) {
+    stop(
+      "archived documentation page not found (HTTP ", status, "): ", u,
+      call. = FALSE
+    )
+  }
+}
 
 duckdb::duckdb_register(con, "info", info)
 DBI::dbExecute(
