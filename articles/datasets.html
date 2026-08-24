@@ -479,11 +479,12 @@ describes as the system’s current volume.</p>
 data through monthly telephone interviews. Participation grew from
 there, and the survey now collects data in all 50 states, the District
 of Columbia, and participating US territories, completing more than
-400,000 adult interviews a year. A public-use file for 1984 exists too,
-12,258 records from those first 15 states, but its documentation now
-sits in <a href="https://archive.cdc.gov/www_cdc_gov/brfss/annual_data/annual_1984.htm" class="external-link">CDC’s
-web archive</a> instead of the current annual-data index, and it is not
-part of these releases, which begin at 1985.</p>
+400,000 adult interviews a year. A public-use file for 1984 existed too,
+12,258 records from those first 15 states according to its documentation
+page, which now sits in <a href="https://archive.cdc.gov/www_cdc_gov/brfss/annual_data/annual_1984.htm" class="external-link">CDC’s
+web archive</a>. The data file itself is no longer served, from cdc.gov
+or from the archive (checked August 2026), so these releases begin at
+1985.</p>
 <p>The 2011 survey year is the one methodological boundary that matters
 for almost every analysis. CDC added a cell-phone sampling frame and
 replaced post-stratification with iterative proportional fitting, or
@@ -511,13 +512,19 @@ each year instead of assuming a constant panel of states.</p>
 <div class="section level2">
 <h2 id="per-year-cdc-documentation">Per-year CDC documentation<a class="anchor" aria-label="anchor" href="#per-year-cdc-documentation"></a>
 </h2>
-<p>Each survey year has its own documentation page on cdc.gov, all of
-them reachable from the <a href="https://www.cdc.gov/brfss/annual_data/annual_data.htm" class="external-link">annual
-survey data index</a>. Recent years follow the pattern
+<p>Each survey year has its own documentation page on cdc.gov, and the
+<a href="https://www.cdc.gov/brfss/annual_data/annual_data.htm" class="external-link">annual
+survey data index</a> links the pages from 1990 on. Recent years follow
+the pattern
 <code>https://www.cdc.gov/brfss/annual_data/annual_YYYY.html</code>, for
 example <a href="https://www.cdc.gov/brfss/annual_data/annual_2023.html" class="external-link">annual_2023.html</a>.
 Years through 2011 use an <code>.htm</code> extension instead, and the
-pages for 1984 through 1988 have moved to CDC’s web archive.</p>
+pages for 1984 through 1989 have moved to CDC’s web archive. CDC retires
+early years there over time (the 1989 page moved in August 2026), and a
+retired address still forwards a browser to the archived copy, so an old
+link degrades gracefully for a reader but returns a 404 to a script.
+<code><a href="../reference/brfss_year_info.html">brfss_year_info()</a></code> carries the address that currently works
+for each year.</p>
 <p>Those pages are where to answer the questions this package
 deliberately leaves alone. A recent year carries the annual overview
 (background, design, data collection and processing, and statistical and

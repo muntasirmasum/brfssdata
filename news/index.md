@@ -14,6 +14,13 @@
   `source_format`, and `source_sha256` columns plus a `downloaded` date,
   joined from the same build-pipeline provenance record as the manifest
   ([\#5](https://github.com/muntasirmasum/brfssdata/issues/5)).
+- `brfss_year_info()$codebook_url` for 1989 now points at CDC’s web
+  archive, where CDC moved that year’s documentation page in August
+  2026; the live address returns 404 to scripts. The year inventory is
+  fetched from the data-meta release, so installed versions pick the
+  corrected address up without upgrading. The datasets article and the
+  README no longer describe a 1984 public-use file as available. Its
+  documentation is archived, but the file itself is no longer served.
 
 ## brfssdata 0.1.0
 
