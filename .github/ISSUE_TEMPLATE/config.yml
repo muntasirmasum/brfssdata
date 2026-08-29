@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation and articles
+    url: https://muntasirmasum.github.io/brfssdata/
+    about: Function reference, the getting-started vignette, and articles on survey design, value labels, validation, and use outside R.

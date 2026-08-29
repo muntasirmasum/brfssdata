@@ -1,0 +1,18 @@
+name: Feature request
+description: New functionality for accessing BRFSS data or building survey designs
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What analysis step is hard today
+      description: Describe the task and how you do it now.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like the package to do
+      description: The package stays a data-access and design-construction layer; tabulation, reliability screening, and age standardization are left to survey and srvyr. Say how the request fits that layer.
+    validations:
+      required: true

@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+message: "If you use brfssdata, please cite it using this metadata, and cite the CDC BRFSS survey data for each year analyzed (brfss_citation() prints both)."
+type: software
+title: "brfssdata: Access CDC Behavioral Risk Factor Surveillance System Data"
+authors:
+  - family-names: Masum
+    given-names: Muntasir
+    orcid: "https://orcid.org/0000-0002-4210-2844"
+    affiliation: "University at Albany, State University of New York"
+version: 0.1.0
+date-released: "2026-08-21"
+license: MIT
+repository-code: "https://github.com/muntasirmasum/brfssdata"
+url: "https://muntasirmasum.github.io/brfssdata/"
+doi: 10.32614/CRAN.package.brfssdata
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.21972542
+    description: "Zenodo concept DOI for the archived source code (resolves to the latest version)"
+  - type: url
+    value: "https://CRAN.R-project.org/package=brfssdata"
+    description: "CRAN package page"
+keywords:
+  - BRFSS
+  - CDC
+  - survey data
+  - complex survey design
+  - epidemiology
+  - public health
+  - R package
+abstract: "Download, cache, and analyze annual microdata from the United States Centers for Disease Control and Prevention Behavioral Risk Factor Surveillance System (BRFSS). Each requested survey year is downloaded once as a compact file hosted on public releases, verified against a published checksum, and cached locally; queries then run through DuckDB, so column selection and repeat analyses never re-transfer data. Survey-design helpers construct srvyr design objects with year-appropriate weights, strata, and primary sampling units, including explicit handling of the 2011 weighting methodology change and of the codes CDC uses for missing-type answers."

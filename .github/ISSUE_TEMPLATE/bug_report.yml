@@ -1,0 +1,27 @@
+name: Bug report
+description: An R error, or behaviour that does not match the documentation
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What did you run, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: reprex
+    attributes:
+      label: Minimal reproducible example
+      description: The smallest code that shows the problem. If it needs data, say which survey year and variables, and whether it reproduces from a cached copy with `download = FALSE`.
+      render: r
+    validations:
+      required: true
+  - type: textarea
+    id: session
+    attributes:
+      label: Session information
+      description: Paste the output of `sessionInfo()`, and of `brfss_cache_info()` if a download or a cached file was involved.
+      render: r
+    validations:
+      required: true

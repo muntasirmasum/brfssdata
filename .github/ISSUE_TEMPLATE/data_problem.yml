@@ -1,0 +1,33 @@
+name: Data problem
+description: A hosted file, value label, missing code, crosswalk pairing, or row count that looks wrong
+labels: ["data"]
+body:
+  - type: input
+    id: year
+    attributes:
+      label: Survey year(s)
+      placeholder: "2019"
+    validations:
+      required: true
+  - type: input
+    id: variable
+    attributes:
+      label: Variable name as CDC spells it
+      placeholder: "_LLCPWT, GENHLTH, PHYSHLTH"
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: What the package shows
+      description: The code, label, count, or pairing you saw, with the call that produced it (`brfss_codebook()`, `brfss_labels()`, `brfss_missing_codes()`, `brfss_crosswalk()`, `read_brfss()`).
+      render: r
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What CDC documents
+      description: Where CDC's codebook, SAS format library, or questionnaire for that year says otherwise. A link or page number settles most data questions quickly.
+    validations:
+      required: true
