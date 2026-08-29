@@ -177,6 +177,16 @@
 <p>For survey-weighted analysis outside R, use the design columns shipped in every year: the final weight (<code>_LLCPWT</code> from 2011, <code>_FINALWT</code> before), strata (<code>_STSTR</code>), and PSU (<code>_PSU</code>). The list of available years lives at <code>releases/download/data-meta/manifest.json</code>, and each file has a <code>.sha256</code> companion for verification.</p>
 </div>
 <div class="section level2">
+<h2 id="getting-help">Getting help<a class="anchor" aria-label="anchor" href="#getting-help"></a>
+</h2>
+<p>Questions and problems go to the issue tracker at <a href="https://github.com/muntasirmasum/brfssdata/issues" class="external-link uri">https://github.com/muntasirmasum/brfssdata/issues</a>, where templates cover bugs, data problems, and feature requests. For a bug, include a minimal example and the output of <code><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo()</a></code>. For a data problem, give the survey year, the variable name as CDC spells it, and the code or label in question, because the answer usually sits in CDC’s codebook for that year. Add the output of <code><a href="reference/brfss_cache_dir.html">brfss_cache_info()</a></code> whenever a download or a cached file is involved. The function reference and the articles on the <a href="https://muntasirmasum.github.io/brfssdata/">package site</a> are the first place to look.</p>
+</div>
+<div class="section level2">
+<h2 id="contributing">Contributing<a class="anchor" aria-label="anchor" href="#contributing"></a>
+</h2>
+<p>Contributions are welcome. <a href="https://github.com/muntasirmasum/brfssdata/blob/main/CONTRIBUTING.md" class="external-link">CONTRIBUTING.md</a> explains how to set up a development copy, run the offline test suite, and propose changes to the data build. Please note that the brfssdata project is released with a <a href="https://muntasirmasum.github.io/brfssdata/CODE_OF_CONDUCT.html">Contributor Code of Conduct</a>. By contributing to this project, you agree to abide by its terms.</p>
+</div>
+<div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
 </h2>
 <p>To cite the package, use <code>citation("brfssdata")</code>:</p>
@@ -184,6 +194,7 @@
 <p>Masum M (2026). <em>brfssdata: Access CDC Behavioral Risk Factor Surveillance System Data</em>. <a href="doi:10.32614/CRAN.package.brfssdata" class="uri">doi:10.32614/CRAN.package.brfssdata</a> <a href="https://doi.org/10.32614/CRAN.package.brfssdata" class="external-link uri">https://doi.org/10.32614/CRAN.package.brfssdata</a>. R package version 0.1.0, <a href="https://muntasirmasum.github.io/brfssdata/" class="uri">https://muntasirmasum.github.io/brfssdata/</a>.</p>
 </blockquote>
 <p>Analyses should also cite the underlying survey data (below).</p>
+<p>The source code of every release is also archived on Zenodo under the concept DOI <a href="https://doi.org/10.5281/zenodo.21972542" class="external-link">10.5281/zenodo.21972542</a>, which resolves to the latest archived version.</p>
 </div>
 <div class="section level2">
 <h2 id="data-source">Data source<a class="anchor" aria-label="anchor" href="#data-source"></a>
@@ -217,6 +228,13 @@
 </ul>
 </div>
 
+<div class="community">
+<h2 data-toc-skip>Community</h2>
+<ul class="list-unstyled">
+<li><a href="CONTRIBUTING.html">Contributing guide</a></li>
+<li><a href="CODE_OF_CONDUCT.html">Code of conduct</a></li>
+</ul>
+</div>
 
 <div class="citation">
 <h2 data-toc-skip>Citation</h2>
@@ -242,6 +260,8 @@
 <li><a href="https://app.codecov.io/gh/muntasirmasum/brfssdata" class="external-link"><img src="https://codecov.io/gh/muntasirmasum/brfssdata/graph/badge.svg" alt="Codecov test coverage"></a></li>
 <li><a href="https://github.com/muntasirmasum/brfssdata/actions/workflows/integration.yaml" class="external-link"><img src="https://github.com/muntasirmasum/brfssdata/actions/workflows/integration.yaml/badge.svg" alt="Integration"></a></li>
 <li><a href="https://lifecycle.r-lib.org/articles/stages.html#stable" class="external-link"><img src="https://img.shields.io/badge/lifecycle-stable-brightgreen.svg" alt="Lifecycle: stable"></a></li>
+<li><a href="https://github.com/muntasirmasum/brfssdata/blob/main/LICENSE.md" class="external-link"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a></li>
+<li><a href="https://doi.org/10.5281/zenodo.21972542" class="external-link"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.21972542.svg" alt="DOI"></a></li>
 </ul>
 </div>
 

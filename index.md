@@ -174,6 +174,32 @@ before), strata (`_STSTR`), and PSU (`_PSU`). The list of available
 years lives at `releases/download/data-meta/manifest.json`, and each
 file has a `.sha256` companion for verification.
 
+## Getting help
+
+Questions and problems go to the issue tracker at
+<https://github.com/muntasirmasum/brfssdata/issues>, where templates
+cover bugs, data problems, and feature requests. For a bug, include a
+minimal example and the output of
+[`sessionInfo()`](https://rdrr.io/r/utils/sessionInfo.html). For a data
+problem, give the survey year, the variable name as CDC spells it, and
+the code or label in question, because the answer usually sits in CDC’s
+codebook for that year. Add the output of
+[`brfss_cache_info()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_cache_dir.md)
+whenever a download or a cached file is involved. The function reference
+and the articles on the [package
+site](https://muntasirmasum.github.io/brfssdata/) are the first place to
+look.
+
+## Contributing
+
+Contributions are welcome.
+[CONTRIBUTING.md](https://github.com/muntasirmasum/brfssdata/blob/main/CONTRIBUTING.md)
+explains how to set up a development copy, run the offline test suite,
+and propose changes to the data build. Please note that the brfssdata
+project is released with a [Contributor Code of
+Conduct](https://muntasirmasum.github.io/brfssdata/CODE_OF_CONDUCT.html).
+By contributing to this project, you agree to abide by its terms.
+
 ## Citation
 
 To cite the package, use `citation("brfssdata")`:
@@ -184,6 +210,11 @@ To cite the package, use `citation("brfssdata")`:
 > 0.1.0, <https://muntasirmasum.github.io/brfssdata/>.
 
 Analyses should also cite the underlying survey data (below).
+
+The source code of every release is also archived on Zenodo under the
+concept DOI
+[10.5281/zenodo.21972542](https://doi.org/10.5281/zenodo.21972542),
+which resolves to the latest archived version.
 
 ## Data source
 
