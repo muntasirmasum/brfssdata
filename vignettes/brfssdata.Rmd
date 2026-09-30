@@ -41,7 +41,7 @@ and reading it there is the better experience.
 
 ## Installation
 
-Once the package is on CRAN, install it the usual way.
+Install the released version from CRAN.
 
 ```{r install, eval = FALSE}
 install.packages("brfssdata")
