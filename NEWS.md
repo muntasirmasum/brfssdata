@@ -1,4 +1,4 @@
-# brfssdata (development version)
+# brfssdata 0.1.1
 
 * `citation("brfssdata")` and `brfss_citation()` now include the DOI
   that CRAN assigned to the package, 10.32614/CRAN.package.brfssdata
