@@ -1,5 +1,8 @@
 # brfssdata (development version)
 
+* `citation("brfssdata")` and `brfss_citation()` now include the DOI
+  that CRAN assigned to the package, 10.32614/CRAN.package.brfssdata
+  (#4).
 * The data manifest now records upstream provenance for every annual
   asset: the CDC download URL of the source SAS Transport zip, that
   file's sha256 and size as downloaded, the download and processing
