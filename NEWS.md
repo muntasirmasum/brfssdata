@@ -17,6 +17,15 @@
   corrected address up without upgrading. The datasets article and the
   README no longer describe a 1984 public-use file as available. Its
   documentation is archived, but the file itself is no longer served.
+* `brfss_crosswalk()` has no `"candidate"` rows left. The last six
+  candidate variables were checked against the question wording in
+  CDC's questionnaires and codebooks. `AVEDRNK2`, `RCSRACE1`,
+  `RCVFVCH2`, `USECOND2`, and `USECOND3` are now `"verified"`.
+  `AVEDRNK2` is comparable to its predecessor, and `RCSRACE1` and
+  `USECOND3` are not. `BRTHCNT4` no longer appears in the `brthcnt`
+  family, because CDC reused the name in 2022 for a different
+  question. The crosswalk is fetched from the data-meta release, so
+  installed versions pick this up without upgrading.
 
 # brfssdata 0.1.0
 
