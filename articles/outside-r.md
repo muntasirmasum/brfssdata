@@ -9,8 +9,8 @@ needs a file they can open in their own software.
 
 ## The hosted files
 
-Forty survey years, 1985 through 2024, are published as one parquet file
-per year at a fixed URL. Substitute the survey year in both places:
+Forty-one survey years, 1985 through 2025, are published as one parquet
+file per year at a fixed URL. Substitute the survey year in both places:
 
     https://github.com/muntasirmasum/brfssdata/releases/download/data-YYYY/brfss_YYYY.parquet
 
@@ -44,7 +44,7 @@ when integers are wanted.
 The metadata lives under a single `data-meta` tag, nine assets in all.
 `manifest.json` lists the published years and carries a per-asset sha256
 and size. Four parquet catalogs sit beside it: `brfss_variables.parquet`
-is the variable catalog (2,128 distinct variables with their labels and
+is the variable catalog (2,134 distinct variables with their labels and
 the years each one appears in), `brfss_labels.parquet` is the
 value-label catalog covering 1998 onward, `brfss_crosswalk.parquet`
 holds CDC’s rename families, so `_DRNKWK1` through `_DRNKWK3` read as
@@ -258,7 +258,7 @@ write_xpt(extract, tempfile(fileext = ".xpt"), version = 5)
 ```
 
 Pass `name` to fix that. Variable names are the subtler problem. Every
-one of the 2,128 variables in CDC’s catalog is 8 characters or fewer,
+one of the 2,134 variables in CDC’s catalog is 8 characters or fewer,
 `_IMPRACE` sitting exactly at the limit, so a straight CDC extract comes
 through version 5 unchanged. Derived variables do not, and the
 truncation is silent:

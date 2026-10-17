@@ -79,7 +79,7 @@
       <img src="../logo.svg" class="logo" alt=""><h1>Getting started with brfssdata</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/muntasirmasum/brfssdata/blob/data-2025/vignettes/brfssdata.Rmd" class="external-link"><code>vignettes/brfssdata.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/muntasirmasum/brfssdata/blob/main/vignettes/brfssdata.Rmd" class="external-link"><code>vignettes/brfssdata.Rmd</code></a></small>
       <div class="d-none name"><code>brfssdata.Rmd</code></div>
     </div>
 
@@ -97,9 +97,9 @@ behaviors.</p>
 <p>Getting at those files has traditionally meant downloading a zipped
 SAS transport archive for each year, reading it with a format-specific
 importer, and reconciling variable names by hand across years. brfssdata
-removes that step. Forty survey years, 1985 through 2024, are stored as
-compact parquet files on public releases; a year is downloaded once into
-a local cache and read from there afterwards, and every query runs
+removes that step. Forty-one survey years, 1985 through 2025, are stored
+as compact parquet files on public releases; a year is downloaded once
+into a local cache and read from there afterwards, and every query runs
 through DuckDB, so asking for two variables out of a
 three-hundred-column survey reads two columns instead of the whole
 table.</p>
@@ -259,9 +259,9 @@ years, it is filled with <code>NA</code> for those rows, and no error is
 raised.</p>
 <p>Computed weekly alcohol consumption is a clean example. The variable
 is <code>_DRNKWK1</code> in 2019 to 2021, <code>_DRNKWK2</code> in 2022
-and 2023, and <code>_DRNKWK3</code> in 2024, with a change in definition
-at each rename. Asking for the first two across 2021 to 2023 shows where
-one gives way to the other.</p>
+and 2023, and <code>_DRNKWK3</code> from 2024 on, with a change in
+definition at each rename. Asking for the first two across 2021 to 2023
+shows where one gives way to the other.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">drinks</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_brfss.html">read_brfss</a></span><span class="op">(</span><span class="fl">2021</span><span class="op">:</span><span class="fl">2023</span>, vars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"_DRNKWK1"</span>, <span class="st">"_DRNKWK2"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Downloading BRFSS 2021 (one-time, then cached).</span></span>
@@ -335,16 +335,16 @@ and try the stem CDC would have used in a name, since names abbreviate
 <code>doc</code>). A search that finds nothing is more often a
 vocabulary mismatch than an absent variable.</p>
 <p>The <code>years</code> column collapses runs of consecutive years, so
-<code>2005-2024</code> means every year in that span and
+<code>2005-2025</code> means every year in that span and
 <code>2011-2013, 2020</code> means a variable that appeared for three
 years, disappeared, and came back once. Reading that column carefully is
 the fastest way to spot renamed variables. Two entries with
 near-identical labels and non-overlapping year ranges are almost always
 the same question under a new name.</p>
 <p>Calling <code><a href="../reference/brfss_vars.html">brfss_vars()</a></code> with no pattern returns the whole
-catalog, which holds 2,128 distinct variables across the forty years.
-Restricting to particular years narrows the search, and the result here
-shows the rename pattern plainly.</p>
+catalog, which holds 2,134 distinct variables across the forty-one
+years. Restricting to particular years narrows the search, and the
+result here shows the rename pattern plainly.</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/brfss_vars.html">brfss_vars</a></span><span class="op">(</span><span class="st">"binge"</span>, years <span class="op">=</span> <span class="fl">2021</span><span class="op">:</span><span class="fl">2023</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 3 × 3</span></span></span>
@@ -521,7 +521,7 @@ no outbound access. A blocked download fails with an error naming the
 likely cause, not a hang, and nothing partial is written to the cache.
 The prefetch recipe above is the way through. Populate the cache from an
 unrestricted machine (a survey year from 2011 on is 20 to 45 MB, 2011
-itself the largest, and all 40 years about 737 MB), copy the directory,
+itself the largest, and all 41 years about 758 MB), copy the directory,
 and set <code>options(brfssdata.cache_dir = ...)</code> on the
 restricted one. A lab or a cluster needs only one such copy, since every
 user can point the same option at a shared directory. Variable discovery

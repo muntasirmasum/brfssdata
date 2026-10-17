@@ -1,7 +1,7 @@
 # The datasets
 
-brfssdata publishes one parquet file per BRFSS survey year, 40 files
-covering 1985 through 2024. Each file is derived from the SAS Transport
+brfssdata publishes one parquet file per BRFSS survey year, 41 files
+covering 1985 through 2025. Each file is derived from the SAS Transport
 file CDC distributes for that year by the pipeline in
 [`data-raw/`](https://github.com/muntasirmasum/brfssdata/tree/main/data-raw),
 which keeps every row and every column, recodes nothing, renames
@@ -103,8 +103,9 @@ knitr::kable(catalog, align = "rrrrl")
 | 2022 |     445,132 |     329 |      26.3 | \_LLCPWT  |
 | 2023 |     433,323 |     351 |      29.1 | \_LLCPWT  |
 | 2024 |     457,670 |     302 |      25.6 | \_LLCPWT  |
+| 2025 |     356,158 |     284 |      20.7 | \_LLCPWT  |
 
-The whole collection holds about 11.4 million respondents in roughly 737
+The whole collection holds about 11.7 million respondents in roughly 758
 MB of parquet, which is small enough that a working cache of every year
 fits comfortably on a laptop. The column count is CDC’s variables for
 that year plus the added `year`, so it tracks the size of the core
@@ -138,19 +139,24 @@ ggplot(stats, aes(year, respondents)) +
   theme_minimal(base_size = 12)
 ```
 
-![Line chart of BRFSS respondents per survey year from 1985 to 2024. The
+![Line chart of BRFSS respondents per survey year from 1985 to 2025. The
 count rises from about 25,000 in 1985 to roughly 210,000 by 2001 and
-above 430,000 by 2009, peaks at about 506,000 in 2011, and then varies
-between roughly 400,000 and 490,000 through 2024. A dashed vertical line
-marks the 2011 redesign.](datasets_files/figure-html/trend-1.png)
+above 430,000 by 2009, peaks at about 506,000 in 2011, varies between
+roughly 400,000 and 490,000 through 2024, and falls to about 356,000 in
+2025. A dashed vertical line marks the 2011
+redesign.](datasets_files/figure-html/trend-1.png)
 
 The shape of that curve is mostly the history of which states were in
 the survey and how many interviews they funded. Sample size climbs as
 states join and expand their samples, peaks in 2011, the year cell-phone
-respondents entered the combined public-use file, and has since varied
-between roughly 400,000 and 490,000 completed interviews a year,
-consistent with the “more than 400,000 adult interviews each year” CDC
-describes as the system’s current volume.
+respondents entered the combined public-use file, and then varied
+between roughly 400,000 and 490,000 completed interviews a year through
+2024, consistent with the “more than 400,000 adult interviews each year”
+CDC describes as the system’s current volume. The 2025 file is the
+smallest since 2006, at 356,158 respondents. California, Mississippi,
+Nevada, and the US Virgin Islands are missing from it, but they supplied
+only about 15,000 of the 2024 respondents, so fewer interviews in the
+jurisdictions that remain account for most of the drop.
 
 ## Milestones
 
@@ -186,9 +192,19 @@ states, the District of Columbia, Guam, and Puerto Rico. A year later
 the US Virgin Islands are included and the state count is 49. By 2023 it
 is 48, because Kentucky and Pennsylvania did not collect enough data
 that year to meet CDC’s minimum requirements for the public file, with
-the District of Columbia and the same three territories still in.
-State-level or region-level work should check the reporting areas for
-each year instead of assuming a constant panel of states.
+the District of Columbia and the same three territories still in. The
+2024 file has no Tennessee respondents. For 2025 CDC lists 47 states,
+the District of Columbia, Guam, and Puerto Rico, with California,
+Mississippi, Nevada, and the US Virgin Islands below the minimum, so
+five jurisdictions appear in only one of those two years. State-level or
+region-level work should check the reporting areas for each year instead
+of assuming a constant panel of states.
+
+The 2025 questionnaire also changed who completes an interview. The
+respondent sex questions accept only male or female and end the call for
+anyone who gives neither answer, where earlier years recorded a
+don’t-know or refused answer (about 0.2% of 2024 respondents) and
+continued the interview.
 
 ## Per-year CDC documentation
 
@@ -228,8 +244,8 @@ categories, or the set of states that asked it may have changed.
 ## Variables across years
 
 The hosted files are the survey as CDC released it, which means variable
-sets drift. The catalog that ships alongside the data holds 2,128
-distinct variable names across the 40 years.
+sets drift. The catalog that ships alongside the data holds 2,134
+distinct variable names across the 41 years.
 [`brfss_vars()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_vars.md)
 searches it by name and label and reports the years each variable
 appears in. A search for `smok` pulls in most of the smoking battery at
@@ -258,7 +274,7 @@ smoking[smoking$variable %in% c(
 ```
 
 The pattern in those rows is typical. One anchor question survives the
-whole series, `SMOKE100` running from 1985 to 2024, while the question
+whole series, `SMOKE100` running from 1985 to 2025, while the question
 next to it is renamed as its wording is revised, so current smoking
 frequency is `SMOKENOW` through 1995, `SMOKEDAY` from 1996 to 2004, and
 `SMOKDAY2` from 2005 on. Quit attempts follow the same path from

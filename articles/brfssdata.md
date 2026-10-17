@@ -13,9 +13,9 @@ behaviors.
 Getting at those files has traditionally meant downloading a zipped SAS
 transport archive for each year, reading it with a format-specific
 importer, and reconciling variable names by hand across years. brfssdata
-removes that step. Forty survey years, 1985 through 2024, are stored as
-compact parquet files on public releases; a year is downloaded once into
-a local cache and read from there afterwards, and every query runs
+removes that step. Forty-one survey years, 1985 through 2025, are stored
+as compact parquet files on public releases; a year is downloaded once
+into a local cache and read from there afterwards, and every query runs
 through DuckDB, so asking for two variables out of a
 three-hundred-column survey reads two columns instead of the whole
 table.
@@ -199,7 +199,7 @@ with `NA` for those rows, and no error is raised.
 
 Computed weekly alcohol consumption is a clean example. The variable is
 `_DRNKWK1` in 2019 to 2021, `_DRNKWK2` in 2022 and 2023, and `_DRNKWK3`
-in 2024, with a change in definition at each rename. Asking for the
+from 2024 on, with a change in definition at each rename. Asking for the
 first two across 2021 to 2023 shows where one gives way to the other.
 
 ``` r
@@ -279,7 +279,7 @@ and try the stem CDC would have used in a name, since names abbreviate
 (`doctor` reaches `PERSDOC3` only as `doc`). A search that finds nothing
 is more often a vocabulary mismatch than an absent variable.
 
-The `years` column collapses runs of consecutive years, so `2005-2024`
+The `years` column collapses runs of consecutive years, so `2005-2025`
 means every year in that span and `2011-2013, 2020` means a variable
 that appeared for three years, disappeared, and came back once. Reading
 that column carefully is the fastest way to spot renamed variables. Two
@@ -288,8 +288,8 @@ almost always the same question under a new name.
 
 Calling
 [`brfss_vars()`](https://muntasirmasum.github.io/brfssdata/reference/brfss_vars.md)
-with no pattern returns the whole catalog, which holds 2,128 distinct
-variables across the forty years. Restricting to particular years
+with no pattern returns the whole catalog, which holds 2,134 distinct
+variables across the forty-one years. Restricting to particular years
 narrows the search, and the result here shows the rename pattern
 plainly.
 
@@ -507,7 +507,7 @@ access. A blocked download fails with an error naming the likely cause,
 not a hang, and nothing partial is written to the cache. The prefetch
 recipe above is the way through. Populate the cache from an unrestricted
 machine (a survey year from 2011 on is 20 to 45 MB, 2011 itself the
-largest, and all 40 years about 737 MB), copy the directory, and set
+largest, and all 41 years about 758 MB), copy the directory, and set
 `options(brfssdata.cache_dir = ...)` on the restricted one. A lab or a
 cluster needs only one such copy, since every user can point the same
 option at a shared directory. Variable discovery is never blocked.

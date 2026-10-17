@@ -18,8 +18,8 @@ rejected (`brfssdata_bad_option`) rather than read as an empty cache.
   `verified` column: `TRUE` on a match, `FALSE` on a mismatch, `NA`
   where the manifest has no entry to compare against (the manifest
   itself, foreign files, or a manifest published without hashes).
-  Hashing reads every byte, roughly two seconds for a full 40-year
-  cache, so it is off by default; the comparison uses the cached or
+  Hashing reads every byte, roughly two seconds for a cache holding
+  every year, so it is off by default; the comparison uses the cached or
   bundled manifest and never touches the network.
 
 - `brfss_cache_clear()` deletes cached survey years, all of them by

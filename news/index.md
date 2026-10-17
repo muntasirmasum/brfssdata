@@ -2,6 +2,30 @@
 
 ## brfssdata (development version)
 
+- BRFSS 2025 is available: 356,158 respondents from 47 states, the
+  District of Columbia, Guam, and Puerto Rico. CDC excluded California,
+  Mississippi, Nevada, and the US Virgin Islands from the 2025 public
+  file for collecting too little data, and the 2024 file has no
+  Tennessee respondents, so pooling 2024 with 2025 names all five
+  jurisdictions in the state-participation warning. The year reaches
+  installed versions through the data manifest without upgrading.
+- Three 2025 questionnaire changes are worth knowing before pooling
+  years. The respondent sex questions (`LANDSEX4`, `CELLSEX4`) accept
+  only male or female, and the call ends for anyone who gives neither,
+  so the 2025 sample has no counterpart to the don’t-know and refused
+  answers earlier years recorded. The child-sex item (`RCSBORG1`) offers
+  only boy or girl, and the 2024 file carries its predecessors
+  (`RCSGEND1`, `RCSXBRTH`) with no values at all. `COVIDWHN`’s label in
+  CDC’s file says first COVID-19 vaccination, but CDC’s 2025 codebook
+  asks for the most recent one.
+- The crosswalk gains the 2025 renames (`LANDSEX4`, `CELLSEX4`,
+  `NOBCUSE9`, and `TYPCNT10`, whose stem CDC shortened to fit SAS’s
+  eight-character limit) and a new child-sex family linking `RCSGENDR`,
+  `RCSGEND1`, and `RCSBORG1`; all are verified against CDC’s codebooks.
+  The notes for `EXERANY2` and `CVDEXR03` now give the 2001 wording
+  changes as the reason they are not comparable with their predecessors;
+  the earlier notes blamed a don’t-know recode that CDC’s 2000 codebook
+  shows never happened.
 - The data manifest now records upstream provenance for every annual
   asset: the CDC download URL of the source SAS Transport zip, that
   file’s sha256 and size as downloaded, the download and processing

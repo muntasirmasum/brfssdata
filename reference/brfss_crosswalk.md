@@ -64,7 +64,7 @@ message names the ones with no entry.
 
 `generation` is the variable's position in the rename chain, in order of
 first appearance: `ACEHURT` (2009-2012) is generation 1 of the concept
-`acehurt`, its successor `ACEHURT1` (2019-2024) is generation 2.
+`acehurt`, its successor `ACEHURT1` (2019-2025) is generation 2.
 
 `comparable` always sits on the *later* generation's rows and answers
 one question: does this generation still measure the same thing as the
@@ -83,7 +83,7 @@ definition in the question changed) while `FALLINJ3 -> FALLINJ4` is
 When every link you span is `TRUE`, the pooling pattern is to coalesce
 the generations into one analysis column and keep the originals:
 
-    dat <- read_brfss(2009:2024, vars = c("ACEHURT", "ACEHURT1"))
+    dat <- read_brfss(2009:2025, vars = c("ACEHURT", "ACEHURT1"))
     dat$acehurt <- dplyr::coalesce(dat$ACEHURT, dat$ACEHURT1)
 
 `comparable` describes the *question's definition*, not the survey's
@@ -117,7 +117,7 @@ for a per-variable summary that includes the family.
 brfss_crosswalk("_DRNKWK1", download = FALSE)
 #> ! Using the rename crosswalk snapshot bundled with the package (frozen at
 #>   release); `brfss_download()` caches the current copy.
-#> # A tibble: 6 × 7
+#> # A tibble: 7 × 7
 #>   concept variable  year generation status   comparable note                    
 #>   <chr>   <chr>    <int>      <int> <chr>    <lgl>      <chr>                   
 #> 1 drnkwk  _DRNKWK1  2019          1 verified NA         ""                      
@@ -126,4 +126,5 @@ brfss_crosswalk("_DRNKWK1", download = FALSE)
 #> 4 drnkwk  _DRNKWK2  2022          2 verified TRUE       "The input question dro…
 #> 5 drnkwk  _DRNKWK2  2023          2 verified TRUE       "The input question dro…
 #> 6 drnkwk  _DRNKWK3  2024          3 verified TRUE       "Renamed with AVEDRNK3-…
+#> 7 drnkwk  _DRNKWK3  2025          3 verified TRUE       "Renamed with AVEDRNK3-…
 ```

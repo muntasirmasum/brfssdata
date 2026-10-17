@@ -8,7 +8,7 @@
 ## Citation
 
 Source:
-[`inst/CITATION`](https://github.com/muntasirmasum/brfssdata/blob/data-2025/inst/CITATION)
+[`inst/CITATION`](https://github.com/muntasirmasum/brfssdata/blob/main/inst/CITATION)
 
 Masum M (2026). *brfssdata: Access CDC Behavioral Risk Factor
 Surveillance System Data*.
@@ -33,7 +33,7 @@ Health and Human Services, Centers for Disease Control and Prevention,
     @Misc{brfss,
       title = {Behavioral Risk Factor Surveillance System Survey Data},
       author = {{{Centers for Disease Control and Prevention (CDC)}}},
-      year = {1985--2024},
+      year = {1985--2025},
       organization = {U.S. Department of Health and Human Services, Centers for Disease Control and Prevention},
       address = {Atlanta, Georgia},
       url = {https://www.cdc.gov/brfss/},

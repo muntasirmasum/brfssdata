@@ -77,7 +77,7 @@ a requested variable is empty in years a sibling generation covers."><meta prope
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.svg" class="logo" alt=""><h1>Rename crosswalk: which variables are generations of one measure</h1>
-      <small class="dont-index">Source: <a href="https://github.com/muntasirmasum/brfssdata/blob/data-2025/R/brfss_crosswalk.R" class="external-link"><code>R/brfss_crosswalk.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/muntasirmasum/brfssdata/blob/main/R/brfss_crosswalk.R" class="external-link"><code>R/brfss_crosswalk.R</code></a></small>
       <div class="d-none name"><code>brfss_crosswalk.Rd</code></div>
     </div>
 
@@ -148,7 +148,7 @@ no entry.</p>
 
 <p><code>generation</code> is the variable's position in the rename chain, in
 order of first appearance: <code>ACEHURT</code> (2009-2012) is generation 1 of
-the concept <code>acehurt</code>, its successor <code>ACEHURT1</code> (2019-2024) is
+the concept <code>acehurt</code>, its successor <code>ACEHURT1</code> (2019-2025) is
 generation 2.</p>
 <p><code>comparable</code> always sits on the <em>later</em> generation's rows and
 answers one question: does this generation still measure the same
@@ -165,7 +165,7 @@ definition in the question changed) while <code>FALLINJ3 -&gt; FALLINJ4</code> i
 <p>When every link you span is <code>TRUE</code>, the pooling pattern is to
 coalesce the generations into one analysis column and keep the
 originals:</p>
-<p></p><div class="sourceCode r"><pre><code><span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_brfss.html">read_brfss</a></span><span class="op">(</span><span class="fl">2009</span><span class="op">:</span><span class="fl">2024</span>, vars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ACEHURT"</span>, <span class="st">"ACEHURT1"</span><span class="op">)</span><span class="op">)</span></span>
+<p></p><div class="sourceCode r"><pre><code><span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_brfss.html">read_brfss</a></span><span class="op">(</span><span class="fl">2009</span><span class="op">:</span><span class="fl">2025</span>, vars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ACEHURT"</span>, <span class="st">"ACEHURT1"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">dat</span><span class="op">$</span><span class="va">acehurt</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/coalesce.html" class="external-link">coalesce</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">ACEHURT</span>, <span class="va">dat</span><span class="op">$</span><span class="va">ACEHURT1</span><span class="op">)</span></span></code></pre><p></p></div>
 <p><code>comparable</code> describes the <em>question's definition</em>, not the survey's
 weighting: a family spanning 2010/2011 can be <code>TRUE</code> as a measure
@@ -194,7 +194,7 @@ a per-variable summary that includes the family.</p></div>
 <span class="r-in"><span><span class="fu">brfss_crosswalk</span><span class="op">(</span><span class="st">"_DRNKWK1"</span>, download <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">!</span> Using the rename crosswalk snapshot bundled with the package (frozen at</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   release); `brfss_download()` caches the current copy.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 7</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 7 × 7</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   concept variable  year generation status   comparable note                    </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                   </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> drnkwk  _DRNKWK1  <span style="text-decoration: underline;">2</span>019          1 verified <span style="color: #BB0000;">NA</span>         <span style="color: #949494;">""</span>                      </span>
@@ -203,6 +203,7 @@ a per-variable summary that includes the family.</p></div>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> drnkwk  _DRNKWK2  <span style="text-decoration: underline;">2</span>022          2 verified TRUE       <span style="color: #949494;">"</span>The input question dro…</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> drnkwk  _DRNKWK2  <span style="text-decoration: underline;">2</span>023          2 verified TRUE       <span style="color: #949494;">"</span>The input question dro…</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> drnkwk  _DRNKWK3  <span style="text-decoration: underline;">2</span>024          3 verified TRUE       <span style="color: #949494;">"</span>Renamed with AVEDRNK3-…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">7</span> drnkwk  _DRNKWK3  <span style="text-decoration: underline;">2</span>025          3 verified TRUE       <span style="color: #949494;">"</span>Renamed with AVEDRNK3-…</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
