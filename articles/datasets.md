@@ -249,11 +249,11 @@ smoking[smoking$variable %in% c(
 #> # A tibble: 6 × 3
 #>   variable label                                   years    
 #>   <chr>    <chr>                                   <chr>    
-#> 1 SMOKDAY2 FREQUENCY OF DAYS NOW SMOKING           2005-2024
-#> 2 SMOKE100 SMOKED AT LEAST 100 CIGARETTES          1985-2024
+#> 1 SMOKDAY2 FREQUENCY OF DAYS NOW SMOKING           2005-2025
+#> 2 SMOKE100 SMOKED AT LEAST 100 CIGARETTES          1985-2025
 #> 3 SMOKEDAY FREQUENCY OF DAYS NOW SMOKING           1996-2004
 #> 4 SMOKENOW CURRENTLY SMOKE                         1985-1995
-#> 5 STOPSMK2 STOPPED SMOKING IN PAST 12 MONTHS       2001-2024
+#> 5 STOPSMK2 STOPPED SMOKING IN PAST 12 MONTHS       2001-2025
 #> 6 STOPSMOK QUIT SMOKING A DAY OR MORE IN PAST YEAR 1990-2000
 ```
 

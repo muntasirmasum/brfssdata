@@ -184,7 +184,7 @@ once a day, and `refresh = TRUE` forces a fresh copy.
 brfss_years()
 #>  [1] 1985 1986 1987 1988 1989 1990 1991 1992 1993 1994 1995 1996 1997 1998 1999
 #> [16] 2000 2001 2002 2003 2004 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014
-#> [31] 2015 2016 2017 2018 2019 2020 2021 2022 2023 2024
+#> [31] 2015 2016 2017 2018 2019 2020 2021 2022 2023 2024 2025
 ```
 
 ## Combining years
@@ -205,6 +205,8 @@ first two across 2021 to 2023 shows where one gives way to the other.
 ``` r
 
 drinks <- read_brfss(2021:2023, vars = c("_DRNKWK1", "_DRNKWK2"))
+#> Downloading BRFSS 2021 (one-time, then cached).
+#> Downloading BRFSS 2022 (one-time, then cached).
 #> ! _DRNKWK1 has no data for 2022-2023; the rename crosswalk pairs it with
 #>   _DRNKWK2 (covers 2022-2023). See brfss_crosswalk("_DRNKWK1") for the family,
 #>   its review status, and any comparability notes; combining generations is your
@@ -464,9 +466,9 @@ brfss_cache_info()
 #> 1 brfss_2021.parquet       2021 26033879
 #> 2 brfss_2022.parquet       2022 26280485
 #> 3 brfss_2023.parquet       2023 29077288
-#> 4 brfss_labels.parquet       NA   120958
-#> 5 brfss_variables.parquet    NA    63889
-#> 6 manifest.json              NA    19398
+#> 4 brfss_labels.parquet       NA   123791
+#> 5 brfss_variables.parquet    NA    64294
+#> 6 manifest.json              NA    19867
 ```
 
 Because reads come from the cache, a year you have already downloaded is

@@ -79,7 +79,7 @@
       <img src="../logo.svg" class="logo" alt=""><h1>Getting started with brfssdata</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/muntasirmasum/brfssdata/blob/main/vignettes/brfssdata.Rmd" class="external-link"><code>vignettes/brfssdata.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/muntasirmasum/brfssdata/blob/data-2025/vignettes/brfssdata.Rmd" class="external-link"><code>vignettes/brfssdata.Rmd</code></a></small>
       <div class="d-none name"><code>brfssdata.Rmd</code></div>
     </div>
 
@@ -244,7 +244,7 @@ forces a fresh copy.</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/brfss_years.html">brfss_years</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt;  [1] 1985 1986 1987 1988 1989 1990 1991 1992 1993 1994 1995 1996 1997 1998 1999</span></span>
 <span><span class="co">#&gt; [16] 2000 2001 2002 2003 2004 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014</span></span>
-<span><span class="co">#&gt; [31] 2015 2016 2017 2018 2019 2020 2021 2022 2023 2024</span></span></code></pre></div>
+<span><span class="co">#&gt; [31] 2015 2016 2017 2018 2019 2020 2021 2022 2023 2024 2025</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="combining-years">Combining years<a class="anchor" aria-label="anchor" href="#combining-years"></a>
@@ -264,6 +264,8 @@ at each rename. Asking for the first two across 2021 to 2023 shows where
 one gives way to the other.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">drinks</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_brfss.html">read_brfss</a></span><span class="op">(</span><span class="fl">2021</span><span class="op">:</span><span class="fl">2023</span>, vars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"_DRNKWK1"</span>, <span class="st">"_DRNKWK2"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Downloading BRFSS 2021 (one-time, then cached).</span></span>
+<span><span class="co">#&gt; Downloading BRFSS 2022 (one-time, then cached).</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> _DRNKWK1 has no data for 2022-2023; the rename crosswalk pairs it with</span></span>
 <span><span class="co">#&gt;   _DRNKWK2 (covers 2022-2023). See brfss_crosswalk("_DRNKWK1") for the family,</span></span>
 <span><span class="co">#&gt;   its review status, and any comparability notes; combining generations is your</span></span>
@@ -488,9 +490,9 @@ it.</p>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> brfss_2021.parquet       <span style="text-decoration: underline;">2</span>021 26<span style="text-decoration: underline;">033</span>879</span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> brfss_2022.parquet       <span style="text-decoration: underline;">2</span>022 26<span style="text-decoration: underline;">280</span>485</span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> brfss_2023.parquet       <span style="text-decoration: underline;">2</span>023 29<span style="text-decoration: underline;">077</span>288</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> brfss_labels.parquet       <span style="color: #BB0000;">NA</span>   <span style="text-decoration: underline;">120</span>958</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> brfss_variables.parquet    <span style="color: #BB0000;">NA</span>    <span style="text-decoration: underline;">63</span>889</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> manifest.json              <span style="color: #BB0000;">NA</span>    <span style="text-decoration: underline;">19</span>398</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> brfss_labels.parquet       <span style="color: #BB0000;">NA</span>   <span style="text-decoration: underline;">123</span>791</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> brfss_variables.parquet    <span style="color: #BB0000;">NA</span>    <span style="text-decoration: underline;">64</span>294</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> manifest.json              <span style="color: #BB0000;">NA</span>    <span style="text-decoration: underline;">19</span>867</span></span></code></pre></div>
 <p>Because reads come from the cache, a year you have already downloaded
 is available with no network at all. Setting
 <code>download = FALSE</code> makes that explicit: cached years are read

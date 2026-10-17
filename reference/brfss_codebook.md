@@ -76,6 +76,10 @@ property of the year's file rather than of the catalogs.
 
 ``` r
 brfss_codebook("GENHLTH", years = 2023, download = FALSE)
+#> ! Using the variable catalog snapshot bundled with the package (frozen at
+#>   release); `brfss_download()` caches the current copy.
+#> ! Using the label catalog snapshot bundled with the package (frozen at
+#>   release); `brfss_download()` caches the current copy.
 #> ! Using the rename crosswalk snapshot bundled with the package (frozen at
 #>   release); `brfss_download()` caches the current copy.
 #> ── GENHLTH ─────────────────────────────────────────────────────────────────────
