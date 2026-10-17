@@ -1,40 +1,29 @@
 ## R CMD check results
 
-0 errors | 0 warnings | 1 note
+0 errors | 0 warnings | 0 notes
 
-The note is "New submission" (CRAN incoming feasibility), on every
-platform that runs the incoming checks. win-builder's copy of that note
-additionally flags two words in DESCRIPTION as possibly misspelled:
-"BRFSS" is the acronym of the Behavioral Risk Factor Surveillance
-System, the survey this package distributes, and "microdata" is a
-standard statistical term for respondent-level records.
+## Changes in this version
 
-One win-builder R-devel run also listed the maintainer's ORCID iD
-(0000-0002-4210-2844, from inst/CITATION) under "(possibly) invalid
-ORCID iD". The iD is valid: it passes tools:::.ORCID_iD_is_valid()
-(the checksum), and tools:::.ORCID_iD_is_alive() returns TRUE for it
-(https://orcid.org/0000-0002-4210-2844 resolves). The same iD appears
-in DESCRIPTION and inst/CITATION, so the incoming check requests the
-same URL twice concurrently; the flag on one of the two copies is a
-transient non-200 from orcid.org, not a property of the iD.
-
-One win-builder run on 2026-08-17 additionally flagged the BugReports
-URL (https://github.com/muntasirmasum/brfssdata/issues) as returning
-HTTP 503. That run coincided with a GitHub service incident
-(githubstatus.com reported a partial system outage that day); the URL
-is correct and resolves normally.
+This is a minor update to 0.1.0 (published 2026-08-21). No function
+code changed. The update refreshes the metadata snapshots bundled in
+inst/extdata so that offline first use matches the currently published
+data releases (which now include the 2025 survey year), documents the
+provenance columns brfss_year_info() returns, and updates the vignette
+and tests accordingly. Dependencies are unchanged.
 
 ## Test environments
 
-* local macOS (aarch64), R 4.6.1, checked 2026-08-16: 0 errors, 0 warnings,
-  the New-submission note only; test suite 992 passing, 0 failing,
-  0 skipped
+* local macOS (aarch64), R 4.6.1, checked 2026-10-17: 0 errors,
+  0 warnings, 0 notes; test suite 1000 passing, 0 failing, 0 skipped
 * GitHub Actions: ubuntu-latest (R 4.2, release, devel, oldrel-1),
   windows-latest (release), macos-latest (release): all passing
-* win-builder (devel and release): 0 errors, 0 warnings, 1 note each
-  (the New-submission note with the DESCRIPTION spelling
-  false-positives described above)
-* R-hub v2 (R-devel): linux, windows, macos: Status OK on all three
+* win-builder: R-devel (2026-10-16 r90686 ucrt) and R 4.6.1 release:
+  Status OK on both, CRAN incoming feasibility OK
+* R-hub v2 (R-devel): linux, windows, macos: all passing
+
+## Reverse dependencies
+
+There are no reverse dependencies.
 
 ## Notes for reviewers
 
