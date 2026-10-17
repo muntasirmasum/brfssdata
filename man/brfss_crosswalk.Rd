@@ -54,7 +54,7 @@ a requested variable is empty in years a sibling generation covers.
 
 \code{generation} is the variable's position in the rename chain, in
 order of first appearance: \code{ACEHURT} (2009-2012) is generation 1 of
-the concept \code{acehurt}, its successor \code{ACEHURT1} (2019-2024) is
+the concept \code{acehurt}, its successor \code{ACEHURT1} (2019-2025) is
 generation 2.
 
 \code{comparable} always sits on the \emph{later} generation's rows and
@@ -75,7 +75,7 @@ When every link you span is \code{TRUE}, the pooling pattern is to
 coalesce the generations into one analysis column and keep the
 originals:
 
-\if{html}{\out{<div class="sourceCode r">}}\preformatted{dat <- read_brfss(2009:2024, vars = c("ACEHURT", "ACEHURT1"))
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{dat <- read_brfss(2009:2025, vars = c("ACEHURT", "ACEHURT1"))
 dat$acehurt <- dplyr::coalesce(dat$ACEHURT, dat$ACEHURT1)
 }\if{html}{\out{</div>}}
 

@@ -24,7 +24,7 @@ either a tibble or a ready-made [srvyr](https://cran.r-project.org/package=srvyr
 survey-design object with the correct weights, strata, and primary
 sampling units for each survey era.
 
-> **Status:** 40 survey years, 1985 through 2024, are published as data
+> **Status:** 41 survey years, 1985 through 2025, are published as data
 > releases. BRFSS began in 1984, but CDC no longer serves the 1984 file.
 > Its [archived documentation page](https://archive.cdc.gov/www_cdc_gov/brfss/annual_data/annual_1984.htm)
 > describes 12,258 records from the first 15 states, and the download
@@ -123,7 +123,7 @@ catalogs, after which everything runs offline; `brfss_cache_info()` and
 `brfss_cache_clear()` manage the cache.
 
 The files come from GitHub releases (a survey year from 2011 on is 20 to
-45 MB; all 40 years about 737 MB), so a network that blocks `github.com`,
+45 MB; all 41 years about 758 MB), so a network that blocks `github.com`,
 a TLS-intercepting proxy, or an air-gapped compute node blocks the
 download too. In that case prefetch on an unrestricted machine, copy
 the cache directory across, and point

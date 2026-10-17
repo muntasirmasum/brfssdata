@@ -50,8 +50,8 @@ adding a \code{verified} column: \code{TRUE} on a match, \code{FALSE} on a
 mismatch, \code{NA} where the manifest has no entry to compare against
 (the manifest itself, foreign files, or a manifest published
 without hashes). Hashing reads every byte, roughly two seconds for
-a full 40-year cache, so it is off by default; the comparison uses
-the cached or bundled manifest and never touches the network.
+a cache holding every year, so it is off by default; the comparison
+uses the cached or bundled manifest and never touches the network.
 \item \code{brfss_cache_clear()} deletes cached survey years, all of them by
 default, and reports what it removed. The manifest and catalogs are
 kept unless \code{catalogs = TRUE}, so offline use of \code{\link[=brfss_vars]{brfss_vars()}} and

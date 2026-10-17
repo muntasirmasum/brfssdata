@@ -8,7 +8,7 @@
 
 library(brfssdata)
 
-years <- c(1993L, 2023L, 2024L) # pre-break era, known-answer year, newest
+years <- c(1993L, 2023L, 2024L, 2025L) # pre-break, known answers, newest
 fail <- function(...) stop(sprintf(...), call. = FALSE)
 
 # 1. Real downloads through the package (manifest-hash verification runs
@@ -112,7 +112,7 @@ pre <- read_brfss(1993, vars = c("_FINALWT", "_STSTR", "_PSU"), quiet = TRUE)
 if (anyNA(pre$`_FINALWT`)) {
   fail("1993: _FINALWT carries missing values")
 }
-for (year in c(2023L, 2024L)) {
+for (year in c(2023L, 2024L, 2025L)) {
   post <- read_brfss(
     year,
     vars = c("_LLCPWT", "_STSTR", "_PSU"),
@@ -142,6 +142,30 @@ if (abs(est$fair_poor - 0.1937) > 0.005) {
   fail("2023 fair-or-poor prevalence %.4f outside 0.1937 +/- 0.005", est$fair_poor)
 }
 message(sprintf("known answer holds: fair-or-poor = %.4f", est$fair_poor))
+
+# 5b. A 2025 anchor from CDC's own published state estimates
+#     (data.cdc.gov dataset dttw-5yxu, BRFSS Prevalence Data, 2025,
+#     "How is your general health?", New York, Fair: crude prevalence
+#     14.78, sample size 2,252). The respondent count must match
+#     exactly, which a wrong state code, a lost row, or a broken na step
+#     would all break; the estimate gets the same +/- 0.5 pp as step 5.
+ny <- srvyr::filter(
+  brfss_design(2025, vars = c("_STATE", "GENHLTH"), quiet = TRUE),
+  `_STATE` == 36,
+  !is.na(GENHLTH)
+)
+ny <- srvyr::summarise(
+  ny,
+  fair = srvyr::survey_mean(GENHLTH == 4),
+  n_fair = srvyr::unweighted(sum(GENHLTH == 4))
+)
+if (ny$n_fair != 2252L) {
+  fail("2025 New York fair-health count %d, CDC publishes 2,252", ny$n_fair)
+}
+if (abs(ny$fair - 0.1478) > 0.005) {
+  fail("2025 New York fair-health prevalence %.4f outside 0.1478 +/- 0.005", ny$fair)
+}
+message(sprintf("2025 anchor holds: New York fair = %.4f (n %d)", ny$fair, ny$n_fair))
 
 # 6. The weight total is a plausible US adult population.
 wt_total <- sum(des$variables$`_LLCPWT`)

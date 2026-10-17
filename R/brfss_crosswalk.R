@@ -23,7 +23,7 @@
 #' @section Reading the crosswalk:
 #' `generation` is the variable's position in the rename chain, in
 #' order of first appearance: `ACEHURT` (2009-2012) is generation 1 of
-#' the concept `acehurt`, its successor `ACEHURT1` (2019-2024) is
+#' the concept `acehurt`, its successor `ACEHURT1` (2019-2025) is
 #' generation 2.
 #'
 #' `comparable` always sits on the *later* generation's rows and
@@ -45,7 +45,7 @@
 #' originals:
 #'
 #' ```r
-#' dat <- read_brfss(2009:2024, vars = c("ACEHURT", "ACEHURT1"))
+#' dat <- read_brfss(2009:2025, vars = c("ACEHURT", "ACEHURT1"))
 #' dat$acehurt <- dplyr::coalesce(dat$ACEHURT, dat$ACEHURT1)
 #' ```
 #'

@@ -44,7 +44,7 @@
   <text x="433" y="800" text-anchor="middle"
         font-family="'IBM Plex Mono', 'SFMono-Regular', Menlo, Consolas, monospace"
         font-size="40" font-weight="500" letter-spacing="6"
-        fill="#cbb1e8">BRFSS 1985&#8211;2024</text>
+        fill="#cbb1e8">BRFSS 1985&#8211;2025</text>
 
   <!-- hexagon border -->
   <path d="M 433 8 L 858 253.5 L 858 746.5 L 433 992 L 8 746.5 L 8 253.5 Z"

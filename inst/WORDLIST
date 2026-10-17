@@ -7,6 +7,7 @@ CMD
 COVID
 Checksums
 Codebook
+Codecov
 Dont
 DuckDB
 Graubard
@@ -45,6 +46,7 @@ UNK
 Viya
 XPORT
 ZSTD
+Zenodo
 allowlist
 allowlists
 another's
@@ -76,6 +78,7 @@ libname
 lifecycle
 lossy
 matcher
+md
 microdata
 mistyped
 nonresponse
@@ -98,4 +101,5 @@ tidycensus
 typo'd
 unreviewed
 unsplit
+zenodo
 zstd

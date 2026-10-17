@@ -18,8 +18,8 @@
 #'   mismatch, `NA` where the manifest has no entry to compare against
 #'   (the manifest itself, foreign files, or a manifest published
 #'   without hashes). Hashing reads every byte, roughly two seconds for
-#'   a full 40-year cache, so it is off by default; the comparison uses
-#'   the cached or bundled manifest and never touches the network.
+#'   a cache holding every year, so it is off by default; the comparison
+#'   uses the cached or bundled manifest and never touches the network.
 #' * `brfss_cache_clear()` deletes cached survey years, all of them by
 #'   default, and reports what it removed. The manifest and catalogs are
 #'   kept unless `catalogs = TRUE`, so offline use of [brfss_vars()] and

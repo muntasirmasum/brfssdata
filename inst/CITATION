@@ -28,7 +28,7 @@ bibentry(
   key = "brfss",
   title = "Behavioral Risk Factor Surveillance System Survey Data",
   author = person("{Centers for Disease Control and Prevention (CDC)}"),
-  year = "1985--2024",
+  year = "1985--2025",
   organization = "U.S. Department of Health and Human Services, Centers for Disease Control and Prevention",
   address = "Atlanta, Georgia",
   url = "https://www.cdc.gov/brfss/",

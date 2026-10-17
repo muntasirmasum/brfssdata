@@ -11,11 +11,12 @@
 
 test_that("era weights match the CDC codebooks, not the fixtures", {
   codebook <- data.frame(
-    year = c(1993L, 2000L, 2010L, 2011L, 2015L, 2023L),
+    year = c(1993L, 2000L, 2010L, 2011L, 2015L, 2023L, 2025L),
     weight = c(
       "_FINALWT",
       "_FINALWT",
       "_FINALWT",
+      "_LLCPWT",
       "_LLCPWT",
       "_LLCPWT",
       "_LLCPWT"
