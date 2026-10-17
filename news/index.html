@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">brfssdata</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -49,7 +49,7 @@
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="development version" id="brfssdata-development-version">brfssdata (development version)<a class="anchor" aria-label="anchor" href="#brfssdata-development-version"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.1.1" id="brfssdata-011">brfssdata 0.1.1<a class="anchor" aria-label="anchor" href="#brfssdata-011"></a></h2>
 <ul><li>BRFSS 2025 is available: 356,158 respondents from 47 states, the District of Columbia, Guam, and Puerto Rico. CDC excluded California, Mississippi, Nevada, and the US Virgin Islands from the 2025 public file for collecting too little data, and the 2024 file has no Tennessee respondents, so pooling 2024 with 2025 names all five jurisdictions in the state-participation warning. The year reaches installed versions through the data manifest without upgrading.</li>
 <li>Three 2025 questionnaire changes are worth knowing before pooling years. The respondent sex questions (<code>LANDSEX4</code>, <code>CELLSEX4</code>) accept only male or female, and the call ends for anyone who gives neither, so the 2025 sample has no counterpart to the don’t-know and refused answers earlier years recorded. The child-sex item (<code>RCSBORG1</code>) offers only boy or girl, and the 2024 file carries its predecessors (<code>RCSGEND1</code>, <code>RCSXBRTH</code>) with no values at all. <code>COVIDWHN</code>’s label in CDC’s file says first COVID-19 vaccination, but CDC’s 2025 codebook asks for the most recent one.</li>
 <li>The crosswalk gains the 2025 renames (<code>LANDSEX4</code>, <code>CELLSEX4</code>, <code>NOBCUSE9</code>, and <code>TYPCNT10</code>, whose stem CDC shortened to fit SAS’s eight-character limit) and a new child-sex family linking <code>RCSGENDR</code>, <code>RCSGEND1</code>, and <code>RCSBORG1</code>; all are verified against CDC’s codebooks. The notes for <code>EXERANY2</code> and <code>CVDEXR03</code> now give the 2001 wording changes as the reason they are not comparable with their predecessors; the earlier notes blamed a don’t-know recode that CDC’s 2000 codebook shows never happened.</li>

@@ -89,8 +89,6 @@ for the full catalog.
 
 ``` r
 brfss_missing_codes("GENHLTH", years = 2023, download = FALSE)
-#> ! Using the label catalog snapshot bundled with the package (frozen at
-#>   release); `brfss_download()` caches the current copy.
 #> # A tibble: 2 × 4
 #>    year variable  code label             
 #>   <int> <chr>    <int> <chr>             

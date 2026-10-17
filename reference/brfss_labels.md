@@ -63,8 +63,6 @@ entries, also regardless of `quiet`.
 # download = FALSE reads the cached catalog, or the snapshot bundled
 # with the package, so this runs offline.
 brfss_labels("GENHLTH", years = 2023, download = FALSE)
-#> ! Using the label catalog snapshot bundled with the package (frozen at
-#>   release); `brfss_download()` caches the current copy.
 #> # A tibble: 7 × 5
 #>    year variable  code label              complete
 #>   <int> <chr>    <int> <chr>              <lgl>   

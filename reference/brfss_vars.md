@@ -64,8 +64,6 @@ suggestions described above.
 # download = FALSE reads the cached catalog, or the snapshot bundled
 # with the package, so this runs offline.
 brfss_vars("smok", download = FALSE)
-#> ! Using the variable catalog snapshot bundled with the package (frozen at
-#>   release); `brfss_download()` caches the current copy.
 #> # A tibble: 96 × 3
 #>    variable label                                    years    
 #>    <chr>    <chr>                                    <chr>    
