@@ -61,4 +61,4 @@ build_catalog <- function(years) {
 }
 
 # Usage:
-# build_catalog(2011:2024)
+# build_catalog(1985:2025)   # always the full range: the catalog is rebuilt whole

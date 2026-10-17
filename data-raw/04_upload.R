@@ -375,11 +375,11 @@ publish_meta <- function(years) {
 # everything). publish_meta() rewrites the manifest from exactly the
 # years passed and aborts if that would delist a hosted year, so pass
 # the FULL hosted range:
-# years <- 1985:2024
+# years <- 1985:2025
 # purrr::walk(years, publish_year)
 # publish_meta(years)
 #
 # Re-releasing years whose bytes changed (a corrected rebuild):
 # changed <- c(...)                     # from the sha256 diff
 # purrr::walk(changed, publish_year, force = TRUE)
-# publish_meta(1985:2024)               # always last, always full range
+# publish_meta(1985:2025)               # always last, always full range

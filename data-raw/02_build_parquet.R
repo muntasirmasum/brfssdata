@@ -74,7 +74,8 @@ cdc_targets <- list(
   `2018` = c(437436L, 275L),
   `2022` = c(445132L, 326L),
   `2023` = c(433323L, 345L),
-  `2024` = c(457670L, 345L)
+  `2024` = c(457670L, 345L),
+  `2025` = c(356158L, 284L)
 )
 
 # Regression pins for every year: row counts recorded from the published
@@ -184,4 +185,4 @@ build_year <- function(year, overwrite = FALSE) {
 }
 
 # Usage:
-# purrr::walk(2011:2024, build_year)
+# build_year(2025)   # one new year; never overwrite = TRUE on published years

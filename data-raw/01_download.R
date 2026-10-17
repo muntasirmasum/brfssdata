@@ -69,6 +69,6 @@ download_year <- function(year, overwrite = FALSE) {
 }
 
 # Usage:
-# purrr::walk(2011:2024, download_year)   # LLCP era
+# purrr::walk(2011:2025, download_year)   # LLCP era
 # purrr::walk(1990:2010, download_year)   # CDBRFS era
 # purrr::walk(1984:1989, download_year)   # probe; may 404/403

@@ -205,15 +205,16 @@ year_variables <- function(year) {
 }
 
 labels_year <- function(year) {
+  # A requested year without labels must stop the build: skipping it
+  # would publish a catalog that silently lacks the year, and na = TRUE
+  # would then treat it as uncatalogued.
   src <- file.path(labels_dir, sprintf("labels_%d.sas", year))
   if (!file.exists(src)) {
-    message(year, ": no label source; skipping")
-    return(NULL)
+    stop(year, ": no label source at ", src, call. = FALSE)
   }
   formats <- parse_value_blocks(src)
   if (is.null(formats) || nrow(formats) == 0) {
-    message(year, ": no VALUE blocks parsed; skipping")
-    return(NULL)
+    stop(year, ": no VALUE blocks parsed from ", src, call. = FALSE)
   }
 
   vars <- year_variables(year)
@@ -469,4 +470,4 @@ build_labels <- function(years) {
 }
 
 # Usage:
-# build_labels(1998:2024)
+# build_labels(1998:2025)
