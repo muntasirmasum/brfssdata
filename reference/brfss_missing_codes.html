@@ -87,7 +87,7 @@ variable such as PHYSHLTH."><meta property="og:image" content="https://muntasirm
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.svg" class="logo" alt=""><h1>Codes CDC uses for missing-type answers</h1>
-      <small class="dont-index">Source: <a href="https://github.com/muntasirmasum/brfssdata/blob/main/R/missing_codes.R" class="external-link"><code>R/missing_codes.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/muntasirmasum/brfssdata/blob/v0.1.1/R/missing_codes.R" class="external-link"><code>R/missing_codes.R</code></a></small>
       <div class="d-none name"><code>brfss_missing_codes.Rd</code></div>
     </div>
 
@@ -173,6 +173,8 @@ the object <code><a href="read_brfss.html">read_brfss()</a></code> returned rath
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu">brfss_missing_codes</span><span class="op">(</span><span class="st">"GENHLTH"</span>, years <span class="op">=</span> <span class="fl">2023</span>, download <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">!</span> Using the label catalog snapshot bundled with the package (frozen at</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   release); `brfss_download()` caches the current copy.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 2 × 4</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    year variable  code label             </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>             </span>

@@ -2,6 +2,8 @@
 
 ## brfssdata 0.1.1
 
+CRAN release: 2026-10-18
+
 - BRFSS 2025 is available: 356,158 respondents from 47 states, the
   District of Columbia, Guam, and Puerto Rico. CDC excluded California,
   Mississippi, Nevada, and the US Virgin Islands from the 2025 public

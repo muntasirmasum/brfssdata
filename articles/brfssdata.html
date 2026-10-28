@@ -79,7 +79,7 @@
       <img src="../logo.svg" class="logo" alt=""><h1>Getting started with brfssdata</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/muntasirmasum/brfssdata/blob/main/vignettes/brfssdata.Rmd" class="external-link"><code>vignettes/brfssdata.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/muntasirmasum/brfssdata/blob/v0.1.1/vignettes/brfssdata.Rmd" class="external-link"><code>vignettes/brfssdata.Rmd</code></a></small>
       <div class="d-none name"><code>brfssdata.Rmd</code></div>
     </div>
 
@@ -264,6 +264,8 @@ definition at each rename. Asking for the first two across 2021 to 2023
 shows where one gives way to the other.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">drinks</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_brfss.html">read_brfss</a></span><span class="op">(</span><span class="fl">2021</span><span class="op">:</span><span class="fl">2023</span>, vars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"_DRNKWK1"</span>, <span class="st">"_DRNKWK2"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Downloading BRFSS 2021 (one-time, then cached).</span></span>
+<span><span class="co">#&gt; Downloading BRFSS 2022 (one-time, then cached).</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> _DRNKWK1 has no data for 2022-2023; the rename crosswalk pairs it with</span></span>
 <span><span class="co">#&gt;   _DRNKWK2 (covers 2022-2023). See brfss_crosswalk("_DRNKWK1") for the family,</span></span>
 <span><span class="co">#&gt;   its review status, and any comparability notes; combining generations is your</span></span>

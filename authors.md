@@ -8,7 +8,7 @@
 ## Citation
 
 Source:
-[`inst/CITATION`](https://github.com/muntasirmasum/brfssdata/blob/main/inst/CITATION)
+[`inst/CITATION`](https://github.com/muntasirmasum/brfssdata/blob/v0.1.1/inst/CITATION)
 
 Masum M (2026). *brfssdata: Access CDC Behavioral Risk Factor
 Surveillance System Data*.

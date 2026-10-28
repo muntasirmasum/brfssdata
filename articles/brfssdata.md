@@ -205,6 +205,8 @@ first two across 2021 to 2023 shows where one gives way to the other.
 ``` r
 
 drinks <- read_brfss(2021:2023, vars = c("_DRNKWK1", "_DRNKWK2"))
+#> Downloading BRFSS 2021 (one-time, then cached).
+#> Downloading BRFSS 2022 (one-time, then cached).
 #> ! _DRNKWK1 has no data for 2022-2023; the rename crosswalk pairs it with
 #>   _DRNKWK2 (covers 2022-2023). See brfss_crosswalk("_DRNKWK1") for the family,
 #>   its review status, and any comparability notes; combining generations is your
