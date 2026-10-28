@@ -8,18 +8,19 @@
 ## Citation
 
 Source:
-[`inst/CITATION`](https://github.com/muntasirmasum/brfssdata/blob/v0.1.1/inst/CITATION)
+[`inst/CITATION`](https://github.com/muntasirmasum/brfssdata/blob/main/inst/CITATION)
 
 Masum M (2026). *brfssdata: Access CDC Behavioral Risk Factor
 Surveillance System Data*.
 [doi:10.32614/CRAN.package.brfssdata](https://doi.org/10.32614/CRAN.package.brfssdata).
-R package version 0.1.1, <https://muntasirmasum.github.io/brfssdata/>.
+R package version 0.1.1.9000,
+<https://muntasirmasum.github.io/brfssdata/>.
 
     @Manual{brfssdata,
       title = {{brfssdata}: Access CDC Behavioral Risk Factor Surveillance System Data},
       author = {Muntasir Masum},
       year = {2026},
-      note = {R package version 0.1.1},
+      note = {R package version 0.1.1.9000},
       doi = {10.32614/CRAN.package.brfssdata},
       url = {https://muntasirmasum.github.io/brfssdata/},
     }
